@@ -18,6 +18,26 @@ from api.routes import make_app
 from game.store import GameStore
 
 
+def default_data_dir() -> Path:
+    override = os.environ.get("JUZHONGSHI_DATA_DIR")
+    if override:
+        return Path(override)
+    home = Path.home()
+    mac_path = home / "Library" / "Application Support" / "局中事"
+    if sys.platform == "darwin":
+        return mac_path
+    if sys.platform == "win32":
+        local = os.environ.get("LOCALAPPDATA") or home / "AppData" / "Local"
+        return Path(local) / "局中事"
+    xdg = os.environ.get("XDG_DATA_HOME")
+    data = Path(xdg) if xdg and Path(xdg).is_absolute() else home / ".local" / "share"
+    new_path = data / "juzhongshi"
+    # Early source builds used the Mac layout on Linux as well.
+    if not (new_path / "careers.sqlite3").exists() and (mac_path / "careers.sqlite3").is_file():
+        return mac_path
+    return new_path
+
+
 def launch() -> None:
     parser = argparse.ArgumentParser(description="局中事 · 本地游戏")
     parser.add_argument("--desktop", action="store_true", help="使用桌面窗口握手")
@@ -30,12 +50,7 @@ def launch() -> None:
     parser.add_argument(
         "--data-dir",
         type=Path,
-        default=Path(
-            os.environ.get(
-                "JUZHONGSHI_DATA_DIR",
-                Path.home() / "Library/Application Support/局中事",
-            )
-        ),
+        default=default_data_dir(),
     )
     parser.add_argument("--restore-file", type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args()

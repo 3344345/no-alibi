@@ -85,14 +85,15 @@ def render(target):
             req = Requirement(dep)
             if not req.marker or req.marker.evaluate({"extra": ""}):
                 todo.append(req.name)
-    for name in ["svelte", "vite"]:
-        folder = root / "frontend/node_modules" / name
+    frontend = root / "frontend/node_modules"
+    runtime_deps = (frontend / "svelte").resolve().parent
+    for folder in [frontend / "svelte", frontend / "vite", runtime_deps / "clsx", runtime_deps / "esm-env"]:
         pkg = json.loads((folder / "package.json").read_text())
         add(
-            "JavaScript / " + name,
+            "JavaScript / " + pkg["name"],
             pkg["version"],
             pkg.get("license"),
-            list(folder.glob("LICENSE*")),
+            [file for file in folder.iterdir() if file.name.lower().startswith("license")],
         )
     import sysconfig
 

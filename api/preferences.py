@@ -1,12 +1,16 @@
 """Device presentation settings live outside the simulated world and its history."""
 
 from contextlib import contextmanager
-import fcntl
 import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from threading import Lock
 from typing import Annotated, Literal
+
+if os.name == "nt":
+    import msvcrt
+else:
+    import fcntl
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -36,6 +40,13 @@ class PreferencesFile:
         self.memory = Preferences()
 
     def read(self) -> Preferences:
+        try:
+            with self._guard():
+                return self._read_unlocked()
+        except OSError as exc:
+            raise HTTPException(503, "本机阅读设置暂时无法读取。") from exc
+
+    def _read_unlocked(self) -> Preferences:
         if self.path is None:
             return self.memory.model_copy()
         try:
@@ -46,22 +57,28 @@ class PreferencesFile:
             raise HTTPException(503, "本机阅读设置暂时无法读取。") from exc
 
     @contextmanager
-    def _write_guard(self):
+    def _guard(self):
         with self.lock:
             if self.path is None:
                 yield
                 return
             self.path.parent.mkdir(parents=True, exist_ok=True)
             with open(self.path.with_suffix(".lock"), "a+b") as guard:
-                fcntl.flock(guard, fcntl.LOCK_EX)
+                if os.name == "nt":
+                    # Windows byte-range locks can extend past EOF. Each process
+                    # locks byte zero; closing the handle releases it on every exit.
+                    guard.seek(0)
+                    msvcrt.locking(guard.fileno(), msvcrt.LK_LOCK, 1)
+                else:
+                    fcntl.flock(guard, fcntl.LOCK_EX)
                 yield
 
     def update(self, patch: PreferencePatch) -> Preferences:
         tmp = None
         try:
-            with self._write_guard():
+            with self._guard():
                 new = Preferences.model_validate(
-                    {**self.read().model_dump(), **patch.model_dump(exclude_unset=True)}
+                    {**self._read_unlocked().model_dump(), **patch.model_dump(exclude_unset=True)}
                 )
                 if self.path is None:
                     self.memory = new

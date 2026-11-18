@@ -31,4 +31,9 @@ ditto -c -k --sequesterRsrc --keepParent "$app" "$stage/局中事-macOS-arm64.zi
 if [[ -d release/局中事.app ]]; then mv release/局中事.app "$stage/previous.app"; fi
 mv "$app" release/
 mv "$stage/局中事-macOS-arm64.zip" release/
-(cd release && shasum -a 256 局中事-macOS-arm64.zip > SHA256SUMS.txt)
+(
+  cd release
+  shopt -s nullglob
+  shasum -a 256 局中事-*.zip 局中事-*.tar.gz > "$stage/SHA256SUMS.txt"
+  mv "$stage/SHA256SUMS.txt" .
+)
