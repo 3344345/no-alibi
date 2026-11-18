@@ -1,113 +1,89 @@
-import os
-import sqlite3
+"""Launch the local game server, optionally opening the player's default browser."""
+
+from __future__ import annotations
+
+import argparse
 import json
-from datetime import datetime, timedelta
+import os
+from pathlib import Path
+import secrets
+import socket
+import sys
+import threading
+import webbrowser
 
-from ai.provider import OfflineTemplateProvider # 以后换成真实 LLM 只需改这里
-from ai.parser import IntentParser
-from ai.narrator import Narrator
-from api.gateway import CommandGateway
-from contracts.command import Command, Attempt
-from contracts.event import CommittedEvent
+import uvicorn
 
-def init_database(db_path):
-    """纯粹的数据库初始化"""
-    if os.path.exists(db_path):
-        os.remove(db_path)
-    # 数据库建表由 Gateway 内部自动完成
+from api.routes import make_app
+from game.store import GameStore
 
-def get_latest_events(conn, last_seen_seq, limit=5):
-    """读取上次看到的序列号之后的所有新事件"""
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT * FROM event_log WHERE sequence > ? ORDER BY sequence ASC LIMIT ?", 
-        (last_seen_seq, limit)
+
+def launch() -> None:
+    parser = argparse.ArgumentParser(description="局中事 · 本地游戏")
+    parser.add_argument("--desktop", action="store_true", help="使用桌面窗口握手")
+    parser.add_argument("--no-browser", action="store_true", help="仅显示本机入口")
+    parser.add_argument(
+        "--assets",
+        type=Path,
+        default=Path(__file__).resolve().parent / "frontend" / "dist",
     )
-    rows = cursor.fetchall()
-    
-    events = []
-    for row in rows:
-        events.append(CommittedEvent(
-            event_id=row[0], command_id=row[1], sequence=row[2], world_time=row[3],
-            actor_id=row[4], event_type=row[5], payload=json.loads(row[6]),
-            caused_by=json.loads(row[7]), rule_version=row[8], is_failure=bool(row[9])
-        ))
-    return events
-
-def main_game_loop():
-    print("=======================================")
-    print("  《在场证明》 No Alibi - 引擎 v2.0")
-    print("=======================================")
-    
-    db_path = "no_alibi_save.db"
-    init_database(db_path)
-
-    # 1. 依赖注入 (Dependency Injection)
-    # 以后不管你朋友用 GPT-6 还是本地大模型，只改这一行
-    llm = OfflineTemplateProvider() 
-    parser = IntentParser(llm)
-    narrator = Narrator(llm)
-    gateway = CommandGateway(db_path)
-    
-    # 2. 初始化状态追踪
-    cursor = gateway.conn.cursor()
-    cursor.execute("SELECT revision, projection FROM world_state WHERE id=1")
-    row = cursor.fetchone()
-    current_rev = row[0]
-    projection = json.loads(row[1])
-    
-    game_time = datetime(1991, 3, 1, 9, 0, 0) # 设定游戏开局时间
-    last_seen_seq = projection.get("last_sequence", 1000)
-
-    print(f"\n[开局时间]: {game_time.strftime('%Y年%m月%d日')}")
-    print("[身份]: 李达康，金山县县长")
-    print("（输入 'time' 推进时间，输入 'quit' 退出，其他指令将进入解析器）\n")
-
-    # 3. 核心循环
-    while True:
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=Path(
+            os.environ.get(
+                "JUZHONGSHI_DATA_DIR",
+                Path.home() / "Library/Application Support/局中事",
+            )
+        ),
+    )
+    parser.add_argument("--restore-file", type=Path, help=argparse.SUPPRESS)
+    args = parser.parse_args()
+    if not (args.assets / "index.html").is_file():
+        parser.exit(
+            2,
+            "缺少游戏界面资源。源码版请先在 frontend 目录运行 pnpm install --frozen-lockfile 和 pnpm build。\n",
+        )
+    args.data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    store = GameStore(args.data_dir / "careers.sqlite3")
+    if args.restore_file is not None:
         try:
-            player_input = input(">>> ").strip()
-            
-            if not player_input:
-                continue
-            if player_input.lower() == 'quit':
-                break
-                
-            # ---- 动作 A：时间推进 ----
-            if player_input.lower() == 'time':
-                game_time += timedelta(days=30) # 每次推进一个月
-                print(f"\n[系统]: 时间流逝，来到 {game_time.strftime('%Y年%m月')}...")
-                gateway.advance_time(game_time)
-            
-            # ---- 动作 B：玩家指令 ----
-            else:
-                # 这里为了兼容离线模板，暂时把输入当成预设选项（比如 choice_defer）
-                command = parser.parse(player_input, actor_id="player", current_revision=current_rev, world_time_str=game_time.isoformat())
-                success = gateway.submit_command(command.model_dump())
-                if not success:
-                    print("[系统]: 指令执行失败。")
-            
-            # ---- 统一获取新事件并渲染 ----
-            new_events = get_latest_events(gateway.conn, last_seen_seq)
-            if new_events:
-                # 更新序列号标记
-                last_seen_seq = new_events[-1].sequence
-                
-                # 更新世界版本号 (防止并发冲突)
-                cursor.execute("SELECT revision FROM world_state WHERE id=1")
-                current_rev = cursor.fetchone()[0]
-                
-                # 让 Narrator 渲染事件
-                narrative = narrator.render(new_events)
-                print("\n--- 游戏画面 ---")
-                print(narrative)
-                print("----------------\n")
+            with args.restore_file.open(encoding="utf-8") as archive:
+                store.restore(json.load(archive))
+        except (OSError, ValueError):
+            parser.exit(3, "备份未通过版本或完整性校验。\n")
+    token = secrets.token_urlsafe(32)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+        url = f"http://127.0.0.1:{port}/#session={token}"
+        server = uvicorn.Server(
+            uvicorn.Config(
+                make_app(
+                    store, token, args.assets, port, args.data_dir / "preferences.json"
+                ),
+                access_log=False,
+                log_level="error",
+                loop="asyncio",
+                http="h11",
+                ws="none",
+            )
+        )
+        if args.desktop:
 
-        except KeyboardInterrupt:
-            print("\n[系统]: 游戏已退出。")
-            break
-        except Exception as e:
-            print(f"\n[系统错误]: {e}")
+            def watch_parent():
+                # EOF from the launcher also occurs if the desktop process is terminated.
+                sys.stdin.buffer.read(1)
+                server.should_exit = True
+
+            threading.Thread(target=watch_parent, daemon=True).start()
+        sock.listen(64)
+        if args.desktop or args.no_browser:
+            print(url, flush=True)
+        else:
+            threading.Thread(target=lambda: webbrowser.open(url), daemon=True).start()
+        server.run(sockets=[sock])
+
 
 if __name__ == "__main__":
-    main_game_loop()
+    launch()

@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>局中事 · 启动恢复</title><link rel="stylesheet" href="./recovery.css"/><script defer src="./recovery.js"></script></head>
+<body><main><p class="brand">局中事</p><h1 id="heading">正在启动</h1><p id="explanation">正在连接本地游戏引擎。</p>
+  <section id="controls" hidden>
+    <button id="retry">重试启动</button>
+    <label class="restore">从备份恢复至独立档案<input id="file" type="file" accept=".json,application/json"/></label>
+    <p class="note">恢复时会校验所选 JSON 备份，并写入独立的档案目录。后续启动将使用恢复后的档案。</p>
+    <div><button id="diagnostic" class="secondary">导出启动诊断</button><button id="reveal" class="secondary" hidden>在访达中显示</button></div>
+  </section><p id="status" role="status"></p>
+</main></body></html>
