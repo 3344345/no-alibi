@@ -407,7 +407,11 @@ PEOPLE = indexed(
 PEOPLE["N22"]["contact"] = "N23"
 PROJECTS = indexed(
     "P",
-    ("name", "request", "groups", "owner", "initial", "description", "deliverable"),
+    (
+        "name", "request", "groups", "owner", "initial", "description", "deliverable",
+        "stage_case", "permit_action", "permit_note", "opening_passage", "plan_shares",
+        "sends_stage_request",
+    ),
     [
         (
             "南渠防涝",
@@ -417,6 +421,7 @@ PROJECTS = indexed(
             20,
             "汛前工序、便道开放检查与现场记录",
             "南渠西段临时通路",
+            "K03", None, None, True, {"A": [800, 5], "B": [600, 4], "C": [400, 3]}, False,
         ),
         (
             "北站配套道路",
@@ -426,6 +431,7 @@ PROJECTS = indexed(
             15,
             "跨部门会签、道路工序与工期承诺",
             "北站道路联络段",
+            "K08", "申请道路前置会签", None, False, {"A": [500, 3], "B": [900, 5]}, False,
         ),
         (
             "县医院扩建",
@@ -435,6 +441,7 @@ PROJECTS = indexed(
             10,
             "诊疗连续性、场地轮换与分区施工",
             "医院分区通道",
+            "K04", "提交医院分区运营表", "分区运营计划已签收。", False, {"A": [700, 4], "B": [500, 3]}, True,
         ),
     ],
 )

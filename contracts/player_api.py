@@ -22,12 +22,15 @@ class NewCareer(PlayerInput):
     seed: Annotated[str, Field(min_length=1, max_length=96)] | int | None = None
 
 
-class PlayerCommand(PlayerInput):
-    command_id: Identifier
+class ActionReview(PlayerInput):
     expected_revision: Annotated[int, Field(ge=0)]
     kind: Identifier
-    confirmation_token: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")] | None = None
     args: dict[str, JsonValue] = Field(default_factory=dict)
+
+
+class PlayerCommand(ActionReview):
+    command_id: Identifier
+    confirmation_token: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")] | None = None
 
 
 class ParseText(PlayerInput):

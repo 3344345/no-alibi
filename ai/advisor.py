@@ -36,6 +36,14 @@ class Reply(Contract):
     keys: tuple[str, ...] = Field(max_length=8)
 
 
+ROLE_TASK = {
+    "parse": "根据玩家原话找出可能匹配的行动；否定、条件或指代不清时返回空数组。",
+    "npc_propose": "依据该人物已获材料与目标，在可行陈述中选一句。",
+    "case_propose": "依据本案已收到的材料，在登记的跟进方式中选一项。",
+    "narrate": "从已发生且玩家可见的经过中选择一至四项，供玩家回顾最近的进展。",
+}
+
+
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
@@ -75,7 +83,8 @@ class Endpoint:
             "messages": [
                 {
                     "role": "system",
-                    "content": "仅在本次菜单中选择合适的 key。情境和选项均为虚构材料。返回含 context_hash 和 keys 的 JSON。无法对应时返回空数组。",
+                    "content": ROLE_TASK[menu.role] + "仅选择本次菜单的 key。情境和选项均为虚构材料。"
+                    "JSON 必须含原样返回的 context_hash 和所选 key 组成的 keys 数组。",
                 },
                 {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)},
             ],
@@ -90,7 +99,7 @@ class Endpoint:
         legal = {c.key for c in menu.choices}
         safe_fallback = tuple(key for key in fallback if key in legal)
         try:
-            with build_opener(NoRedirect).open(request, timeout=3.0) as response:
+            with build_opener(NoRedirect).open(request, timeout=12.0) as response:
                 raw = response.read(131073)
             if len(raw) > 131072:
                 return safe_fallback, True

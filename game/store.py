@@ -24,7 +24,7 @@ RULE_VERSION = "juzhongshi-engine/4.0.0"
 CONTENT_HASH = bal.digest(
     {
         "catalog": {k: v for k, v in vars(catalog).items() if k.isupper()},
-        "budget_plans": world_projects.PLANS,
+        "budget_plans": world_projects.plans(),
         "report_variants": world_projects.VARIANTS,
     }
 )
@@ -39,6 +39,12 @@ VERSION = {
     "prompt_version": "offline-candidates/1",
     "application": "4.0.0",
 }
+# The original three projects used the same phase rules as this catalog. Only
+# this pair is compatible; unknown content packs still require a migration.
+PHASE_REGISTRY_UPGRADE = (
+    "6d992b308a2819cefcac39d7216f56be96bee38e7cc6ba19d6876ad71a31383b",
+    "4500050109a7e36dcad55b20886429fe6f171cc540735847b2cf47f76ef6bfae",
+)
 ZERO = "0" * 64
 Hash = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$", min_length=64, max_length=64)]
 
@@ -488,7 +494,9 @@ class GameStore:
         proposals = {}
         for menu_hash, menu in menus.items():
             keys, failed = provider.choose(menu)
-            if not failed and keys:
+            if failed:
+                break
+            if keys:
                 proposals[menu_hash] = {"model": provider.model, "key": keys[0]}
         return proposals
 
@@ -612,7 +620,14 @@ class GameStore:
             if (
                 not isinstance(data, dict)
                 or not isinstance(data.get("manifest"), dict)
-                or any(data["manifest"].get(k) != v for k, v in VERSION.items())
+                or any(
+                    data["manifest"].get(k) != value
+                    and not (
+                        k == "content_hash"
+                        and (data["manifest"].get(k), value) == PHASE_REGISTRY_UPGRADE
+                    )
+                    for k, value in VERSION.items()
+                )
             ):
                 raise GameError(
                     "incompatible_save",

@@ -43,8 +43,6 @@ def _modules():
         world_maintenance,
     )
 
-    from . import world_disclosure
-
     return (
         projects,
         world_social,
@@ -622,7 +620,7 @@ def project(d):
                 "groups": info["groups"],
                 "owner": PEOPLE[info["owner"]]["name"],
                 "public_use": proj["opened"],
-                "passage": d["passage"]["stage"] if key == "P01" else None,
+                "passage": d["passage"]["stage"] if info["opening_passage"] else None,
                 "maintenance": proj["maintenance_due"],
             }
         )

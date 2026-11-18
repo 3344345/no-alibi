@@ -136,7 +136,6 @@ def complete(d, kind, args, ctx):
                 refs=(w["source"],),
             )
             return True
-    f = d["family"]
     # All seats share the same daily recovery allowance.
     from . import world_social
 

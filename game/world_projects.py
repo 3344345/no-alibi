@@ -1,18 +1,24 @@
 from .catalog import DAY, PROJECTS, WAN
 from .world_common import action, arc, case, contact, know, start_job, visible_doc
 
-# Quantities describe a first-stage allocation, in ten thousand yuan and crew slots.
-PLANS = {
-    "A": {
-        "name": "南渠与医院优先",
-        "parts": {"P01": (800, 5), "P02": (500, 3), "P03": (700, 4)},
-    },
-    "B": {
-        "name": "道路优先、医院分区",
-        "parts": {"P01": (600, 4), "P02": (900, 5), "P03": (500, 3)},
-    },
-    "C": {"name": "先办南渠一段，保留余量", "parts": {"P01": (400, 3)}},
-}
+PLAN_NAMES = {"A": "南渠与医院优先", "B": "道路优先、医院分区", "C": "先办南渠一段，保留余量"}
+
+
+def plans():
+    """Plan shares are registered with the projects they fund (万元 and crew slots)."""
+    return {
+        code: {"name": name, "parts": {
+            key: spec["plan_shares"][code]
+            for key, spec in PROJECTS.items() if code in spec["plan_shares"]
+        }}
+        for code, name in PLAN_NAMES.items()
+    }
+
+
+def passage_project():
+    return next(p for p in PROJECTS.values() if p["opening_passage"])
+
+
 VARIANTS = (
     (
         20,
@@ -67,22 +73,23 @@ def setup(d, variant):
     d["projects"] = {}
     for key, p in PROJECTS.items():
         d["projects"][key] = {
-            "progress": v[0] if key == "P01" else p["initial"],
+            "progress": v[0] if p["opening_passage"] else p["initial"],
             "phase": "拟议",
-            "permit": key == "P01",
+            "permit": p["permit_action"] is None,
             "stage_share": 0,
             "paid": 0,
             "checked": False,
             "opened": False,
             "maintenance_due": False,
             "report": v[1]
-            if key == "P01"
+            if p["opening_passage"]
             else f"项目主管报告：当前进度 {p['initial']} 个计量单位。",
             "work_done": False,
             "approvals": [],
             "stage_number": 1,
             "stage_history": [],
         }
+    opening = passage_project()
     d["passage"] = {
         "built": True,
         "safe": variant != 3,
@@ -100,7 +107,7 @@ def setup(d, variant):
         "groups": {},
     }
     visible_doc(
-        d, "D01-r1", "南渠防涝 · 进度简报", v[1], "N08", v[3], date="第1天 · 来文"
+        d, "D01-r1", "南渠防涝 · 进度简报", v[1], opening["owner"], v[3], date="第1天 · 来文"
     )
     visible_doc(
         d,
@@ -114,10 +121,10 @@ def setup(d, variant):
     if variant == 3:
         visible_doc(
             d,
-            "P01-photo-east",
+            opening["id"] + "-photo-east",
             "西段近端 · 简报所附原图",
             "原图边缘保留西段标桩。镜头朝东，只拍到铺装表面，南侧背面在取景范围外。",
-            "N08",
+            opening["owner"],
             "西段标桩、朝东近端",
             kind="附件照片",
             date="第1天 · 晨间踏查",
@@ -250,7 +257,7 @@ def options(d):
             )
     if (
         passage["stage"] in ("检查通过", "待整改")
-        and ("N08" if passage["stage"] == "检查通过" else "N17") not in d["busy"]
+        and (passage_project()["owner"] if passage["stage"] == "检查通过" else "N17") not in d["busy"]
         and loc in ("L01", "L02")
     ):
         step = "approve" if passage["stage"] == "检查通过" else "repair"
@@ -281,7 +288,7 @@ def options(d):
                 a.append(
                     action(
                         "permit",
-                        "申请道路前置会签" if key == "P02" else "提交医院分区运营表",
+                        PROJECTS[key]["permit_action"],
                         "前置环节由项目主管办理，批准经费本身不能代替。",
                         "工作时段审理",
                         "项目协调",
@@ -289,7 +296,7 @@ def options(d):
                     )
                 )
     if loc == "L03":
-        for key, plan in PLANS.items():
+        for key, plan in plans().items():
             if any(r.get("decision_key") == offer_key(d, key) for r in d["offers"]):
                 continue
             if any(d["projects"][pid]["phase"] != "拟议" for pid in plan["parts"]):
@@ -442,7 +449,7 @@ def act(d, k, args, ctx):
         return True
     if k == "passage":
         step = args["step"]
-        actor = {"inspect": "N18", "repair": "N17", "approve": "N08", "open": "N17"}[
+        actor = {"inspect": "N18", "repair": "N17", "approve": passage_project()["owner"], "open": "N17"}[
             step
         ]
         if step == "repair":
@@ -482,7 +489,7 @@ def act(d, k, args, ctx):
         )
         return True
     if k == "propose":
-        plan = PLANS[args["plan"]]
+        plan = plans()[args["plan"]]
         oid = f"OF-{len(d['offers']) + 1}"
         terms = {
             p: {"amount": n * WAN, "groups": g} for p, (n, g) in plan["parts"].items()
@@ -617,7 +624,7 @@ def act(d, k, args, ctx):
         )
         case(
             d,
-            {"P01": "K03", "P02": "K08", "P03": "K04"}[key],
+            PROJECTS[key]["stage_case"],
             "active",
             ref,
             "新阶段草案触发旧事项复核。",
@@ -686,7 +693,7 @@ def complete(d, k, p, ctx):
         if mode == "full":
             body += " 程向晚可以按标桩、日期、照片方向逐项提供自己的原始记录。"
         ref = report(
-            "D01-brief", "办公室口头汇报摘录", body, "N08", "本次口头汇报", "人物陈述"
+            "D01-brief", "办公室口头汇报摘录", body, passage_project()["owner"], "本次口头汇报", "人物陈述"
         )
         if mode == "full":
             contact(d, "N18")
@@ -701,7 +708,7 @@ def complete(d, k, p, ctx):
             "仅本人到达的位置",
             "本人观察",
         )
-        case(d, "K03", "active", ref, body)
+        case(d, passage_project()["stage_case"], "active", ref, body)
         contact(d, "N18")
         return True
     if k == "evidence":
@@ -753,7 +760,7 @@ def complete(d, k, p, ctx):
                 else "检查发现西段护栏尚待收尾；需要班组整改并重新检查。"
             )
             ref = report(
-                f"P01-inspect-{len(passage.get('checks', [])) + 1}",
+                f"{passage_project()['id']}-inspect-{len(passage.get('checks', [])) + 1}",
                 "临时便道检查记录",
                 body,
                 "N18",
@@ -776,7 +783,7 @@ def complete(d, k, p, ctx):
             ref = ctx.emit(
                 "水务主管依据本次检查记录批准西段开放，现场仍待执行。",
                 title="取得批准",
-                actor="N08",
+                actor=passage_project()["owner"],
                 refs=(passage["check_ref"],),
             )
             passage["approval_ref"] = ref
@@ -796,7 +803,7 @@ def complete(d, k, p, ctx):
             d["career"]["deliveries"] += 1
         case(
             d,
-            "K03",
+            passage_project()["stage_case"],
             "resolved" if passage["opened"] else "active",
             ref,
             passage["stage"],
@@ -813,8 +820,8 @@ def complete(d, k, p, ctx):
             PROJECTS[key]["owner"],
             "首期工序",
         )
-        if key == "P03":
-            case(d, "K04", "active", ref, "分区运营计划已签收。")
+        if note := PROJECTS[key]["permit_note"]:
+            case(d, PROJECTS[key]["stage_case"], "active", ref, note)
         return True
     if k == "offer_review":
         row = next(x for x in d["offers"] if x["id"] == p["offer"])
@@ -931,7 +938,7 @@ def complete(d, k, p, ctx):
             )
             case(
                 d,
-                {"P01": "K03", "P02": "K08", "P03": "K04"}[key],
+                PROJECTS[key]["stage_case"],
                 "resolved",
                 ref,
                 "本阶段设施已经实际交付。",

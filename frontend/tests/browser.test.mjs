@@ -486,6 +486,9 @@ test(
       await modal.getByRole('button', { name: '取消' }).click()
       assert.equal((await current(page)).revision, v.revision)
       await page.getByRole('button', { name: /申请主动离任/ }).click()
+      await modal.waitFor()
+      const updatedAction = (await current(page)).actions.find((a) => a.kind === exitAction.kind && a.label === exitAction.label)
+      assert.notEqual(updatedAction.confirmation_token, exitAction.confirmation_token)
       let original
       const interrupted = async (route) => {
         original = route.request().postDataJSON()
@@ -497,7 +500,7 @@ test(
       await modal.getByRole('button', { name: '确认办理' }).click()
       await page.getByRole('button', { name: '核对并重试' }).waitFor()
       await page.unroute('**/commands', interrupted)
-      assert.equal(original.confirmation_token, exitAction.confirmation_token)
+      assert.equal(original.confirmation_token, updatedAction.confirmation_token)
       const retry = page.waitForRequest((r) => r.url().endsWith('/commands'))
       await page.getByRole('button', { name: '核对并重试' }).click()
       assert.deepEqual((await retry).postDataJSON(), original)
@@ -510,3 +513,169 @@ test(
     }
   },
 )
+
+test('player package exposes no Inspector routes to an authenticated player', async () => {
+  const token = new URLSearchParams(new URL(session).hash.slice(1)).get('session')
+  const headers = { Authorization: 'Bearer ' + token }
+  const catalog = await fetch(address + '/api/starts', { headers })
+  assert.equal(catalog.status, 200)
+  const career = await fetch(address + '/api/worlds', {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ start: 'S01', name: '边界复核', balance: '0.500000' }),
+  })
+  assert.equal(career.status, 201)
+  const { id } = await career.json()
+  for (const path of ['/inspector', '/api/inspector', '/api/worlds/' + id + '/inspector', '/openapi.json']) {
+    const reply = await fetch(address + path, { headers })
+    assert.equal(reply.status, 404, path)
+    assert.deepEqual(await reply.json(), { detail: 'Not Found' })
+  }
+})
+
+test('a delayed recap cannot reopen an old revision after the player moves on', {timeout: 45000}, async () => {
+  const ctx = await browser.newContext(), page = await ctx.newPage()
+  let release
+  const delayed = new Promise((resolve) => { release = resolve })
+  try {
+    await openCareer(page, false)
+    await navigate(page, '日程')
+    let captured
+    const ready = new Promise((resolve) => { captured = resolve })
+    await page.route('**/recap', async (route) => {
+      const response = await route.fetch()
+      captured()
+      await delayed
+      await route.fulfill({response})
+    })
+    await page.getByRole('button', { name: '回顾近期经过' }).click()
+    await ready
+    const receipt = page.waitForResponse((r) => r.url().endsWith('/commands'))
+    await page.getByRole('button', { name: '按时长推进' }).click()
+    assert.equal((await receipt).status(), 200)
+    await page.waitForFunction(() => document.querySelector('.clock b')?.textContent !== '09:00')
+    release()
+    await page.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => b.textContent.trim() === '回顾近期经过' && !b.disabled))
+    assert.equal(await page.getByRole('dialog', {name:'近期经过'}).count(), 0)
+    await page.unroute('**/recap')
+    await page.getByRole('button', { name: '回顾近期经过' }).click()
+    await page.getByRole('dialog', {name:'近期经过'}).waitFor()
+  } finally {
+    release()
+    await ctx.close()
+  }
+})
+
+test('report choices, social and family visits, notebook custody and a twelve-quarter transfer', {timeout: 180000}, async () => {
+  const ctx = await browser.newContext(), page = await ctx.newPage()
+  async function commit(click) {
+    const reply = page.waitForResponse((r) => r.url().endsWith('/commands') && r.request().method() === 'POST')
+    await click()
+    const response = await reply
+    assert.equal(response.status(), 200)
+    return response.json()
+  }
+  async function act(kind, args = {}, values = {}) {
+    const state = await current(page)
+    const action = state.actions.find((a) => a.kind === kind &&
+      Object.entries(args).every(([key, value]) => a.args[key] === value))
+    assert.ok(action, kind + ' at ' + state.location.name)
+    await navigate(page, '行动')
+    const button = page.locator('.action-row').filter({has: page.getByText(action.label, {exact: true})})
+    if (action.fields.length || action.confirm || ['destroy_note', 'confirm_note', 'stage_end', 'career_exit'].includes(kind)) {
+      await button.click()
+      const dialog = page.getByRole('dialog', {name: action.label})
+      for (const [field, value] of Object.entries(values)) await dialog.getByLabel(field).fill(value)
+      return commit(() => dialog.getByRole('button', {name: '确认办理'}).click())
+    }
+    return commit(() => button.click())
+  }
+  async function wait(label = '1 小时') {
+    await navigate(page, '日程')
+    await page.getByLabel('推进时长').selectOption({label})
+    return commit(() => page.getByRole('button', {name: '按时长推进'}).click())
+  }
+  async function travel(place) {
+    await act('travel', {location: place})
+    let view = await wait()
+    if (view.location.id !== place) view = await wait()
+    assert.equal(view.location.id, place)
+  }
+  try {
+    const choices = [['no','full'],['later','skip'],['free','short'],['yes','full']]
+    for (const [choice, mode] of choices) {
+      await openCareer(page, false)
+      let view = await act('invite', {choice}, choice === 'free' ? {'回复内容': '我愿意赴约。'} : {})
+      assert.ok(view.documents.find((d) => d.id === 'INVITE-reply'))
+      view = await act('report', {mode})
+      if (view.busy) await wait('8 小时')
+      if (choice !== 'yes') await page.getByRole('button', {name:'局中事 主菜单'}).click()
+    }
+    await act('appointment', {place:'L05'})
+    await act('write_note', {}, {'记录原文':'等收件人确认会面，原报告仍待核对。'})
+    await act('leave_note')
+    await travel('L04')
+    const atDinner = await current(page)
+    assert.equal(atDinner.notebook.accessible, false)
+    const publicData = await page.evaluate(async ({world_id, revision}) => {
+      const path = '/api/worlds/' + encodeURIComponent(world_id)
+      const headers = {Authorization: 'Bearer ' + sessionStorage.getItem('jzs-local-session')}
+      const surfaces = await Promise.all(['', '/history', '/recap'].map(async (suffix) => {
+        const response = await fetch(path + suffix, {headers})
+        if (!response.ok) throw Error('Cannot read ' + suffix)
+        return response.text()
+      }))
+      const controller = new AbortController()
+      const updates = await fetch(path + '/events?after=' + (revision - 1), {headers, signal:controller.signal})
+      const reader = updates.body.getReader(), decoder = new TextDecoder()
+      let wire = ''
+      try {
+        while (!wire.includes('data:') || !wire.endsWith('\n\n')) {
+          const next = await reader.read()
+          if (next.done) break
+          wire += decoder.decode(next.value, {stream:true})
+        }
+      } finally {
+        controller.abort()
+      }
+      return {surfaces, wire}
+    }, {world_id:atDinner.world_id, revision:atDinner.revision})
+    assert.match(publicData.wire, /event: update/)
+    for (const response of [...publicData.surfaces, publicData.wire]) {
+      for (const marker of ['等收件人确认会面，原报告仍待核对。','排期初始归档','"beliefs"','"health_window"','"rng_seed"','V4-TV01']) {
+        assert.ok(!response.includes(marker), 'hidden information reached the player channel')
+      }
+    }
+    await act('mentor', {who:'N12', mode:'ask'})
+    await wait()
+    await act('speak', {mode:'limited'})
+    await wait()
+    await act('speak', {mode:'decline'})
+    await wait()
+    await travel('L07')
+    await act('family_plan', {mode:'share'})
+    await wait()
+    await travel('L01')
+    await act('take_note')
+    await act('copy_note')
+    await wait()
+    await act('destroy_note')
+    let view = await act('confirm_note', {choice:'yes'})
+    assert.equal(view.notebook.accessible, false)
+    for (let i = 0; i < 12; i++) view = await wait('90 天')
+    assert.ok(view.quarter >= 13)
+    const id = view.world_id
+    await page.reload()
+    await page.getByRole('button', {name: '继续生涯'}).click()
+    assert.equal((await current(page)).world_id, id)
+    assert.equal((await current(page)).revision, view.revision)
+    await act('career_exit', {reason:'transfer'})
+    await wait('7 天')
+    view = await act('stage_end', {id:'END04'})
+    assert.equal(view.ending.id,'END04')
+    await page.getByRole('button', {name:/回看已知经过/}).click()
+    await page.locator('.timeline article').first().waitFor()
+  } finally {
+    await ctx.close()
+  }
+})

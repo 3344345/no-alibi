@@ -1,6 +1,6 @@
 use std::{
     collections::hash_map::DefaultHasher,
-    fs::{self, OpenOptions},
+    fs::{self, File, OpenOptions, TryLockError},
     hash::{Hash, Hasher},
     io::{BufRead, BufReader, Write},
     os::unix::fs::OpenOptionsExt,
@@ -279,31 +279,52 @@ fn reveal_diagnostic(window: WebviewWindow) -> Result<(), String> {
     Ok(())
 }
 
-fn main() {
+fn claim_instance(identifier: &str) -> std::io::Result<Option<File>> {
+    // The lock survives the entire run and the OS releases it even after a crash.
+    // A second process leaves a focus request without starting a second engine.
+    let path = std::env::temp_dir().join(format!("{identifier}.instance"));
+    let mut file = OpenOptions::new()
+        .create(true)
+        .read(true)
+        .append(true)
+        .mode(0o600)
+        .open(path)?;
+    match file.try_lock() {
+        Ok(()) => {
+            file.set_len(0)?;
+            Ok(Some(file))
+        }
+        Err(TryLockError::WouldBlock) => {
+            file.write_all(b".")?;
+            Ok(None)
+        }
+        Err(TryLockError::Error(error)) => Err(error),
+    }
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut context = tauri::generate_context!();
     // Explicit data directories are separate player profiles. Each profile still has a single launcher.
     if let Some(path) = std::env::var_os("JUZHONGSHI_DATA_DIR") {
         let path = PathBuf::from(path);
+        let _ = fs::create_dir_all(&path);
         let mut hash = DefaultHasher::new();
         path.canonicalize().unwrap_or(path).hash(&mut hash);
         context.config_mut().identifier =
             format!("games.juzhongshi.profile.{:016x}", hash.finish());
     }
+    let Some(instance) = claim_instance(&context.config().identifier)? else {
+        return Ok(());
+    };
+    let focus_requests = instance.try_clone()?;
     let app = tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
-            if let Some(w) = app.get_webview_window("main") {
-                let _ = w.unminimize();
-                let _ = w.show();
-                let _ = w.set_focus();
-            }
-        }))
         .manage(Engine::default())
         .invoke_handler(tauri::generate_handler![
             recover_engine,
             save_diagnostic,
             reveal_diagnostic
         ])
-        .setup(|app| {
+        .setup(move |app| {
             let handle = app.handle().clone();
             let nav = handle.clone();
             WebviewWindowBuilder::new(
@@ -323,8 +344,14 @@ fn main() {
             begin(handle.clone(), None).map_err(std::io::Error::other)?;
             thread::spawn(move || loop {
                 thread::sleep(Duration::from_millis(350));
-                if handle.get_webview_window("main").is_none() {
+                let Some(window) = handle.get_webview_window("main") else {
                     break;
+                };
+                if focus_requests.metadata().is_ok_and(|stat| stat.len() > 0) {
+                    let _ = focus_requests.set_len(0);
+                    let _ = window.unminimize();
+                    let _ = window.show();
+                    let _ = window.set_focus();
                 }
                 let died = {
                     let runtime = handle.state::<Engine>();
@@ -350,4 +377,5 @@ fn main() {
             }
         }
     });
+    Ok(())
 }

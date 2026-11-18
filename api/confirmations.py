@@ -3,6 +3,8 @@
 import hashlib
 import hmac
 import secrets
+from contextlib import nullcontext
+from threading import RLock
 from game.balance import canonical
 
 
@@ -23,28 +25,47 @@ def consequence(kind, args):
 class Confirmations:
     def __init__(self):
         self._key = secrets.token_bytes(32)
+        self._generations = {}
+        self.lock = RLock()
+
+    def guard(self, command):
+        return self.lock if consequence(command.kind, command.args) else nullcontext()
+
+    def renew(self, world_id, revision, action):
+        slot = (world_id, action["kind"])
+        with self.lock:
+            self._generations[slot] = self._generations.get(slot, 0) + 1
+            return self.for_action(world_id, revision, action)
+
+    def for_action(self, world_id, revision, action):
+        reason = consequence(action["kind"], action.get("args", {}))
+        if not reason:
+            return action
+        return {
+            **action,
+            "confirm": reason,
+            "confirmation_token": self.signature(
+                world_id, revision, action["kind"], action["args"]
+            ),
+        }
 
     def signature(self, world_id, rev, kind, args):
-        payload = canonical(["player", world_id, rev, kind, args]).encode()
+        with self.lock:
+            generation = self._generations.get((world_id, kind), 0)
+        payload = canonical(["player", world_id, rev, kind, args, generation]).encode()
         return hmac.new(self._key, payload, hashlib.sha256).hexdigest()
 
     def attach(self, original):
         view = {**original, "id": original["world_id"]}
         if "actions" not in view:
             return view
-        actions = []
-        for item in view["actions"]:
-            reason = consequence(item["kind"], item.get("args", {}))
-            if reason:
-                item = {
-                    **item,
-                    "confirm": reason,
-                    "confirmation_token": self.signature(
-                        view["id"], view["revision"], item["kind"], item.get("args", {})
-                    ),
-                }
-            actions.append(item)
-        return {**view, "actions": actions}
+        return {
+            **view,
+            "actions": [
+                self.for_action(view["id"], view["revision"], a)
+                for a in view["actions"]
+            ],
+        }
 
     def accepts(self, world_id, command):
         if not consequence(command.kind, command.args):

@@ -358,10 +358,11 @@ def act(d, k, p, ctx):
             else "记事本已经收回。",
             title="物品交接",
         )
+        nb["custody_ref"] = ref
         if k == "leave_note" and nb["entries"] and loc in ("L01", "L07"):
             ctx.schedule(
                 "notice_note",
-                {"place": loc, "source": ref},
+                {"place": loc, "source": ref, "placement": ref},
                 60,
                 title="例行收拾",
                 visible=False,
@@ -597,6 +598,8 @@ def complete(d, k, p, ctx):
         return True
     if k in ("notice_note", "read_note"):
         if nb["location"] != p["place"] or not nb["entries"]:
+            return True
+        if "custody_ref" in nb and nb["custody_ref"] != p.get("placement"):
             return True
         who = "N10" if p["place"] == "L01" else "N14"
         from .world import present

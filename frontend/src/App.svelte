@@ -3,7 +3,7 @@
   import { api, ApiError, download, message, importSave } from './api'
   import { watchWorld } from './live'
   import { balanceString, dateAt, saveFile, stamp, starts, str, title } from './game'
-  import type { Action, AttemptResult, Choice, Command, Page, Row, Value, View, World } from './types'
+  import type { Action, Attempt, AttemptResult, Choice, Command, Page, Row, Value, View, World } from './types'
   import Menu from './Menu.svelte'
   import Dialog from './Dialog.svelte'
   import Balance from './Balance.svelte'
@@ -38,7 +38,8 @@
     parseNote = ''
   let parsedStatus = '',
     lastAttempts: AttemptResult[] = []
-  let options: Choice[] = [],
+  let attempts: Attempt[] = [],
+    options: Choice[] = [],
     picked: Action | null = null,
     formValues: Record<string, Value> = {}
   let draftBalance = '0.500000',
@@ -99,6 +100,7 @@
     parsedStatus === 'parsed' &&
     options.length > 1 &&
     options.length <= 8 &&
+    attempts.length === options.length &&
     options.every((c) => {
       const a = matchAction(v, c)
       return !!a && a.enabled !== false && !c.confirm && !c.fields?.length && !separateConfirmation(a)
@@ -340,12 +342,6 @@
   }
   function batch() {
     if (!batchable) return
-    const attempts = options.map((choice, i) => ({
-      id: 'a' + (i + 1),
-      kind: choice.kind,
-      args: choice.args,
-      depends_on: [],
-    }))
     void send('batch', { attempts })
   }
   function selectAction(a: Action, extra: Record<string, Value> = {}) {
@@ -357,7 +353,18 @@
       ),
       ...extra,
     }
-    if (separateConfirmation(a)) {
+    if (a.confirmation_token) {
+      const world = v.world_id, revision = v.revision, currentPage = page
+      void task(async () => {
+        const reviewed = await api<Action>('/worlds/' + encodeURIComponent(world) + '/review', {
+          expected_revision: revision, kind: a.kind, args: a.args ?? {},
+        })
+        if (v?.world_id === world && v.revision === revision && page === currentPage) {
+          picked = reviewed
+          formValues = values
+        }
+      })
+    } else if (separateConfirmation(a)) {
       picked = a
       formValues = values
     } else {
@@ -433,13 +440,15 @@
   }
   async function parseIntent() {
     if (!v || !prompt.trim() || busy) return
+    const world = v.world_id, revision = v.revision, text = prompt.trim()
     await task(async () => {
-      const result = await api<{ status: string; options: Choice[]; message: string }>(
-        '/worlds/' + worldName + '/parse',
-        { text: prompt.trim() },
+      const result = await api<{ status: string; options: Choice[]; attempts: Attempt[]; message: string }>(
+        '/worlds/' + encodeURIComponent(world) + '/parse', { text },
       )
+      if (v?.world_id !== world || v.revision !== revision || prompt.trim() !== text || page !== '行动') return
       parsedStatus = result.status
       options = result.options
+      attempts = result.attempts
       parseNote = result.message
       notice = ''
       receipt = ''
@@ -773,6 +782,7 @@
                   on:click={() => chooseOption(option)}
                 >
                   <strong>{options.length > 1 ? i + 1 + ' · ' : ''}选择「{option.label}」 →</strong>
+                  {#if batchable && attempts[i]?.depends_on.length}<small>须等第 {i} 项受理后才能办理</small>{/if}
                   {#if visible?.description}<small>{visible.description}</small>{/if}
                   {#if option.cost || visible?.cost}<small
                       >办理代价 · {option.cost ?? visible?.cost}</small
@@ -792,7 +802,7 @@
               <section class="paper">
                 <div class="section-title">
                   <h2>已知行程</h2>
-                  <Recap worldId={v.world_id} {detailed} />
+                  <Recap worldId={v.world_id} revision={v.revision} {detailed} />
                 </div>
                 {#if v.appointments?.length}<ol class="agenda">
                     {#each v.appointments as a}<li>
@@ -841,7 +851,7 @@
             </div>
             {#if archiveTab === '经过'}<div class="section-title">
                 <h2>已知经过</h2>
-                <Recap worldId={v.world_id} {detailed} />
+                <Recap worldId={v.world_id} revision={v.revision} {detailed} />
               </div>
               <History worldId={v.world_id} revision={v.revision} {detailed}/>
             {:else}

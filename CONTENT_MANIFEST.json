@@ -476,7 +476,26 @@
       "owner": "N08",
       "initial": 20,
       "description": "汛前工序、便道开放检查与现场记录",
-      "deliverable": "南渠西段临时通路"
+      "deliverable": "南渠西段临时通路",
+      "stage_case": "K03",
+      "permit_action": null,
+      "permit_note": null,
+      "opening_passage": true,
+      "plan_shares": {
+        "A": [
+          800,
+          5
+        ],
+        "B": [
+          600,
+          4
+        ],
+        "C": [
+          400,
+          3
+        ]
+      },
+      "sends_stage_request": false
     },
     {
       "id": "P02",
@@ -486,7 +505,22 @@
       "owner": "N07",
       "initial": 15,
       "description": "跨部门会签、道路工序与工期承诺",
-      "deliverable": "北站道路联络段"
+      "deliverable": "北站道路联络段",
+      "stage_case": "K08",
+      "permit_action": "申请道路前置会签",
+      "permit_note": null,
+      "opening_passage": false,
+      "plan_shares": {
+        "A": [
+          500,
+          3
+        ],
+        "B": [
+          900,
+          5
+        ]
+      },
+      "sends_stage_request": false
     },
     {
       "id": "P03",
@@ -496,7 +530,22 @@
       "owner": "N09",
       "initial": 10,
       "description": "诊疗连续性、场地轮换与分区施工",
-      "deliverable": "医院分区通道"
+      "deliverable": "医院分区通道",
+      "stage_case": "K04",
+      "permit_action": "提交医院分区运营表",
+      "permit_note": "分区运营计划已签收。",
+      "opening_passage": false,
+      "plan_shares": {
+        "A": [
+          700,
+          4
+        ],
+        "B": [
+          500,
+          3
+        ]
+      },
+      "sends_stage_request": true
     }
   ],
   "cases": [

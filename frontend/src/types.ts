@@ -1,5 +1,6 @@
 export type Value = string | number | boolean
 export type JsonValue = Value | null | JsonValue[] | { [key: string]: JsonValue }
+export type Attempt = { id: string; kind: string; args: Record<string, JsonValue>; depends_on: string[] }
 export type AttemptResult = { id: string; status: string; text: string }
 export type Data = Record<string, unknown>
 export type Row = Data & {

@@ -24,7 +24,14 @@ func nodes(_ element: AXUIElement, _ depth: Int = 0) -> [AXUIElement] {
 }
 _ = AXUIElementSetAttributeValue(app,"AXEnhancedUserInterface" as CFString,kCFBooleanTrue)
 let children = value(app,kAXChildrenAttribute as CFString) as? [AXUIElement] ?? []
-let windows = children.filter { value($0,kAXRoleAttribute as CFString) as? String == "AXWindow" }
+var windows = children.filter { value($0,kAXRoleAttribute as CFString) as? String == "AXWindow" }
+// On macOS a WebKit file panel can be focused while AXWindows is empty.
+for key in [kAXFocusedWindowAttribute, kAXMainWindowAttribute] {
+    if let object = value(app,key as CFString), CFGetTypeID(object) == AXUIElementGetTypeID() {
+        let window = object as! AXUIElement
+        if !windows.contains(where: { CFEqual($0,window) }) { windows.append(window) }
+    }
+}
 let all = windows.flatMap { nodes($0) }
 func matches(_ e: AXUIElement, _ needle: String) -> Bool {
     [kAXTitleAttribute,kAXDescriptionAttribute,kAXValueAttribute].contains {
@@ -59,6 +66,9 @@ if command == "type" {
     up.postToPid(pid)
     exit(0)
 }
-guard let target = all.first(where:{ matches($0,argv[3]) }) else { exit(1) }
+guard let target = all.first(where:{
+    matches($0,argv[3]) && value($0,kAXRoleAttribute as CFString) as? String != "AXWindow"
+}) else { exit(1) }
+if command == "open" {exit(AXUIElementPerformAction(target,"AXOpen" as CFString) == .success ? 0:4)}
 if command == "press" {exit(AXUIElementPerformAction(target,kAXPressAction as CFString) == .success ? 0:4)}
 exit(0)

@@ -1,6 +1,6 @@
 """A case file can outlive its project phase. Every new submission needs a source."""
 
-from .catalog import DAY, PEOPLE
+from .catalog import DAY, PEOPLE, PROJECTS
 from .world_common import action, case, know, visible_doc
 
 # Document patterns address only records actually received by this player.
@@ -107,7 +107,10 @@ FILES = {
 
 def available(d, key):
     _, patterns, _, _ = FILES[key]
-    return [doc for doc in d["docs"].values() if doc["id"].startswith(patterns)]
+    stage_prefixes = tuple(
+        project + "-" for project, spec in PROJECTS.items() if spec["stage_case"] == key
+    )
+    return [doc for doc in d["docs"].values() if doc["id"].startswith(patterns + stage_prefixes)]
 
 
 def options(d):

@@ -31,18 +31,16 @@ def send_plan(domain, sender, ctx):
         "source": dispatch,
         "copy_office": copy_office,
     }
-    if (
-        sender == "N09"
-        and recipient == "N06"
-        and domain["projects"]["P03"]["phase"] == "拟议"
-    ):
-        # The hospital submits its own registered stage request at its scheduled
-        # planning turn. This is an application; it creates no reservation.
-        message["stage_request"] = {
-            "amount": PROJECTS["P03"]["request"],
-            "groups": PROJECTS["P03"]["groups"],
-            "quarter": domain["quarter"],
-        }
+    if recipient == "N06":
+        requests = [
+            {"project": key, "amount": spec["request"], "groups": spec["groups"],
+             "quarter": domain["quarter"]}
+            for key, spec in PROJECTS.items()
+            if spec["sends_stage_request"] and sender == spec["owner"]
+            and domain["projects"][key]["phase"] == "拟议"
+        ]
+        if requests:
+            message["stage_requests"] = requests
     delay = ctx.duration("message_queue", 30, 70)
     ctx.schedule(
         "office_delivery",
@@ -55,7 +53,7 @@ def send_plan(domain, sender, ctx):
 
 def deliver_plan(domain, message, ctx):
     if message.get("stage") == "review":
-        return review_hospital_request(domain, message, ctx)
+        return review_stage_request(domain, message, ctx)
     sender, recipient = message["sender"], message["recipient"]
     source = message["source"]
     receipt = ctx.emit(
@@ -66,10 +64,14 @@ def deliver_plan(domain, message, ctx):
         refs=(source,),
     )
     know(domain, recipient, receipt, message["body"])
+    # Previously saved in-flight deliveries carried one request without a project ID.
+    requests = message.get("stage_requests", [])
     if "stage_request" in message:
+        requests = [message["stage_request"]]
+    for request in requests:
         ctx.schedule(
             "office_delivery",
-            {"stage": "review", "request": message["stage_request"], "source": receipt},
+            {"stage": "review", "request": request, "source": receipt},
             ctx.duration("admin", 30, 100),
             visible=False,
         )
@@ -97,25 +99,28 @@ def deliver_plan(domain, message, ctx):
         arc(domain, "V4-ARC02", "财政征集分期方案", office)
 
 
-def review_hospital_request(domain, message, ctx):
+def review_stage_request(domain, message, ctx):
     request = message["request"]
+    key = request.get("project", "P03")  # Pre-registry saves only sent hospital requests.
+    owner = PROJECTS[key]["owner"]
+    unit = PEOPLE[owner]["role"].removesuffix("负责人")
     amount, groups = request["amount"], request["groups"]
     fiscal = domain["fiscal"]
     available = min(fiscal["annual_left"], 2000 * WAN - fiscal["quarter_used"])
-    if domain["projects"]["P03"]["phase"] != "拟议":
+    if domain["projects"][key]["phase"] != "拟议":
         return
     if available < amount or 12 - sum(fiscal["groups"].values()) < groups:
-        body = "本轮未能落实容量。医院下轮再提交分区安排。"
+        body = f"本轮未能落实容量。{unit}下轮再提交阶段安排。"
     else:
-        slot = f"fiscal/npc/P03/{request['quarter']}/{amount}/{groups}"
+        slot = f"fiscal/npc/{key}/{request['quarter']}/{amount}/{groups}"
         # Finance evaluates the same feasible fiscal response group as it does
         # for a player submission. Neither proposal transfers a cent on its own.
         if choose_reply(ctx, slot, 0.35) == "counter":
             amount -= 50 * WAN
-        body = f"医院按 {amount // WAN} 万元、{groups} 组的范围准备分区材料，拨付另行审核。"
+        body = f"{unit}按 {amount // WAN} 万元、{groups} 组的范围准备本阶段材料，拨付另行审核。"
     ref = ctx.emit(
         body,
-        title="财政答复医院",
+        title="财政答复" + unit,
         actor="N06",
         visible=False,
         refs=(message["source"],),
@@ -125,7 +130,7 @@ def review_hospital_request(domain, message, ctx):
         {
             "stage": "reply",
             "sender": "N06",
-            "recipient": "N09",
+            "recipient": owner,
             "body": body,
             "source": ref,
             "copy_office": False,

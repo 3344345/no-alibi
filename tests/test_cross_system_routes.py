@@ -1,6 +1,7 @@
 """Historical C/F pathways on the real offline command, SQLite, delivery and replay paths."""
 
 import json
+from copy import copy
 import pytest
 from ai.player_intent import parse_visible
 from game.catalog import DAY, QUARTER, WAN
@@ -260,3 +261,25 @@ def test_separate_jurisdictions_compete_for_a_single_real_pool(tmp_path):
     assert j.d["career"]["rank"] == 5
     assert all(x["status"] == "已交付" for x in j.d["regional"].values())
     j.verify()
+
+
+def test_funding_decisions_from_same_saved_offer_diverge_next_quarter(tmp_path):
+    funded = Journey(tmp_path)
+    funded.go("L03").do("propose", plan="C").wait(180)
+    revised_offer = funded.d["offers"][0]
+    deferred = copy(funded)
+    deferred.v = funded.store.fork(funded.world, funded.v["revision"])
+    deferred.world = deferred.v["world_id"]
+    assert deferred.d["offers"][0] == revised_offer
+    funded.do("offer", offer="OF-1", choice="accept").wait(10 * DAY)
+    funded.do("stage_check", project="P01").wait(300)
+    deferred.do("offer", offer="OF-1", choice="withdraw")
+    for branch in (deferred, funded):
+        branch.wait(QUARTER - branch.v["minute"])
+        assert branch.d["quarter"] == 2
+        branch.verify()
+    open_stage = funded.d["projects"]["P01"]
+    assert open_stage["opened"] and open_stage["maintenance_due"]
+    assert funded.d["fiscal"]["paid"] == revised_offer["terms"]["P01"]["amount"]
+    assert deferred.d["fiscal"]["paid"] == 0
+    assert deferred.d["projects"]["P01"]["phase"] == "拟议"

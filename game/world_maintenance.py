@@ -1,6 +1,7 @@
 """Functional-stage maintenance and later review of the original delivery record."""
 
 from .catalog import QUARTER, WAN
+from .world_projects import passage_project
 from .world_common import action, case, know, visible_doc
 
 
@@ -15,7 +16,7 @@ def opened(d, ctx, ref):
     )
     visible_doc(
         d,
-        "P01-opening",
+        passage_project()["id"] + "-opening",
         "西段临时通路交接单",
         "技术检查、主管批准、执行方交接分别有据；仅西段开始开放。",
         "N17",
@@ -140,7 +141,7 @@ def complete(d, k, p, ctx):
         seg["maintenance_receipts"].append(ref)
         visible_doc(
             d,
-            "P01-maint-" + str(p["quarter"]),
+            passage_project()["id"] + "-maint-" + str(p["quarter"]),
             "西段维护回执 · 第" + str(p["quarter"]) + "季",
             "本周期已经实际巡查并交还工作组。",
             "N17",
@@ -163,9 +164,10 @@ def complete(d, k, p, ctx):
         }
         # Only a copy already obtained by the archivist can join this review.
         # An unrelated notebook or a private original supplies no evidence here.
+        project = passage_project()["id"]
         for copy in d["notebook"]["copies"]:
             related = any(
-                e.get("source_doc", "").startswith(("P01-opening", "P01-maint-"))
+                e.get("source_doc", "").startswith((project + "-opening", project + "-maint-"))
                 for e in copy["entries"]
             )
             if copy["holder"] != "N19" or not related:
@@ -193,7 +195,7 @@ def complete(d, k, p, ctx):
                     linked,
                     "原件已失去，档案室此前实际取得的副本仍可核。",
                 )
-        case(d, "K03", "active", ref, "原卷被正式调阅，需核对维护责任。")
+        case(d, passage_project()["stage_case"], "active", ref, "原卷被正式调阅，需核对维护责任。")
         return True
     if k == "legacy_result":
         review = d["legacy_review"]
@@ -257,6 +259,6 @@ def complete(d, k, p, ctx):
             kind="制度认定",
             ref=ref,
         )
-        case(d, "K03", "resolved" if p["mode"] == "file" else "contested", ref, text)
+        case(d, passage_project()["stage_case"], "resolved" if p["mode"] == "file" else "contested", ref, text)
         return True
     return False

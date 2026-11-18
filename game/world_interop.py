@@ -1,6 +1,7 @@
 """Cross-system paths use the same facts, tasks and resource book as ordinary play."""
 
 from .catalog import DAY, PEOPLE, PROJECTS
+from .world_projects import passage_project
 from .world_common import action, arc, case, contact, know, visible_doc
 
 
@@ -8,16 +9,17 @@ def setup(d):
     delayed = d["variant"]["id"] == "V4-TV01"
     original = 7 * DAY
     revised = original + (21 * DAY if delayed else 0)
+    holder = passage_project()["owner"]
     d["field_schedule"] = {
         "planned": original,
         "forecast": revised,
         "delay_days": (revised - original) // DAY,
-        "holder": "N08",
+        "holder": holder,
         "version": "r2",
-        "received_by": ["N08", "N18"],
+        "received_by": [holder, "N18"],
         "filed": False,
     }
-    d["actors"]["N08"]["beliefs"]["genesis/N08/schedule"] = (
+    d["actors"][holder]["beliefs"][f"genesis/{holder}/schedule"] = (
         "当前排期比原计划迟三周。" if delayed else "当前排期仍在原窗口内。"
     )
     d["actors"]["N02"]["beliefs"]["genesis/N02/schedule"] = "上次正式报送仍按原窗口。"
@@ -34,11 +36,11 @@ def setup(d):
 
 
 def init(d, ctx):
-    for who in ("N08", "N02"):
+    for who in (d["field_schedule"]["holder"], "N02"):
         text = d["actors"][who]["beliefs"].pop("genesis/" + who + "/schedule")
         ref = ctx.emit(text, title="排期初始归档", actor=who, visible=False)
         know(d, who, ref, text, topic="initial_schedule")
-        if who == "N08":
+        if who == d["field_schedule"]["holder"]:
             d["field_schedule"]["revision_ref"] = ref
             know(d, "N18", ref, text, topic="initial_schedule")
     d["actors"]["N03"]["relations"]["N12"] = {
@@ -55,6 +57,17 @@ def options(d):
     f = d["field_schedule"]
     a = []
     flags = d["flags"]
+    evening = (d["now"] + 9 * 60) // DAY * DAY + 9 * 60
+    if (
+        d["now"] < evening
+        and "N10" in d["contacts"]
+        and flags.get("zhou_attachment", {}).get("due") != evening
+    ):
+        a.append(action(
+            "ask_zhou_attachment", "约周主任今晚核对附件版本",
+            "附上你收到的简报版本与范围，约今天 18:00 在办公室核对。是否换过附件仍待查。",
+            "约见 15 分钟，须双方到场", "文书查证",
+        ))
     if loc == "L01":
         if not flags.get("private_check"):
             a.append(
@@ -105,6 +118,20 @@ def options(d):
 
 def act(d, k, p, ctx):
     flags = d["flags"]
+    if k == "ask_zhou_attachment":
+        doc = d["docs"].get("D01-r2") or d["docs"]["D01-r1"]
+        due = (ctx.minute + 9 * 60) // DAY * DAY + 9 * 60
+        ref = ctx.emit(
+            "已请周主任今晚在办公室核对附件是否换版，附送手头版本及范围。",
+            title="约见请求已发出", refs=tuple(doc["refs"]),
+        )
+        flags["zhou_attachment"] = {"state": "待回复", "due": due}
+        ctx.schedule(
+            "zhou_attachment_reply",
+            {"ref": ref, "due": due, "version": doc["version"], "scope": doc["scope"]},
+            ctx.duration("message_queue", 15, 45), title="周主任签收约见请求",
+        )
+        return True
     if k == "private_check":
         ref = ctx.emit("已向程向晚本人发送非公开核实请求。", title="单独联系")
         flags["private_check"] = "在途"
@@ -149,14 +176,17 @@ def act(d, k, p, ctx):
     if k == "department_round":
         book = d["department_round"]
         book.update(state="等待部门来件", round=book["round"] + 1, bids={})
+        available = 12 - sum(d["fiscal"]["groups"].values())
+        notice = f"本次征集发函时可申请 {available} 组。人手须在财政确认时另行核定。"
         ref = ctx.emit(
-            "协调会征集本期书面排程。项目代表各自报出所需工作范围。",
+            notice,
             title="部门申请窗口",
         )
         for key, project in PROJECTS.items():
+            know(d, project["owner"], ref, notice, "crew_notice")
             ctx.schedule(
                 "department_bid",
-                {"key": key, "ref": ref},
+                {"key": key, "ref": ref, "advertised_groups": available},
                 45,
                 title=project["name"] + "提交申请",
                 visible=False,
@@ -175,6 +205,8 @@ def settle_round(d, ctx, offer, ref):
     if not d["department_round"]["bids"]:
         return
     for key, bid in d["department_round"]["bids"].items():
+        if bid.get("waitlist"):
+            continue
         portion = offer["terms"].get(key, {"amount": 0, "groups": 0})
         ctx.schedule(
             "department_replan",
@@ -198,8 +230,49 @@ def schedule_text(d):
 def complete(d, k, p, ctx):
     f = d["field_schedule"]
     flags = d["flags"]
+    if k == "zhou_attachment_reply":
+        booking = flags["zhou_attachment"]
+        received = f"送来核对的简报标为 {p['version']}，范围是「{p['scope']}」。"
+        receipt = ctx.emit(received, title="办公室签收版本说明", actor="N10",
+                           visible=False, refs=(p["ref"],))
+        know(d, "N10", receipt, received)
+        if ctx.minute >= p["due"] or d["busy"].get("N10", {}).get("due", 0) > p["due"]:
+            booking["state"] = "未能约成"
+            ctx.emit("周主任回复今晚的时段无法安排。", title="约见答复", actor="N10", refs=(receipt,))
+            return True
+        booking["state"] = "已约定"
+        ref = ctx.emit("周主任答复今天 18:00 在办公室见面，请带上手头的材料。",
+                       title="约见答复", actor="N10", refs=(receipt,))
+        ctx.schedule("zhou_attachment_meet", {"ref": ref, "receipt": receipt},
+                     p["due"] - ctx.minute, title="18:00 办公室核对附件")
+        return True
+    if k == "zhou_attachment_meet":
+        from .world import present
+        from .world_common import start_job
+
+        booking = flags["zhou_attachment"]
+        together = d["location"] == "L01" and present(d, "N10", "L01")
+        if not together or "N10" in d["busy"] or "player" in d["busy"]:
+            booking["state"] = "未能面谈"
+            ctx.emit("约定的时段未能会面，问题仍待核对。", title="约见时段结束", refs=(p["ref"],))
+            return True
+        booking["state"] = "面谈中"
+        ref = start_job(d, ctx, "zhou_attachment_done", "当面核对附件", 15, p)
+        d["busy"]["N10"] = {"id": ref, "kind": "zhou_attachment_done",
+                            "title": "当面核对附件", "due": ctx.minute + 15, "visible": True}
+        return True
+    if k == "zhou_attachment_done":
+        d["busy"].pop("N10")
+        flags["zhou_attachment"]["state"] = "已面谈"
+        received = d["actors"]["N10"]["beliefs"][p["receipt"]]
+        body = received + "单凭这份来件，我无法确认是否换过附件或为什么更换。"
+        ref = ctx.emit(body, title="周主任核对附件的答复", actor="N10",
+                       refs=(p["ref"], p["receipt"]))
+        visible_doc(d, "ZHOU-attachment-" + str(ctx.minute), "周主任的版本核对答复",
+                    body, "N10", "本次送交的版本说明", kind="人物陈述", ref=ref)
+        return True
     if k == "recovery_bid":
-        who = "N08"
+        who = f["holder"]
         ref = ctx.emit(
             "水务根据本人已知的三周工期差提出补救排程，仍要使用原申请的班组。",
             title="部门自主补救",
@@ -216,17 +289,20 @@ def complete(d, k, p, ctx):
         who = info["owner"]
         reason = (
             "补救延期，仍需原有班组。"
-            if key == "P01" and flags.get("recovery_ref")
+            if info["opening_passage"] and flags.get("recovery_ref")
             else info["description"]
         )
         refs = (
             (p["ref"], flags["recovery_ref"])
-            if key == "P01" and flags.get("recovery_ref")
+            if info["opening_passage"] and flags.get("recovery_ref")
             else (p["ref"],)
         )
+        advertised = p.get("advertised_groups")
+        waitlist = advertised is not None and advertised < info["groups"]
+        request = ("登记后续窗口需求 " if waitlist else "独立申请 ") + str(info["groups"]) + " 组。"
         ref = ctx.emit(
-            info["name"] + "独立申请 " + str(info["groups"]) + " 组。" + reason,
-            title="独立排程申请",
+            info["name"] + request + reason,
+            title="候补排程登记" if waitlist else "独立排程申请",
             actor=who,
             refs=refs,
         )
@@ -236,7 +312,21 @@ def complete(d, k, p, ctx):
             "request": info["request"],
             "groups": info["groups"],
             "applicant": who,
+            "waitlist": waitlist,
         }
+        # Applications use the circulated notice. Only the office resolving
+        # the request checks current availability against the roster.
+        if (
+            advertised is not None and not waitlist
+            and 12 - sum(d["fiscal"]["groups"].values()) < info["groups"]
+        ):
+            ctx.schedule(
+                "department_capacity_reply",
+                {"who": who, "bid": ref},
+                ctx.duration("message_queue", 15, 45),
+                title="申请可用时段答复",
+                visible=False,
+            )
         if len(d["department_round"]["bids"]) == 3:
             d["department_round"]["state"] = "已汇总"
             case(
@@ -244,8 +334,17 @@ def complete(d, k, p, ctx):
                 "K09",
                 "contested",
                 ref,
-                "三份独立申请共需十四组，现有十二组，须错峰或缩减。",
+                "三方报送的需求共十四组，本期总容量为十二组，须错峰或缩减。",
             )
+        return True
+    if k == "department_capacity_reply":
+        who = p["who"]
+        reply = "受理申请时，你所报的完整班组时段已无法安排。可在下一窗口重新申请。"
+        ref = ctx.emit(
+            reply, title="班组申请退回", actor=who, visible=False, refs=(p["bid"],)
+        )
+        know(d, who, ref, reply, "crew_response")
+        d["actors"][who]["plans"].append("据受理回执重新准备未获确认的班组时段。")
         return True
     if k == "department_replan":
         key = p["key"]
@@ -293,7 +392,7 @@ def complete(d, k, p, ctx):
             "PLAN-r2",
             "南渠工序排期 · 签发版",
             schedule_text(d),
-            "N08",
+            f["holder"],
             "当前工序登记",
             version="r2",
             ref=ref,
@@ -313,11 +412,11 @@ def complete(d, k, p, ctx):
         ref = ctx.emit(
             "程向晚将本人参与的排期核对登记交给本项目负责人。",
             title="范围内登记",
-            actor="N08",
+            actor=f["holder"],
             visible=False,
             refs=(p["ref"],),
         )
-        know(d, "N08", ref, "技术员本人参与了本次核实，未披露其他私人谈话。")
+        know(d, f["holder"], ref, "技术员本人参与了本次核实，未披露其他私人谈话。")
         return True
     if k == "audit_delivery":
         f["received_by"].append("N19")
@@ -330,7 +429,7 @@ def complete(d, k, p, ctx):
         know(d, "N19", ref, schedule_text(d))
         flags["audit_schedule"] = "已核验"
         d["investigation"].setdefault("scheduling_evidence", []).append(
-            {"version": "PLAN-r2", "ref": ref, "source": "N08"}
+            {"version": "PLAN-r2", "ref": ref, "source": f["holder"]}
         )
         visible_doc(
             d,

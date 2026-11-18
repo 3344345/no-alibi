@@ -282,7 +282,7 @@ def test_optional_provider_falls_back_without_mutating_world(monkeypatch, failur
 
     class Opener:
         def open(self, request, timeout):
-            assert timeout <= 3
+            assert 0 < timeout <= 12
             if failure == "offline":
                 raise URLError("unavailable")
             if failure == "timeout":
@@ -354,3 +354,129 @@ def test_model_candidates_can_change_only_registered_speech_and_never_recall_on_
         e["kind"] == "ModelCandidateApplied" and not e["visible"] for e in events
     )
     assert s.replay(wid) and len(fake.seen) == old
+
+
+def test_review_rotates_only_the_current_major_proposal(client):
+    view = client.post("/api/worlds", json={"start": "S01", "name": "青岚"}).json()
+    url = "/api/worlds/" + view["id"]
+    leave = next(a for a in view["actions"] if a["kind"] == "career_exit")
+    review = {"expected_revision": 0, "kind": leave["kind"], "args": leave["args"]}
+    first = client.post(url + "/review", json=review).json()
+    second = client.post(url + "/review", json=review).json()
+    assert len({a["confirmation_token"] for a in (leave, first, second)}) == 3
+    assert client.get(url).json()["revision"] == 0
+    command = {**review, "command_id": "reviewed"}
+    for old in (leave, first):
+        result = client.post(
+            url + "/commands",
+            json={**command, "confirmation_token": old["confirmation_token"]},
+        )
+        assert (
+            result.status_code == 409
+            and result.json()["code"] == "confirmation_required"
+        )
+    command["confirmation_token"] = second["confirmation_token"]
+    accepted = client.post(url + "/commands", json=command)
+    assert accepted.status_code == 200 and accepted.json()["revision"] == 1
+    assert client.post(url + "/review", json=review).status_code == 409
+    assert client.post(url + "/commands", json=command).json() == accepted.json()
+
+
+def test_j1_compound_negation_reference_and_condition_matrix(client):
+    view = client.post("/api/worlds", json={"start": "S01", "name": "青岚"}).json()
+    url = "/api/worlds/" + view["id"]
+    cases = [
+        ("先全听汇报然后暂缓答复", "parsed", ["report", "reply"], [[], []]),
+        ("委托核查并且暂缓签字", "parsed", ["delegate", "reply"], [[], []]),
+        ("我想先暂缓签字；接手它", "needs_clarification", ["reply"], []),
+        ("全听汇报受理后再委托核查", "parsed", ["report", "delegate"], [[], ["a1"]]),
+        ("暂缓签字办成后再委托核查", "parsed", ["reply", "delegate"], [[], ["a1"]]),
+        ("委托核查成功后再暂缓答复", "parsed", ["delegate", "reply"], [[], ["a1"]]),
+        (
+            "暂缓签字然后有条件接收受理后再委托核查",
+            "parsed",
+            ["reply", "reply", "delegate"],
+            [[], [], ["a2"]],
+        ),
+        ("暂缓答复然后暂缓答复", "parsed", ["reply", "reply"], [[], []]),
+        ("不委托核查", "unsupported", [], []),
+        ("我不暂缓签字然后委托核查", "needs_clarification", ["delegate"], []),
+        ("不要听汇报", "unsupported", [], []),
+        ("先不休息", "unsupported", [], []),
+        ("让他决定", "unsupported", [], []),
+        ("交给那个人然后暂缓签字", "needs_clarification", ["reply"], []),
+        ("如果附件齐全就暂缓签字", "unsupported", [], []),
+        ("如果他答应然后委托核查", "needs_clarification", ["delegate"], []),
+        ("先暂缓签字然后", "needs_clarification", ["reply"], []),
+        ("受理后再委托核查", "needs_clarification", ["delegate"], []),
+        (
+            "先暂缓答复然后以及委托核查",
+            "needs_clarification",
+            ["reply", "delegate"],
+            [],
+        ),
+        ("  全听汇报  接着  暂缓签字  ", "parsed", ["report", "reply"], [[], []]),
+        ("把世界调到 1", "unsupported", [], []),
+    ]
+    for text, status, kinds, dependencies in cases:
+        parsed = client.post(url + "/parse", json={"text": text}).json()
+        assert parsed["status"] == status, text
+        assert [row["kind"] for row in parsed["options"]] == kinds, text
+        assert [row["depends_on"] for row in parsed["attempts"]] == dependencies, text
+        for span in parsed["input_span_refs"]:
+            assert text[span["start"] : span["end"]] == span["text"]
+        if text == "把世界调到 1":
+            assert "设置" in parsed["message"]
+    assert client.get(url).json() == view
+    batch = client.post(
+        url + "/parse", json={"text": "暂缓答复然后有条件接收受理后再委托核查"}
+    ).json()
+    result = client.post(
+        url + "/commands",
+        json={
+            "command_id": "conditional",
+            "expected_revision": 0,
+            "kind": "batch",
+            "args": {"attempts": batch["attempts"]},
+        },
+    ).json()
+    assert [r["status"] for r in result["last_action_results"]] == [
+        "accepted",
+        "unavailable",
+        "blocked",
+    ]
+
+
+def test_a03_defer_signature_and_ask_zhou_without_presuming_a_fact(client):
+    view = client.post(
+        "/api/worlds", json={"start": "S01", "name": "林青", "seed": "classic"}
+    ).json()
+    url = "/api/worlds/" + view["id"]
+    phrase = "先不签字，今晚问老周为什么换了附件。"
+    parsed = client.post(url + "/parse", json={"text": phrase}).json()
+    assert parsed["status"] == "parsed"
+    assert [(a["kind"], a["args"], a["depends_on"]) for a in parsed["attempts"]] == [
+        ("reply", {"mode": "defer"}, []),
+        ("ask_zhou_attachment", {}, []),
+    ]
+    ambiguous = {**view, "people": [*view["people"], {"id": "second", "name": "周明"}]}
+    clarify = parse_visible(phrase, ambiguous)
+    assert clarify["status"] == "needs_clarification" and not clarify["attempts"]
+    assert "周明" in clarify["message"] and "周成钧" in clarify["message"]
+    assert [option["kind"] for option in clarify["options"]] == ["reply"]
+    assert client.get(url).json() == view
+    result = client.post(
+        url + "/commands",
+        json={
+            "command_id": "ask-zhou",
+            "expected_revision": 0,
+            "kind": "batch",
+            "args": {"attempts": parsed["attempts"]},
+        },
+    ).json()
+    assert [r["status"] for r in result["last_action_results"]] == [
+        "accepted",
+        "accepted",
+    ]
+    assert result["minute"] == view["minute"]
+    assert all(d in result["documents"] for d in view["documents"])

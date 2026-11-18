@@ -15,11 +15,17 @@ from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
 from api.preferences import preferences_router
-from api.confirmations import Confirmations
+from api.confirmations import Confirmations, consequence
 from ai.player_intent import parse_visible
 from ai.advisor import Endpoint, narrative_menu, optional_parser
-from contracts.player_view import PlayerView
-from contracts.player_api import BranchPoint, NewCareer, ParseText, PlayerCommand
+from contracts.player_view import Action, PlayerView
+from contracts.player_api import (
+    ActionReview,
+    BranchPoint,
+    NewCareer,
+    ParseText,
+    PlayerCommand,
+)
 from game.catalog import STARTS
 from game import outbox
 from game.store import GameError, GameStore
@@ -130,27 +136,50 @@ def make_app(
         return player_view(store.view(world_id))
 
     @app.post(
+        "/api/worlds/{world_id}/review",
+        response_model=Action,
+        response_model_exclude_unset=True,
+    )
+    def review(world_id: str, body: ActionReview):
+        with confirmations.lock:
+            view = store.view(world_id)
+            if view["revision"] != body.expected_revision:
+                return problem(
+                    409, "revision_conflict", "档案已经更新，请重新查看当前条款。"
+                )
+            for action in view["actions"]:
+                if (
+                    action["kind"] == body.kind
+                    and action["args"] == body.args
+                    and action["enabled"]
+                    and consequence(body.kind, body.args)
+                ):
+                    return confirmations.renew(world_id, view["revision"], action)
+            return problem(422, "unavailable", "当前无法核对这项操作。")
+
+    @app.post(
         "/api/worlds/{world_id}/commands",
         response_model=PlayerView,
         response_model_exclude_unset=True,
     )
     def act(world_id: str, body: PlayerCommand):
-        if not confirmations.accepts(world_id, body) and not store.has_receipt(
-            world_id, body.command_id
-        ):
-            return problem(
-                409, "confirmation_required", "请重新查看当前条款，并确认这项操作。"
+        with confirmations.guard(body):
+            if not confirmations.accepts(world_id, body) and not store.has_receipt(
+                world_id, body.command_id
+            ):
+                return problem(
+                    409, "confirmation_required", "请重新查看当前条款，并确认这项操作。"
+                )
+            return player_view(
+                store.execute(
+                    world_id,
+                    body.command_id,
+                    body.expected_revision,
+                    body.kind,
+                    body.args,
+                    provider=Endpoint.from_env(),
+                )
             )
-        return player_view(
-            store.execute(
-                world_id,
-                body.command_id,
-                body.expected_revision,
-                body.kind,
-                body.args,
-                provider=Endpoint.from_env(),
-            )
-        )
 
     @app.get("/api/worlds/{world_id}/commands/{command_id}")
     def receipt(world_id: str, command_id: str):

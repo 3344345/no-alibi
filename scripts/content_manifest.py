@@ -6,7 +6,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from game import catalog
+from game import catalog, world_templates
 from game.world_cases import FILES
 from game.world_institutions import BODIES
 from game.world_regional import LAYERS
@@ -317,7 +317,95 @@ ROUTES = [
 ]
 
 
+def validate_catalog():
+    """Reject broken identifiers, unsupported rule variants and absent offline text."""
+
+    def require_ids(owner, field, values, registered):
+        for value in values:
+            if value not in registered:
+                raise ValueError(f"{owner}.{field}: 未登记的引用 {value!r}")
+
+    tables = (
+        catalog.STARTS,
+        catalog.LOCATIONS,
+        catalog.PEOPLE,
+        catalog.PROJECTS,
+        catalog.CASES,
+        catalog.SCENES,
+        catalog.ARCS,
+        catalog.ENDINGS,
+    )
+    for table in tables:
+        for key, row in table.items():
+            if (
+                row.get("id") != key
+                or not isinstance(row.get("name"), str)
+                or not row["name"].strip()
+            ):
+                raise ValueError(f"{key}: 条目标识或名称无效")
+    for key, row in catalog.LOCATIONS.items():
+        if row["access"] not in ("public", "dinner", "appointment"):
+            raise ValueError(f"{key}.access: 未登记的准入类型 {row['access']!r}")
+        require_ids(key, "people", row["people"], catalog.PEOPLE)
+        for mode in ("enter", "wait", "leave", "denied"):
+            try:
+                line = world_templates.scene_line(key, mode)
+            except KeyError as exc:
+                raise ValueError(f"{key}: 缺少离线场景模板 {exc}") from exc
+            if not isinstance(line, str) or not line.strip():
+                raise ValueError(f"{key}: 离线场景模板 {mode} 为空")
+    for key, row in catalog.STARTS.items():
+        require_ids(
+            key,
+            "contacts/creditor",
+            [*row["contacts"], row["creditor"]],
+            catalog.PEOPLE,
+        )
+        require_ids(key, "case", [row["case"]], catalog.CASES)
+    for key, row in catalog.PEOPLE.items():
+        require_ids(key, "contact", [row["contact"]], catalog.PEOPLE)
+    for key, row in catalog.PROJECTS.items():
+        require_ids(key, "owner", [row["owner"]], catalog.PEOPLE)
+        require_ids(key, "stage_case", [row.get("stage_case")], catalog.CASES)
+        for flag in ("opening_passage", "sends_stage_request"):
+            if type(row.get(flag)) is not bool:
+                raise ValueError(f"{key}.{flag}: 需要显式布尔值")
+        for field in ("permit_action", "permit_note"):
+            value = row[field]
+            optional = value is None and (
+                field == "permit_note" or row["opening_passage"]
+            )
+            if not optional and (not isinstance(value, str) or not value.strip()):
+                raise ValueError(f"{key}.{field}: 需要已登记的前置办理文案")
+        shares = row.get("plan_shares")
+        if (
+            not isinstance(shares, dict)
+            or not shares
+            or not shares.keys() <= {"A", "B", "C"}
+        ):
+            raise ValueError(f"{key}.plan_shares: 方案登记无效")
+        for part in shares.values():
+            if (
+                not isinstance(part, (tuple, list))
+                or len(part) != 2
+                or any(type(n) is not int or n <= 0 for n in part)
+            ):
+                raise ValueError(f"{key}.plan_shares: 额度和组数应为正整数")
+    if sum(row["opening_passage"] for row in catalog.PROJECTS.values()) != 1:
+        raise ValueError("项目目录需要唯一的开局通路登记")
+    for key, row in catalog.ARCS.items():
+        require_ids(key, "actor", [row["actor"]], catalog.PEOPLE)
+    for key, row in catalog.ENDINGS.items():
+        if row["resume_policy"] not in ("stage_end", "permanent_end"):
+            raise ValueError(f"{key}.resume_policy: 未登记的终局类型")
+    if FILES.keys() != catalog.CASES.keys():
+        raise ValueError("案件处理登记与案件目录不一致")
+    for key, record in FILES.items():
+        require_ids(key, "review_owner", [record[0]], catalog.PEOPLE)
+
+
 def manifest():
+    validate_catalog()
     all_refs = {
         key
         for table in (
