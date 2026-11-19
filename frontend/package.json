@@ -7,6 +7,7 @@
     "build": "vite build",
     "dev": "vite",
     "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test:sound": "node --test tests/sound.test.mjs",
     "test:e2e": "node --test tests/browser.test.mjs"
   },
   "devDependencies": {

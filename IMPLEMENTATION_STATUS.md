@@ -1,14 +1,18 @@
 # 《局中事》本地发行状态
 
-2026-11-18 的 V4.0 可玩功能候选提供三个离线发行包。三端采用「窗内留灯」图标。Mac 版另保留可直接打开的 `release/局中事.app`。三个压缩包的启动方式和存档目录见[游玩说明](README.md#打开游戏)。
+2026-11-19 的 V4.0 可玩功能候选提供三个离线发行包。办公桌与行动页会显示所在场所，时钟旁可开启翻纸、来件与脚步音效。三端采用「窗内留灯」图标。Mac 版另保留可直接打开的 `release/局中事.app`。三个压缩包的启动方式和存档目录见[游玩说明](README.md#打开游戏)。
 
 | 平台 | 发行目录下的文件 | SHA-256 |
 | --- | --- | --- |
-| Apple Silicon Mac | `局中事-macOS-arm64.zip` | `1ef8750c019b3e418631463e67bc88ca431b06a8acab75f937b614c2a9a14b2a` |
-| Windows 10／11 x64 | `局中事-Windows-x64.zip` | `94f557a690ddb6dc0241350f4abbfad16e333385f7e84d7f1258505b2745ff2e` |
-| Linux x86_64（glibc） | `局中事-Linux-x86_64.tar.gz` | `7e18ac5d3eced0097556ca48e742b8668fb769d90d9adc80fd0d2433fb7da8ad` |
+| Apple Silicon Mac | `局中事-macOS-arm64.zip` | `71a99fd2009a17f7ad84d42c6d6e58d61b39e33a90da6695a8389bad0e8b8107` |
+| Windows 10／11 x64 | `局中事-Windows-x64.zip` | `e17a15841c6f9e35134ab59bdf05ef2dc76cdde263257fcbfc044d5605f3a8db` |
+| Linux x86_64（glibc） | `局中事-Linux-x86_64.tar.gz` | `68a9e518e8f09a60b6b18a543263d1cafe50da50bc21353144480be5ca7eac5c` |
 
-## 本版验证结果
+## 11 月 19 日配图与声音验证
+
+Mac 发行包在 Chrome 与 WebKit 各通过 13 项浏览器检查，包括真实资源解码、从办公室到工地再返回、手机布局和音效开关。另有三项独立音效测试。Windows 和 Linux 压缩包已核对含同一组游戏界面及场景文件。此次没有重新启动 Windows 或 Linux 客体，声音验证使用离线音频图。
+
+## 11 月 18 日三端运行记录
 
 - **Mac**　Apple Silicon Mac 上的回归检查 274 项通过。Chrome 和 WebKit 各完成 12 项包内游戏旅程。
 - **Windows**　Windows 11 ARM64 客体通过系统的 x64 兼容层运行发行包。普通用户启动 `局中事.exe` 后，默认 Edge 打开主菜单，点击「建立生涯」可进入角色创建界面。另以包内引擎完成开局、提交、保存设置、退出重启、读档与继续行动。

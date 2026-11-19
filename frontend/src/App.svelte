@@ -11,7 +11,8 @@
   import History from './History.svelte'
   import WorkingNote from './WorkingNote.svelte'
   import Sites from './Sites.svelte'
-  import { cue } from './sound'
+  import CurrentScene from './CurrentScene.svelte'
+  import { committedSound, cue, enableSound, setSoundVolume, silence } from './sound'
   import Records from './Records.svelte'
   import Timeline from './Timeline.svelte'
   import ActionList from './ActionList.svelte'
@@ -46,6 +47,8 @@
     font = 16,
     reduceMotion = false,
     volume = 0,
+    lastAudibleVolume = 35,
+    audioPreferenceEdited = false,
     detailed = true,
     hints = true,
     advanceMinutes = 60,
@@ -74,6 +77,7 @@
     'career_end',
     'finding',
   ]
+  $: showScene = page === '办公桌' || page === '行动'
   const pages: Page[] = ['办公桌', '行动', '日程', '档案', '人事与地点', '记事本', '设置']
   const navIcons = ['desk', 'action', 'calendar', 'archive', 'people', 'book', 'sliders']
   const paths: Record<string, string> = {
@@ -142,19 +146,36 @@
     }>('/preferences')
       .then((pref) => {
         font = pref.font_size
-        volume = pref.sound_volume
+        if (!audioPreferenceEdited) {
+          volume = pref.sound_volume
+          if (volume > 0) lastAudibleVolume = volume
+        }
         reduceMotion = pref.reduced_motion ?? reduceMotion
         detailed = pref.detailed_narration
         hints = pref.show_hints
       })
       .catch((e) => (error = message(e)))
     void loadWorlds()
-    return () => stopWatch?.()
+    return () => { stopWatch?.(); silence() }
   })
   $: if (typeof document !== 'undefined') {
     document.documentElement.style.fontSize = font + 'px'
     document.documentElement.classList.toggle('reduce-motion', reduceMotion)
   }
+  $: setSoundVolume(volume)
+
+  function chooseVolume(value: number) {
+    audioPreferenceEdited = true
+    volume = value
+    if (value > 0) lastAudibleVolume = value
+    setSoundVolume(value)
+    preferences({ sound_volume: value })
+    if (value > 0) {
+      enableSound()
+      cue('delivery')
+    }
+  }
+
   let preferenceQueue = Promise.resolve()
   function preferences(update: Record<string, Value>) {
     preferenceQueue = preferenceQueue
@@ -272,6 +293,7 @@
     const next = await api<View>('/worlds/' + encodeURIComponent(id))
     if (v?.world_id === id && !pending && next.revision > v.revision) {
       const policyChanged = next.policy.version !== v.policy.version
+      cue(committedSound(v, next))
       v = next
       picked = null
       options = []
@@ -398,7 +420,7 @@
     try {
       const next = await api<View>(endpoint + '/commands', cmd)
       v = next
-      cue(volume, next.location?.id)
+      cue(committedSound(old, next))
       const previous = new Set(old.timeline.map((e) => e.id))
       const newEvents = (next.timeline ?? []).filter((e) => !previous.has(e.id))
       const last = newEvents.at(-1)
@@ -515,10 +537,13 @@
     })
   }
   function toggleCompare(id: string) {
+    if (!compared.includes(id)) cue('paper')
     compared = compared.includes(id) ? compared.filter((x) => x !== id) : [...compared.slice(-1), id]
   }
 </script>
 
+<svelte:window on:pointerup={() => v && enableSound()} on:keydown={() => v && enableSound()} on:blur={silence}/>
+<svelte:document on:visibilitychange={() => { if (document.hidden) silence() }}/>
 <svelte:head><title>{v ? page + ' · 局中事' : '局中事'}</title></svelte:head>
 <a class="skip-link" href="#main">跳至主要内容</a>
 <input
@@ -591,6 +616,9 @@
       <header class="desk-bar">
         <div class="crumb">生涯档案 <span>/</span> {page}</div>
         <div class="clock">
+          <button type="button" class="audio-switch" role="switch" aria-checked={volume > 0}
+            aria-label="游戏音效" title={volume > 0 ? '关闭音效' : '开启音效'}
+            on:click={() => chooseVolume(volume > 0 ? 0 : lastAudibleVolume)}>音效 {volume > 0 ? '开' : '关'}</button>
           <span class="clock-dot"></span> 第 {v.quarter} 季 <i>／</i> 第 {date.day} 天
           <b>{date.time}</b>
         </div>
@@ -598,7 +626,7 @@
       <main class="workspace-main" id="main">
         <div class="page-heading">
           <div>
-            <p class="kicker">{str(v.location, 'name') || '澄川县'} · {v.name}</p>
+            {#if !showScene}<p class="kicker">{str(v.location, 'name') || '澄川县'} · {v.name}</p>{/if}
             <h1 tabindex="-1" bind:this={heading}>{page === '办公桌' ? '我的办公桌' : page}</h1>
           </div>
           {#if hints}<span class="page-hint">{tabHints[page]}</span>{/if}
@@ -635,6 +663,7 @@
               }}>回看已知经过 →</button
             >
           </section>{/if}
+        {#if showScene}<CurrentScene place={v.location} />{/if}
         {#if page === '办公桌'}
           <div class="desk-grid">
             <div class="column">
@@ -705,8 +734,6 @@
                 <dl class="sheet">
                   <dt>当前岗位</dt>
                   <dd>{str(v.player, 'role', 'position')}</dd>
-                  <dt>所在地点</dt>
-                  <dd>{str(v.location, 'name')}</dd>
                   {#if v.commitments?.length}<dt>已有约定</dt>
                     <dd>{title(v.commitments[0])}</dd>{/if}
                 </dl>
@@ -909,6 +936,7 @@
                 />
               {:else}<Records
                   rows={filteredRows}
+                  onopen={archiveTab === '来文材料' ? () => cue('paper') : undefined}
                   empty={archiveSearch ? '没有匹配的记录。' : '目前没有已送达的记录。'}
                 />{/if}
             {/if}
@@ -923,11 +951,7 @@
                 >{/each}
             </div>
             {#if peopleTab === '人物名录'}<Records rows={v.people ?? []} />
-            {:else}<p class="helper">
-                当前位置 · {str(v.location, 'name')}
-                {str(v.location, 'description')}
-              </p>
-              <Sites
+            {:else}<Sites
                 locations={v.locations ?? []}
                 actions={v.actions ?? []}
                 current={v.location?.id}
@@ -1046,9 +1070,7 @@
                     step="1"
                     bind:value={volume}
                     on:change={(e) => {
-                      const value = Number(e.currentTarget.value)
-                      preferences({ sound_volume: value })
-                      cue(value, v?.location?.id)
+                      chooseVolume(Number(e.currentTarget.value))
                     }}
                   /></label
                 >
@@ -1125,3 +1147,21 @@
     </form></Dialog
   >
 {/if}
+
+<style>
+  .audio-switch {
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--line);
+    padding: 3px 10px 3px 2px;
+    margin-right: 5px;
+    color: var(--muted);
+    white-space: nowrap;
+    line-height: 1.3;
+    font-size: inherit;
+  }
+  .audio-switch:hover, .audio-switch[aria-checked="true"] { color: var(--green); }
+  @media (max-width: 600px) {
+    .audio-switch { margin-right: 1px; padding-right: 4px; }
+  }
+</style>

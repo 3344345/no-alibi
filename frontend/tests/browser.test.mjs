@@ -50,6 +50,16 @@ async function screen(page, name) {
   if (process.env.JZS_SCREENSHOT_DIR)
     await page.screenshot({ path: join(process.env.JZS_SCREENSHOT_DIR, name + '.png'), fullPage: true })
 }
+async function checkScene(page, name, resource) {
+  const scene = page.locator('figure.scene')
+  await scene.locator('figcaption').getByText(name, { exact: true }).waitFor()
+  const image = scene.locator('img')
+  const source = await image.evaluate(async (el) => {
+    await el.decode()
+    return el.naturalWidth > 0 && el.naturalHeight > 0 ? el.currentSrc : ''
+  })
+  assert.equal(source, new URL('/scenes/' + resource, address).href)
+}
 async function navigate(page, label) {
   await page.getByRole('navigation').getByRole('button', { name: label, exact: true }).click()
 }
@@ -89,6 +99,72 @@ async function noOverflow(page) {
     'page exceeds viewport width',
   )
 }
+
+test('sound switch, archive paper and saved mute', { timeout: 30000 }, async () => {
+  const ctx = await browser.newContext()
+  const page = await ctx.newPage()
+  await ctx.addInitScript(() => {
+    window.testCues = []
+    // The real nodes are wired only to an offline graph, never to a speaker.
+    window.AudioContext = class extends OfflineAudioContext {
+      constructor() { super(1, 24000, 24000) }
+      get state() { return this.active ? 'running' : 'suspended' }
+      async resume() { this.active = true }
+      async suspend() { this.active = false }
+      createBufferSource() {
+        const voice = super.createBufferSource()
+        const start = voice.start.bind(voice)
+        voice.start = (...args) => {
+          window.testCues.push({ ms: Math.round(voice.buffer.duration * 1000), at: performance.now() })
+          start(...args)
+        }
+        return voice
+      }
+    }
+  })
+  const toggle = page.getByRole('switch', { name: '游戏音效' })
+  const recorded = () => page.evaluate(() => window.testCues.map(cue => cue.ms))
+  const cooldown = () => page.waitForFunction(() => performance.now() - window.testCues.at(-1).at > 450)
+  async function clickSwitch() {
+    const saved = page.waitForResponse(r => r.url().endsWith('/api/preferences') && r.request().method() === 'POST')
+    await toggle.click()
+    return (await (await saved).json()).sound_volume
+  }
+  try {
+    await openCareer(page, false)
+    assert.equal(await toggle.getAttribute('aria-checked'), 'false')
+    assert.deepEqual(await recorded(), [])
+    assert.ok((await clickSwitch()) > 0)
+    assert.equal(await toggle.getAttribute('aria-checked'), 'true')
+    assert.deepEqual(await recorded(), [220]) // Incoming-folder preview.
+    await navigate(page, '档案')
+    const sheet = page.locator('details.record').first().locator('summary')
+    await cooldown()
+    await sheet.click()
+    assert.deepEqual(await recorded(), [220, 210]) // Opening an actual document.
+    assert.equal(await clickSwitch(), 0)
+    await cooldown()
+    await sheet.click() // Close, then open the same document while muted.
+    await sheet.click()
+    assert.deepEqual(await recorded(), [220, 210])
+    const restored = page.waitForResponse(r => r.url().endsWith('/api/preferences') && r.request().method() === 'GET')
+    await page.reload()
+    assert.equal((await (await restored).json()).sound_volume, 0)
+    await page.getByRole('button', { name: '继续生涯' }).click()
+    assert.equal(await toggle.getAttribute('aria-checked'), 'false')
+    assert.deepEqual(await recorded(), [])
+  } finally {
+    // The browser suite shares one throwaway engine profile across contexts.
+    const token = new URLSearchParams(new URL(session).hash.slice(1)).get('session')
+    try {
+      await ctx.request.post(address + '/api/preferences', {
+        headers: { Authorization: 'Bearer ' + token }, data: { sound_volume: 0 },
+      })
+    } finally {
+      await ctx.close()
+    }
+  }
+})
 
 test(
   'offline desktop journey, provenance, deterministic retry, real save and restoration',
@@ -199,12 +275,21 @@ test('compact layout, input and keyboard on every primary section', { timeout: 6
   const page = await context.newPage()
   try {
     await openCareer(page, false)
+    await checkScene(page, '办公室', 'office.webp')
     await screen(page, 'mobile-desk')
     await noOverflow(page)
     for (const label of ['行动', '日程', '档案', '人事与地点', '记事本', '设置']) {
       await navigate(page, label)
       await noOverflow(page)
       assert.equal(await page.locator('h1').innerText(), label)
+      if (label === '行动') {
+        const action = page.locator('.action-list button:enabled').first()
+        assert.ok(await action.evaluate((button) => {
+          const rect = button.getBoundingClientRect()
+          const target = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+          return button.contains(target)
+        }), 'the first available action must be directly reachable in the mobile viewport')
+      }
     }
     await page.getByLabel('正文字号').selectOption('20')
     assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).fontSize), '20px')
@@ -247,6 +332,8 @@ test(
       const arrived = await doClick(page.getByRole('button', { name: '前往下一事项', exact: true }))
       assert.equal(arrived.location.id, 'L02')
       await navigate(page, '行动')
+      await checkScene(page, arrived.location.name, 'canal.webp')
+      await screen(page, 'canal-actions')
       await doClick(page.getByRole('button', { name: /沿西段核对现场/ }))
       await navigate(page, '日程')
       await doClick(page.getByRole('button', { name: '前往下一事项', exact: true }))
@@ -262,7 +349,11 @@ test(
           .getByRole('button', { name: /前往/ }),
       )
       await navigate(page, '日程')
-      await doClick(page.getByRole('button', { name: '前往下一事项', exact: true }))
+      const returned = await doClick(page.getByRole('button', { name: '前往下一事项', exact: true }))
+      assert.equal(returned.location.id, 'L01')
+      await navigate(page, '办公桌')
+      await checkScene(page, returned.location.name, 'office.webp')
+      await navigate(page, '日程')
       await page.getByLabel('推进时长').selectOption({ label: '90 天' })
       let advanced = await doClick(page.getByRole('button', { name: '按时长推进' }))
       assert.ok(advanced.quarter >= 2)

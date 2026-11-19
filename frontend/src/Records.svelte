@@ -4,6 +4,7 @@
   export let rows: Row[] = []
   export let empty = '目前没有已送达的记录。'
   export let openFirst = false
+  export let onopen: (() => void) | undefined = undefined
   const labels: Record<string, string> = {
     role: '职务',
     location: '地点',
@@ -115,7 +116,7 @@
   <div class="record-list">
     {#each rows as r, i}
       <details class="record" open={openFirst && i === 0}>
-        <summary
+        <summary on:click={(e) => { if (!e.currentTarget.parentElement?.hasAttribute('open')) onopen?.() }}
           ><span class="record-id">{r.id ?? String(i + 1).padStart(2, '0')}</span><span
             ><strong>{title(r)}</strong>{#if str(r, 'source', 'role', 'status')}<small
                 >{value('status', str(r, 'source', 'role', 'status'))}</small
