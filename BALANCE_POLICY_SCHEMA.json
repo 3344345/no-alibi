@@ -1,0 +1,157 @@
+{
+  "$defs": {
+    "PolicyCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "command_id": {
+          "maxLength": 96,
+          "minLength": 1,
+          "title": "Command Id",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "set_balance",
+          "title": "Kind",
+          "type": "string"
+        },
+        "args": {
+          "$ref": "#/$defs/PolicySetting"
+        }
+      },
+      "required": [
+        "command_id",
+        "expected_revision",
+        "kind",
+        "args"
+      ],
+      "title": "PolicyCommand",
+      "type": "object"
+    },
+    "PolicyEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "event_domain": {
+          "const": "simulation_control",
+          "title": "Event Domain",
+          "type": "string"
+        },
+        "start_minute": {
+          "minimum": 0,
+          "title": "Start Minute",
+          "type": "integer"
+        },
+        "b_start": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "B Start",
+          "type": "number"
+        },
+        "target": {
+          "maxLength": 8,
+          "minLength": 8,
+          "pattern": "^(0\\.[0-9]{6}|1\\.000000)$",
+          "title": "Target",
+          "type": "string"
+        },
+        "previous_version": {
+          "minimum": 1,
+          "title": "Previous Version",
+          "type": "integer"
+        },
+        "version": {
+          "minimum": 2,
+          "title": "Version",
+          "type": "integer"
+        },
+        "transition_minutes": {
+          "maximum": 240,
+          "minimum": 240,
+          "title": "Transition Minutes",
+          "type": "integer"
+        },
+        "calculation_version": {
+          "maxLength": 96,
+          "minLength": 1,
+          "title": "Calculation Version",
+          "type": "string"
+        },
+        "parameter_package_hash": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Parameter Package Hash",
+          "type": "string"
+        },
+        "cause": {
+          "maxLength": 96,
+          "minLength": 1,
+          "title": "Cause",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_domain",
+        "start_minute",
+        "b_start",
+        "target",
+        "previous_version",
+        "version",
+        "transition_minutes",
+        "calculation_version",
+        "parameter_package_hash",
+        "cause"
+      ],
+      "title": "PolicyEvent",
+      "type": "object"
+    },
+    "PolicySetting": {
+      "additionalProperties": false,
+      "properties": {
+        "balance": {
+          "maxLength": 8,
+          "minLength": 8,
+          "pattern": "^(0\\.[0-9]{6}|1\\.000000)$",
+          "title": "Balance",
+          "type": "string"
+        },
+        "expected_policy_version": {
+          "minimum": 1,
+          "title": "Expected Policy Version",
+          "type": "integer"
+        },
+        "parameter_package_hash": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Parameter Package Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "balance",
+        "expected_policy_version",
+        "parameter_package_hash"
+      ],
+      "title": "PolicySetting",
+      "type": "object"
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/$defs/PolicyCommand"
+    },
+    {
+      "$ref": "#/$defs/PolicySetting"
+    },
+    {
+      "$ref": "#/$defs/PolicyEvent"
+    }
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "局中事 · 模拟取向命令、请求参数和控制事件"
+}

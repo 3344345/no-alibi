@@ -1,34 +1,91 @@
-# 《在场证明》 No Alibi
+# 局中事
 
-> **因果世界架构 (Causal World Architecture)**  
-> 一个基于 Python 状态机与 LLM 驱动的中国官僚体系生存模拟器。
+《局中事》是一款可离线游玩的中文单人游戏。主菜单有两个入口。
 
-## 📌 核心哲学
+- **生涯模式**。从八种任职经历中选一项进入澄川县，处理工程、人事和家庭事务，或打开原有角色继续游玩。「市井家书」也从这里进入，以普通人的视角串起十一段历史。
+- **历史主角模式**。从戊戌变法到新世纪，共有 25 个实名历史事件。按年代筛选，或搜索人物、事件和地点，点选后即可开局。可以扮演沈钧儒、张学良、王晶垚、邓小平、尚爱云等当事人。存档名可以留空，游戏会采用事件名称。
 
-本项目的核心不是“让 AI 编故事”，而是**建立一个绝对冷酷的沙盒物理法则**。
-*   **程序守住底线**：世界的事实（Fact）不可被大模型篡改，概率由本地代码裁定。
-*   **AI 填补血肉**：大模型只负责理解玩家意图（Parser）和生成符合官场语境的对白（Narrator）。
-*   **事实与认知隔离**：世界真实发生的事，不等于 NPC 知道的事，更不等于玩家看到的事。
+在1989年北京一章，玩家以中央军委主席邓小平的身份决定对社论、对话与戒严的立场。前面给过的承诺，关系到六月还有哪些选择。一章结束后可对照史实，并在「行记与存档」从以前的决定前另开分线。回到人物目录，选中同一事件即可对照自己实际走过的结局。出处在「年代与出处」中。人物立场、程序回应和改变命运的路线属于历史推演。
 
-## 🏗️ 架构分层
+## 打开游戏
 
-项目采用严格的高内聚、低耦合设计：
+| 电脑 | 打开方式 |
+| --- | --- |
+| Mac（Apple 芯片） | 双击本地发行目录中的 **局中事.app**。拷贝到另一台 Mac 时，传输 `局中事-macOS-arm64.zip`，解压后打开。 |
+| Windows 10／11（x64） | 右键点击 `局中事-Windows-x64.zip`，选择「全部解压缩」，再双击文件夹里的 **局中事.exe**。游戏在默认浏览器打开。游玩时保留启动窗口，结束时点「退出游戏」。 |
+| Linux（x86_64、glibc 图形桌面） | 完整解压 `局中事-Linux-x86_64.tar.gz` 到准备长期保留的文件夹，在文件夹中双击 **局中事**。也可以在该目录打开终端，运行 `./局中事`。首次启动会把「局中事」加入应用菜单。 |
 
-*   `contracts/`：**数据契约层**。使用 Pydantic 定义不可混淆的 `Command`（意图）、`Resolution`（裁定结果）和 `CommittedEvent`（不可篡改的事实）。
-*   `judgment/`：**判定引擎**。纯 Python 函数，包含硬约束（物理、空间、权限）和概率抽样引擎。
-*   `storage/`：**持久化层**。唯一拥有写库权限的 `Committer` 通道，保证并发安全与乐观锁。
-*   `ai/`：**受控生成层**。通过 Provider 模式解耦，可随时切换云端 API、本地小模型或离线纯模板。
-*   `events/`：**事件引擎**（开发中）。处理时间队列、长期危机（Case）和 NPC 唤醒。
+三个版本都自带运行游戏所需的组件。Windows 和 Linux 的游戏画面使用本机默认浏览器，可以离线游玩。Linux 退出时，在应用菜单的「局中事」上选择「退出局中事」，或在解压目录运行 `./局中事 --stop`。
 
-## 🚀 本地运行
+选择「生涯模式」中的「建立生涯」，选一项任职经历，确认称谓后进入办公室。第一次可从「档案」对照南渠简报和前次摘录，再到「行动」决定亲自核实、委托或暂缓。选择「日程」推进到已安排的事项。
 
-1. 确保已安装 Python 3.10+。
-2. 安装依赖：
-   pip install pydantic
-3. 运行端到端测试原型：
-   python main.py
+办公桌和行动页会显示你所在的场所。想听翻纸、材料送达和抵达地点的声音，可以点击游戏时钟旁的「音效」，在「设置」中调节音量。首次游玩默认静音。
 
-## ⚠️ 免责声明
+在「行动」里可以写「暂缓答复，然后委托核查」。如果第二项必须等第一项受理，写「暂缓答复受理后再委托核查」。提交前会列出每项代价和先后条件。
 
-本作品为**架空虚构游戏**，所有地名、人物、事件均不映射现实。
-本项目旨在探讨“制度约束、资源竞争与信息不对称”下的决策困境，不包含真实政策文件、领导人讲话或敏感历史事件。游戏系统不提供道德审判，结局仅代表模拟推演的结果。
+每次提交都会自动保存。返回主菜单可继续之前的角色。设置中的「真实性—可玩性平衡」支持小数，开局时即生效，中途更改会在 240 个游戏分钟内平滑过渡。已预约或已开始的办理保留原定时点。
+
+换电脑时，在游戏内导出 JSON 存档。县域档从新电脑的「生涯模式」导入；人物长篇在对应目录中选择「导入长篇存档」。存档文件包含完整模拟历史，三个平台共用同一格式。Mac 默认保存在 `~/Library/Application Support/局中事/`；Windows 在 `%LOCALAPPDATA%\局中事`；Linux 在 `~/.local/share/juzhongshi/`，也支持 `XDG_DATA_HOME`。曾用旧源码版在 Linux 建档的玩家会优先看到原有生涯，除非新位置已有存档。
+
+## 从源码运行
+
+源码版使用 Python 3.12、Node.js 22 或以上和 pnpm。下列命令适用于 macOS 与 Linux。首次安装依赖需要网络。完成安装和构建后，本地游戏可以离线运行。
+
+```sh
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.lock
+(cd frontend && pnpm install --frozen-lockfile && pnpm build)
+.venv/bin/python main.py
+```
+
+在 Windows PowerShell 可执行以下命令启动同一源码版。
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Push-Location frontend
+pnpm install --frozen-lockfile
+pnpm build
+Pop-Location
+.\.venv\Scripts\python.exe main.py
+```
+
+默认打开浏览器。开发时可用 `--no-browser` 获取本次本机入口，用 `--data-dir` 指定独立测试目录。Mac 桌面壳和浏览器均使用同一套 FastAPI 接口、Svelte 界面和 SQLite 世界数据。正式桌面包自带运行时。
+
+```sh
+.venv/bin/python -m pytest -q
+.venv/bin/python scripts/content_manifest.py --check
+.venv/bin/python scripts/calibrate.py --json /tmp/jzs-calibration.json
+(cd frontend && pnpm check && pnpm test:e2e)
+```
+
+浏览器测试使用 Chrome 或 Playwright WebKit。
+
+## 从源码构建发行包
+
+在仓库根目录运行相应命令。首次构建需要联网获取锁定的依赖，成品位于 `release/`。
+
+| 构建机 | 命令 | 构建准备 |
+| --- | --- | --- |
+| Apple Silicon Mac | `scripts/build_macos.sh` | 按上节安装开发依赖并构建前端，另需 Xcode Command Line Tools 和 Rust 1.89 或以上。脚本生成本机临时签名的应用与 ZIP。可用 `PYTHON` 指定虚拟环境的解释器。 |
+| Windows x64 | `py -3.12 scripts/build_windows.py` | 需要带 pip 的 Python、Node.js、pnpm 及系统 .NET Framework 的 64 位 C# 编译器。脚本构建前端和图形启动器，并将锁定的 Windows Python 运行时、游戏及界面写入 ZIP。 |
+| Linux x86_64 | `.venv/bin/python scripts/build_linux.py` | 按上节构建前端，准备 Python 3.12 或以上、pip 和 `cc`。脚本生成内含 x86_64 运行时与桌面入口的 tar.gz。 |
+
+发行包的核验值与已测环境见[发行状态](IMPLEMENTATION_STATUS.md)。
+
+## 可选语言服务
+
+默认采用本地按钮、受限自由输入和带来源的叙述。需要使用外部语言模型时，由玩家在启动服务的环境中同时提供 `JUZHONGSHI_AI_URL`（完整的兼容 chat/completions 请求地址）和 `JUZHONGSHI_AI_MODEL`。需要身份验证的提供商还可读取 `JUZHONGSHI_AI_KEY`。这些值只供服务进程使用。
+
+配置后，语言服务可协助解释玩家输入、选择一个角色已知的合格陈述、选择已触发事项的跟进方式，或从玩家已看到的条目中选取回顾。候选须通过本地校验。单次连接等待上限为 12 秒。连接超时、未知编号或不合规输出会回到本地规则，本次推进的后续候选也由本地处理。
+
+配置好服务后，可运行 `.venv/bin/python scripts/verify_model.py`。脚本用独立测试生涯核对四种职责及回放，退出时清理测试存档。
+
+## 交付与核验
+
+- [实现范围与发布状态](IMPLEMENTATION_STATUS.md)
+- [验收记录](ACCEPTANCE_REPORT.md) 与 [逐条需求追踪](REQUIREMENTS_TRACEABILITY.csv)
+- [内容目录](CONTENT_MANIFEST.json) 与 [连续参数实测](BALANCE_CALIBRATION_REPORT.md)
+- [存档兼容与恢复](SAVE_COMPATIBILITY.md) 与 [真人试玩记录](PLAYTEST_REPORT.md)
+
+澄川县采用架空地名、机构和角色。模型参数是游戏设计值。历史主角各章另有按事件整理的史料与日期。

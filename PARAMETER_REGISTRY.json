@@ -1,0 +1,18 @@
+{
+  "package": "B40/4.0.0",
+  "calculation_version": "v4-smoothstep-1",
+  "transition_minutes": 240,
+  "temperature": 0.25,
+  "time_rounding": "ceil",
+  "parameters": [
+    {"id":"B40-ADM","key":"admin","formula":"linear","slope":-0.65,"unit":"multiplier","anchors":[1,0.675,0.35],"consumer":"administrative friction","binding":"task admission"},
+    {"id":"B40-MSG","key":"message_queue","formula":"linear","slope":-0.55,"unit":"multiplier","anchors":[1,0.725,0.45],"consumer":"channel queue","binding":"message dispatch"},
+    {"id":"B40-REP","key":"optional_rework","formula":"linear","slope":-0.5,"unit":"rate multiplier","anchors":[1,0.75,0.5],"consumer":"optional repeated inquiry","binding":"integrated clock"},
+    {"id":"B40-VER","key":"verification_rate","formula":"linear","slope":0.8,"unit":"rate multiplier","anchors":[1,1.4,1.8],"consumer":"eligible verification contact","binding":"integrated clock"},
+    {"id":"B40-OFF","key":"counteroffer_weight","formula":"power","base":2.5,"unit":"relative weight","anchors":[1,1.5811388300841898,2.5],"consumer":"feasible counteroffer group","binding":"response decision"},
+    {"id":"B40-REC","key":"repair_rate","formula":"linear","slope":1.2,"unit":"rate multiplier","anchors":[1,1.6,2.2],"consumer":"eligible repair contact","binding":"integrated clock"},
+    {"id":"B40-CASE","key":"optional_case_rate","formula":"linear","slope":0.6,"unit":"rate multiplier","anchors":[1,1.3,1.6],"consumer":"optional case contact","binding":"integrated clock"},
+    {"id":"B40-WIN","key":"new_soft_window","formula":"linear","slope":0.4,"unit":"multiplier","anchors":[1,1.2,1.4],"consumer":"new negotiable slack","binding":"proposal creation"},
+    {"id":"B40-OBJ","key":"objective_weights","formula":"objective","unit":"weight pair","anchors":[[1,0],[0.5,0.5],[0,1]],"consumer":"eligible optional candidates including none","binding":"opportunity selection"}
+  ]
+}

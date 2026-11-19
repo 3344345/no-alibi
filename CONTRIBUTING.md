@@ -1,17 +1,9 @@
-# 协作指南 (Contributing Guide)
+# 开发与验证
 
-## 一、架构铁律（不可违反）
-1. **单向数据流**：Command -> Resolver -> Committer -> EventLog。
-2. **AI 无写库权限**：任何大模型生成的输出必须是 Proposal，不能直接修改 WorldFacts。
-3. **业务逻辑隔离**：所有新机制（调查、人事、事件）必须在 `judgment/handlers/` 建立独立类，并在 `ACTION_HANDLERS` 注册，绝不允许在 `j6_orchestrator.py` 写 `if-else` 屎山。
-4. **数据契约至上**：所有输入输出必须通过 `contracts/` 下的 Pydantic 模型校验。
+玩家请求由 `api/routes.py` 接收。规则在 `game/engine.py` 与 `game/world_*.py` 运行，存储由 `game/store.py` 提交。角色知识、可见文书及玩家视图由领域层提供。新增动作须同时登记可用条件、参数、预览代价、成功与受阻的状态路径，以及断网文案。
 
-## 二、目录职责划分
-- `contracts/` & `storage/` & `judgment/`：**核心引擎（非常敏感，需架构师 Review 才能合入）**。
-- `content/` & `data/`：**剧情数据（策划/写手负责，可随时丰富）**。
-- `ai/`：**AI 接口层（仅限替换 LLM API 和调整 Prompt）**。
+引擎读取游戏分钟、固定种子和已提交状态。保持 Resolver 无 I/O。外部候选在事务之外取得，并在提交前重新核验可见上下文和世界版本。连续参数使用 `PARAMETER_REGISTRY.json`，已绑定的预约或消息在改目标后保留既有成本。
 
-## 三、协作流程
-1. 提交前跑通 `python main.py`。
-2. 不准把本地生成的 `*.db` 和 `.env` 推送到远端。
-3. 严格使用 Pydantic 进行类型约束。
+运行 `python -m pytest -q`、前端 `pnpm check`、`pnpm test:e2e` 和内容目录校验。长局规则变更后重跑 `scripts/calibrate.py` 并更新实测报告。数据库、凭据、私人存档与打包工具缓存都应保存在仓库之外或已忽略的目录。
+
+仓库还保留早期原型的接口。正式入口为 `main.py` 或桌面应用，调试历史状态使用独立检查工具。完整编译与游玩步骤见 README。

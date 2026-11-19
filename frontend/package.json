@@ -1,0 +1,21 @@
+{
+  "name": "juzhongshi-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test:sound": "node --test tests/sound.test.mjs",
+    "test:e2e": "node --test --test-concurrency=1 tests/browser.test.mjs tests/chronicle.test.mjs tests/witness.test.mjs"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "5.1.1",
+    "playwright-core": "1.55.0",
+    "svelte": "5.38.7",
+    "svelte-check": "4.2.2",
+    "typescript": "5.8.3",
+    "vite": "6.1.0"
+  }
+}

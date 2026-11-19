@@ -1,0 +1,1845 @@
+{
+  "schema_version": "content-manifest/1",
+  "version": "chengchuan/4.0.1",
+  "title": "局中事",
+  "world": "江岚省／临江市／澄川县",
+  "source": "V4.0 补充规则及继承的世界合同；虚构世界，本地简体中文模板",
+  "starts": [
+    {
+      "id": "S01",
+      "name": "基层办事经历",
+      "role": "县项目协调办办事岗",
+      "age": 28,
+      "contacts": [
+        "N11",
+        "N10"
+      ],
+      "obligation": "补齐来文目录",
+      "creditor": "N10",
+      "days": 2,
+      "case": "K02",
+      "channel": "材料流转",
+      "brief": "桌上两份南渠材料用了不同的计量表述。周主任要你两天内补齐目录。"
+    },
+    {
+      "id": "S02",
+      "name": "乡镇执行经历",
+      "role": "乡镇现场联络岗",
+      "age": 32,
+      "contacts": [
+        "N16",
+        "N18"
+      ],
+      "obligation": "答复居民通行请求",
+      "creditor": "N16",
+      "days": 5,
+      "case": "K03",
+      "channel": "现场联络",
+      "brief": "上次巡查走到西段便道。居民代表把新的通行请求交给了你。"
+    },
+    {
+      "id": "S03",
+      "name": "专业技术转任",
+      "role": "县技术审查岗",
+      "age": 31,
+      "contacts": [
+        "N18",
+        "N09"
+      ],
+      "obligation": "提交技术审查意见",
+      "creditor": "N08",
+      "days": 3,
+      "case": "K01",
+      "channel": "技术审查",
+      "brief": "程向晚把标着检查范围的摘要夹在卷首。梁澈等着你的技术意见。"
+    },
+    {
+      "id": "S04",
+      "name": "项目协调履历",
+      "role": "县项目协调办副职",
+      "age": 36,
+      "contacts": [
+        "N03",
+        "N06"
+      ],
+      "obligation": "提交本周协调方案",
+      "creditor": "N03",
+      "days": 7,
+      "case": "K09",
+      "channel": "协调签署",
+      "brief": "财政给出的首季额度盖不住三份申请。上次会议答应的第一版方案还要你交。"
+    },
+    {
+      "id": "S05",
+      "name": "异地交流任职",
+      "role": "县部门交流副职",
+      "age": 35,
+      "contacts": [
+        "N02",
+        "N10"
+      ],
+      "obligation": "提交独立情况稿",
+      "creditor": "N02",
+      "days": 7,
+      "case": "K11",
+      "channel": "部门协调",
+      "brief": "交接箱里有一份道路报告。陈砚青想从你这里听到独立核实的情况。"
+    },
+    {
+      "id": "S06",
+      "name": "本地长期任职",
+      "role": "县部门常务副职",
+      "age": 39,
+      "contacts": [
+        "N14",
+        "N15"
+      ],
+      "obligation": "替张振了解办理程序",
+      "creditor": "N15",
+      "days": 5,
+      "case": "K15",
+      "channel": "旧案调阅",
+      "brief": "张振又来问上周说的事。你答应的是问清程序，这句话已经被亲戚转过一次。"
+    },
+    {
+      "id": "S07",
+      "name": "上级机关下派",
+      "role": "市级派驻协调岗",
+      "age": 34,
+      "contacts": [
+        "N21",
+        "N22"
+      ],
+      "obligation": "送交县域资源摘要",
+      "creditor": "N22",
+      "days": 10,
+      "case": "K07",
+      "channel": "上行汇报",
+      "brief": "派驻任务书要求你从县里收齐材料。吴承礼留出了十天反馈时间。"
+    },
+    {
+      "id": "S08",
+      "name": "组织培养通道",
+      "role": "县重点任务负责人",
+      "age": 30,
+      "contacts": [
+        "N04",
+        "N12"
+      ],
+      "obligation": "提交重点项目履职材料",
+      "creditor": "N04",
+      "days": 10,
+      "case": "K10",
+      "channel": "重点任务",
+      "brief": "岗位资格说明与重点任务书一同送达。苏明川愿意引荐，考察仍要看履职记录。"
+    }
+  ],
+  "locations": [
+    {
+      "id": "L01",
+      "name": "办公室",
+      "description": "靠窗的长桌上压着来文登记簿，联络员正等你定今天的安排。",
+      "minutes": 20,
+      "people": [
+        "N10",
+        "N11"
+      ],
+      "access": "public",
+      "wait": "办公室的收文钟敲过一格。"
+    },
+    {
+      "id": "L02",
+      "name": "工地",
+      "description": "南渠西段的便道已经成形。围栏外能看见通路，上游工序仍被挡在视线之外。",
+      "minutes": 60,
+      "people": [
+        "N08",
+        "N18",
+        "N16"
+      ],
+      "access": "public",
+      "wait": "技术员在原检查点等候。"
+    },
+    {
+      "id": "L03",
+      "name": "资源协调会",
+      "description": "三本不同颜色的项目申请册排在同一张预算表旁。",
+      "minutes": 30,
+      "people": [
+        "N06",
+        "N07",
+        "N08",
+        "N09",
+        "N03"
+      ],
+      "access": "public",
+      "wait": "会议秘书把当前版本留在桌上。"
+    },
+    {
+      "id": "L04",
+      "name": "饭局",
+      "description": "吕峻生离你的座位最近。另一端的谈话隔着桌面，听不清楚。",
+      "minutes": 40,
+      "people": [
+        "N17",
+        "N12"
+      ],
+      "access": "dinner",
+      "wait": "邻座在等你把话说完。"
+    },
+    {
+      "id": "L05",
+      "name": "会所",
+      "description": "接待处核过预约。门外有人进出，里间的会面各有自己的座次。",
+      "minutes": 45,
+      "people": [
+        "N17",
+        "N12"
+      ],
+      "access": "appointment",
+      "wait": "前台保留着这次来访登记。"
+    },
+    {
+      "id": "L06",
+      "name": "高尔夫",
+      "description": "一趟完整的同行要占去一个下午。球场只接待预约的同行人。",
+      "minutes": 90,
+      "people": [
+        "N03",
+        "N12"
+      ],
+      "access": "appointment",
+      "wait": "同行人在会合点等候。"
+    },
+    {
+      "id": "L07",
+      "name": "家里",
+      "description": "餐桌上放着沈亦宁的外地培训通知，家庭日历还空着几格。",
+      "minutes": 35,
+      "people": [
+        "N14",
+        "N15"
+      ],
+      "access": "public",
+      "wait": "家里的日历仍在原处。"
+    },
+    {
+      "id": "L08",
+      "name": "老宅",
+      "description": "茶杯旁放着一封旧信。方泊山愿意讲当年的事，也提醒你先看信上的日期。",
+      "minutes": 50,
+      "people": [
+        "N13",
+        "N15"
+      ],
+      "access": "public",
+      "wait": "院里的茶凉了一点。"
+    },
+    {
+      "id": "L09",
+      "name": "家族聚会",
+      "description": "亲属坐了两桌。张振把上一次听到的说法又问了一遍。",
+      "minutes": 50,
+      "people": [
+        "N14",
+        "N15",
+        "N16"
+      ],
+      "access": "public",
+      "wait": "桌边几个人各自记住了半句话。"
+    }
+  ],
+  "actors": [
+    {
+      "id": "N01",
+      "name": "何绍宁",
+      "role": "县级主要负责人",
+      "goal": "维持组织与项目秩序",
+      "claim": "我收到的是综合简报。",
+      "plan": "重排项目议程",
+      "contact": "N02"
+    },
+    {
+      "id": "N02",
+      "name": "陈砚青",
+      "role": "县域行政负责人",
+      "goal": "推进交付并守住预算",
+      "claim": "现有预算要同时照顾三个项目。",
+      "plan": "向财政调阅预算版本",
+      "contact": "N06"
+    },
+    {
+      "id": "N03",
+      "name": "蒋绍衡",
+      "role": "分管协调负责人",
+      "goal": "完成分管任务并维护团队",
+      "claim": "北站道路的原期限已经写进纪要。",
+      "plan": "征询道路工序安排",
+      "contact": "N07"
+    },
+    {
+      "id": "N04",
+      "name": "田文序",
+      "role": "人事考察负责人",
+      "goal": "保持任用程序",
+      "claim": "我只核对正式送交的履职材料。",
+      "plan": "复核岗位与任期资料",
+      "contact": "N21"
+    },
+    {
+      "id": "N05",
+      "name": "罗知行",
+      "role": "调查负责人",
+      "goal": "形成有材料支持的结论",
+      "claim": "未经调取的材料不能列作案卷附件。",
+      "plan": "向档案室核验取得手续",
+      "contact": "N19"
+    },
+    {
+      "id": "N06",
+      "name": "许慎川",
+      "role": "财政负责人",
+      "goal": "守住现有预算和承诺",
+      "claim": "三项申请要用十四组人手，台账只有十二组。",
+      "plan": "向项目方征集分期方案",
+      "contact": "N09"
+    },
+    {
+      "id": "N07",
+      "name": "赵其岳",
+      "role": "道路项目主管",
+      "goal": "完成道路前置手续",
+      "claim": "道路手续尚待相关部门会签。",
+      "plan": "询问会签进度",
+      "contact": "N03"
+    },
+    {
+      "id": "N08",
+      "name": "梁澈",
+      "role": "水务负责人",
+      "goal": "赶上南渠检查窗口",
+      "claim": "进度汇总表由项目组转来，范围栏还要对照。",
+      "plan": "向现场索取检查点信息",
+      "contact": "N18"
+    },
+    {
+      "id": "N09",
+      "name": "孟知秋",
+      "role": "医院负责人",
+      "goal": "在施工期间维持诊疗",
+      "claim": "门诊不能随施工计划一起停下来。",
+      "plan": "安排分区运营",
+      "contact": "N06"
+    },
+    {
+      "id": "N10",
+      "name": "周成钧",
+      "role": "政务办公室主任",
+      "goal": "让文件与日程及时流转",
+      "claim": "我能确认文件送达，不能替技术员核定现场。",
+      "plan": "整理收文目录",
+      "contact": "N11"
+    },
+    {
+      "id": "N11",
+      "name": "彭述",
+      "role": "工作联络员",
+      "goal": "完成授权任务并保留出处",
+      "claim": "你把要比的两份材料给我，我能先核日期和范围。",
+      "plan": "核对来文版本",
+      "contact": "N10"
+    },
+    {
+      "id": "N12",
+      "name": "苏明川",
+      "role": "实权前辈",
+      "goal": "维持旧网络并争取安排",
+      "claim": "我上次接到的口信说，原联络人还管这件事。",
+      "plan": "联络旧渠道",
+      "contact": "N03"
+    },
+    {
+      "id": "N13",
+      "name": "方泊山",
+      "role": "退隐前辈",
+      "goal": "保留判断距离",
+      "claim": "听别人谈岗位，先问他说的是哪一任。",
+      "plan": "重读旧信",
+      "contact": "N12"
+    },
+    {
+      "id": "N14",
+      "name": "沈亦宁",
+      "role": "配偶",
+      "goal": "兼顾家庭和自己的职业计划",
+      "claim": "外地培训的名额要由我自己回复。",
+      "plan": "向培训单位确认行程",
+      "contact": "N15"
+    },
+    {
+      "id": "N15",
+      "name": "张振",
+      "role": "亲属",
+      "goal": "弄清自己的申请如何办理",
+      "claim": "我听说有人答应替我问问。",
+      "plan": "向家人转述听到的答复",
+      "contact": "N14"
+    },
+    {
+      "id": "N16",
+      "name": "吴静禾",
+      "role": "社区代表",
+      "goal": "让居民通行请求获得明确答复",
+      "claim": "便道不开，居民每天仍得绕过南渠。",
+      "plan": "向水务递交通行请求",
+      "contact": "N08"
+    },
+    {
+      "id": "N17",
+      "name": "吕峻生",
+      "role": "项目执行单位负责人",
+      "goal": "维持履约和周转",
+      "claim": "几个项目用的是同一批施工组。",
+      "plan": "向道路主管核对排程",
+      "contact": "N07"
+    },
+    {
+      "id": "N18",
+      "name": "程向晚",
+      "role": "现场技术人员",
+      "goal": "守住技术记录的范围",
+      "claim": "我签字的范围只到西段标桩。",
+      "plan": "向水务提交现场台账",
+      "contact": "N08"
+    },
+    {
+      "id": "N19",
+      "name": "董薇",
+      "role": "审计与档案核查人员",
+      "goal": "核对账目、版本与来源",
+      "claim": "我要的是哪一版、从哪儿取得的记录。",
+      "plan": "核对可调阅的原件",
+      "contact": "N05"
+    },
+    {
+      "id": "N20",
+      "name": "林珂",
+      "role": "地方信息编辑",
+      "goal": "保留可以复核的信源",
+      "claim": "还没有收到另一方的回复。",
+      "plan": "向社区核对原话",
+      "contact": "N16"
+    },
+    {
+      "id": "N21",
+      "name": "郭听川",
+      "role": "市级组织联系人",
+      "goal": "协调跨县任用",
+      "claim": "我手里只有正式报送的人事材料。",
+      "plan": "核对派驻任期",
+      "contact": "N04"
+    },
+    {
+      "id": "N22",
+      "name": "吴承礼",
+      "role": "市级资源联系人",
+      "goal": "平衡跨县资源需求",
+      "claim": "这里还等着邻县的资源申请。",
+      "plan": "比较跨县需求",
+      "contact": "N23"
+    },
+    {
+      "id": "N23",
+      "name": "郑蓉",
+      "role": "省级项目审查联系人",
+      "goal": "核查跨市项目组合",
+      "claim": "送到省里的材料要说明其他市的安排。",
+      "plan": "索取市级项目组合",
+      "contact": "N22"
+    },
+    {
+      "id": "N24",
+      "name": "沈敬舟",
+      "role": "中央层督导联络员",
+      "goal": "核对指定议题",
+      "claim": "我只就来件列出的议题向下征询。",
+      "plan": "发出限定范围的材料请求",
+      "contact": "N23"
+    }
+  ],
+  "projects": [
+    {
+      "id": "P01",
+      "name": "南渠防涝",
+      "request": 800000000,
+      "groups": 5,
+      "owner": "N08",
+      "initial": 20,
+      "description": "汛前工序、便道开放检查与现场记录",
+      "deliverable": "南渠西段临时通路",
+      "stage_case": "K03",
+      "permit_action": null,
+      "permit_note": null,
+      "opening_passage": true,
+      "plan_shares": {
+        "A": [
+          800,
+          5
+        ],
+        "B": [
+          600,
+          4
+        ],
+        "C": [
+          400,
+          3
+        ]
+      },
+      "sends_stage_request": false
+    },
+    {
+      "id": "P02",
+      "name": "北站配套道路",
+      "request": 900000000,
+      "groups": 5,
+      "owner": "N07",
+      "initial": 15,
+      "description": "跨部门会签、道路工序与工期承诺",
+      "deliverable": "北站道路联络段",
+      "stage_case": "K08",
+      "permit_action": "申请道路前置会签",
+      "permit_note": null,
+      "opening_passage": false,
+      "plan_shares": {
+        "A": [
+          500,
+          3
+        ],
+        "B": [
+          900,
+          5
+        ]
+      },
+      "sends_stage_request": false
+    },
+    {
+      "id": "P03",
+      "name": "县医院扩建",
+      "request": 700000000,
+      "groups": 4,
+      "owner": "N09",
+      "initial": 10,
+      "description": "诊疗连续性、场地轮换与分区施工",
+      "deliverable": "医院分区通道",
+      "stage_case": "K04",
+      "permit_action": "提交医院分区运营表",
+      "permit_note": "分区运营计划已签收。",
+      "opening_passage": false,
+      "plan_shares": {
+        "A": [
+          700,
+          4
+        ],
+        "B": [
+          500,
+          3
+        ]
+      },
+      "sends_stage_request": true
+    }
+  ],
+  "cases": [
+    {
+      "id": "K01",
+      "name": "两版报告",
+      "description": "送达的进度材料需要按日期、范围和版本比对。",
+      "review_owner": "N08",
+      "evidence_prefixes": [
+        "D01-",
+        "OBS-site"
+      ],
+      "completion_evidence_prefixes": [
+        "D01-r2"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K02",
+      "name": "口头期限",
+      "description": "已约定的回复与正式办理所需时间存在冲突。",
+      "review_owner": "N10",
+      "evidence_prefixes": [
+        "receipt-",
+        "POST-",
+        "REPLY-N10"
+      ],
+      "completion_evidence_prefixes": [
+        "receipt-",
+        "POST-"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K03",
+      "name": "南渠窗口",
+      "description": "检查、整改和通行安排占用同一个现场窗口。",
+      "review_owner": "N08",
+      "evidence_prefixes": [
+        "P01-",
+        "D16-",
+        "OBS-site"
+      ],
+      "completion_evidence_prefixes": [
+        "P01-inspect-",
+        "P01-stage-"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K04",
+      "name": "医院不停运",
+      "description": "扩建与日常门诊争用同一区域。",
+      "review_owner": "N09",
+      "evidence_prefixes": [
+        "P03-",
+        "REPLY-N09"
+      ],
+      "completion_evidence_prefixes": [
+        "P03-stage-",
+        "P03-permit"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K05",
+      "name": "口拒后到场",
+      "description": "此前拒绝邀请和后来到场留下不同记录。",
+      "review_owner": "N12",
+      "evidence_prefixes": [
+        "INVITE-",
+        "D05-",
+        "REPLY-N12"
+      ],
+      "completion_evidence_prefixes": [
+        "D05-attend",
+        "D05-explain"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K06",
+      "name": "私下核实",
+      "description": "现场渠道与书面材料给出了不同范围。",
+      "review_owner": "N18",
+      "evidence_prefixes": [
+        "D01-detail",
+        "OBS-site",
+        "REPLY-N18"
+      ],
+      "completion_evidence_prefixes": [
+        "D01-detail",
+        "OBS-site"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K07",
+      "name": "旧支持变化",
+      "description": "原联络渠道变动，需要确认新负责人。",
+      "review_owner": "N10",
+      "evidence_prefixes": [
+        "D07-",
+        "REPLY-N10",
+        "advice-N12"
+      ],
+      "completion_evidence_prefixes": [
+        "D07-contact"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K08",
+      "name": "合作与争位",
+      "description": "共同完成道路事务的双方也可竞争同一岗位。",
+      "review_owner": "N03",
+      "evidence_prefixes": [
+        "D08-",
+        "POS-",
+        "P02-",
+        "INTER-"
+      ],
+      "completion_evidence_prefixes": [
+        "D08-division",
+        "POS-"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K09",
+      "name": "三项目一池",
+      "description": "三项首期请求合计 2400 万元，需求为 14 个工作组。",
+      "review_owner": "N06",
+      "evidence_prefixes": [
+        "D06-",
+        "BUD-",
+        "P01-stage",
+        "P02-stage",
+        "P03-stage"
+      ],
+      "completion_evidence_prefixes": [
+        "BUD-"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K10",
+      "name": "空缺窗口",
+      "description": "任用要同时具备实际空缺、资格和正式考察。",
+      "review_owner": "N04",
+      "evidence_prefixes": [
+        "POS-",
+        "D10-office",
+        "INTER-"
+      ],
+      "completion_evidence_prefixes": [
+        "POS-"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K11",
+      "name": "一句话三版本",
+      "description": "原话与转述抵达了不同的人。",
+      "review_owner": "N15",
+      "evidence_prefixes": [
+        "SPEECH-",
+        "RELAY-",
+        "CLARIFY-"
+      ],
+      "completion_evidence_prefixes": [
+        "CLARIFY-"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K12",
+      "name": "导师旧情报",
+      "description": "口头建议的日期与当前联络渠道有待核实。",
+      "review_owner": "N10",
+      "evidence_prefixes": [
+        "advice-",
+        "D12-check",
+        "D07-"
+      ],
+      "completion_evidence_prefixes": [
+        "D12-check",
+        "D07-contact"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K13",
+      "name": "笔记与猜测",
+      "description": "有人取得了记事本中的文字，仍需区分亲历与推测。",
+      "review_owner": "N19",
+      "evidence_prefixes": [
+        "NB-copy-",
+        "NB-ver-",
+        "NB-reader-"
+      ],
+      "completion_evidence_prefixes": [
+        "NB-ver-",
+        "NB-copy-"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K14",
+      "name": "原件不在",
+      "description": "原件不再可取，需要独立取得其他材料。",
+      "review_owner": "N19",
+      "evidence_prefixes": [
+        "NB-copy-",
+        "NB-ver-",
+        "NB-reader-"
+      ],
+      "completion_evidence_prefixes": [
+        "NB-copy-",
+        "NB-ver-",
+        "NB-reader-"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K15",
+      "name": "家里答应了",
+      "description": "亲属转述的承诺需要当事人澄清。",
+      "review_owner": "N14",
+      "evidence_prefixes": [
+        "FAM-",
+        "CLARIFY-",
+        "SPEECH-"
+      ],
+      "completion_evidence_prefixes": [
+        "FAM-reply",
+        "CLARIFY-"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    },
+    {
+      "id": "K16",
+      "name": "留下还是交接",
+      "description": "生活、岗位和未结责任需要重新安排。",
+      "review_owner": "N10",
+      "evidence_prefixes": [
+        "HR-",
+        "CARE-",
+        "FAM-"
+      ],
+      "completion_evidence_prefixes": [
+        "HR-transfer",
+        "CARE-plan",
+        "FAM-reply"
+      ],
+      "new_submission": "case_file",
+      "checkpoint": "case_intake / case_verdict",
+      "three_quarter_regression": "tests/test_world_v4.py::test_all_cases_can_receive_new_material_after_three_quarters"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "V4-SC01",
+      "name": "预算谈判",
+      "cases": [
+        "K09"
+      ],
+      "place": "L03",
+      "routes": [
+        "propose",
+        "offer",
+        "cancel_reservation"
+      ],
+      "counterexample": "工程前置不齐时无法接受拨款条款",
+      "parameter_references": [
+        "B40-ADM",
+        "B40-OFF",
+        "B40-WIN"
+      ]
+    },
+    {
+      "id": "V4-SC02",
+      "name": "报告查证",
+      "cases": [
+        "K01"
+      ],
+      "place": "L01",
+      "routes": [
+        "compare",
+        "delegate",
+        "reply"
+      ],
+      "counterexample": "未获独立材料时修订仍须保留不确定",
+      "parameter_references": [
+        "B40-VER",
+        "B40-MSG"
+      ]
+    },
+    {
+      "id": "V4-SC03",
+      "name": "饭局半句保证",
+      "cases": [
+        "K02",
+        "K05",
+        "K11"
+      ],
+      "place": "L04",
+      "routes": [
+        "speak",
+        "clarify",
+        "invite"
+      ],
+      "counterexample": "未到场无法产生当面原话",
+      "parameter_references": [
+        "B40-OFF",
+        "B40-MSG",
+        "B40-WIN"
+      ]
+    },
+    {
+      "id": "V4-SC04",
+      "name": "家庭职业机会",
+      "cases": [
+        "K15",
+        "K16"
+      ],
+      "place": "L07",
+      "routes": [
+        "family_plan",
+        "rest",
+        "career_exit"
+      ],
+      "counterexample": "工作重叠时照护安排可能落空",
+      "parameter_references": [
+        "B40-REC",
+        "B40-WIN"
+      ]
+    },
+    {
+      "id": "V4-SC05",
+      "name": "第二张现场照片",
+      "cases": [
+        "K03",
+        "K06"
+      ],
+      "place": "L02",
+      "routes": [
+        "observe",
+        "evidence",
+        "passage"
+      ],
+      "counterexample": "缺少合格检查记录不得批准开放",
+      "parameter_references": [
+        "B40-VER",
+        "B40-ADM",
+        "B40-MSG"
+      ]
+    },
+    {
+      "id": "V4-SC06",
+      "name": "合作兼竞争",
+      "cases": [
+        "K08",
+        "K10"
+      ],
+      "place": "L03",
+      "routes": [
+        "cooperate",
+        "favour",
+        "nominate"
+      ],
+      "counterexample": "合作不授予岗位资格",
+      "parameter_references": [
+        "B40-CASE",
+        "B40-OBJ"
+      ]
+    },
+    {
+      "id": "V4-SC07",
+      "name": "导师建议",
+      "cases": [
+        "K12"
+      ],
+      "place": "L08",
+      "routes": [
+        "mentor",
+        "mentor_channel",
+        "inquire"
+      ],
+      "counterexample": "未取得更新材料的建议可以过时",
+      "parameter_references": [
+        "B40-VER",
+        "B40-MSG"
+      ]
+    },
+    {
+      "id": "V4-SC08",
+      "name": "本子被取得后的传播",
+      "cases": [
+        "K13",
+        "K14"
+      ],
+      "place": "L01",
+      "routes": [
+        "copy_note",
+        "take_note",
+        "confirm_note"
+      ],
+      "counterexample": "未接触实体物品无法阅读原件",
+      "parameter_references": [
+        "B40-MSG",
+        "B40-CASE"
+      ]
+    },
+    {
+      "id": "V4-SC09",
+      "name": "旧案卷复核",
+      "cases": [
+        "K13",
+        "K14"
+      ],
+      "place": "L01",
+      "routes": [
+        "refer",
+        "review",
+        "hearing"
+      ],
+      "counterexample": "私人猜测单独不能形成岗位处分",
+      "parameter_references": [
+        "B40-ADM",
+        "B40-VER",
+        "B40-REC"
+      ]
+    },
+    {
+      "id": "V4-SC10",
+      "name": "上级岗位继任",
+      "cases": [
+        "K07",
+        "K10"
+      ],
+      "place": "L01",
+      "routes": [
+        "nominate",
+        "cross_review",
+        "career_exit"
+      ],
+      "counterexample": "没有实际空缺时无法提出任命",
+      "parameter_references": [
+        "B40-ADM",
+        "B40-MSG",
+        "B40-CASE"
+      ]
+    }
+  ],
+  "arcs": [
+    {
+      "id": "V4-ARC01",
+      "name": "技术员的交接",
+      "actor": "N18"
+    },
+    {
+      "id": "V4-ARC02",
+      "name": "财政的分期方案",
+      "actor": "N06"
+    },
+    {
+      "id": "V4-ARC03",
+      "name": "配偶的职业选择",
+      "actor": "N14"
+    },
+    {
+      "id": "V4-ARC04",
+      "name": "有时效的引荐",
+      "actor": "N12"
+    },
+    {
+      "id": "V4-ARC05",
+      "name": "合作与竞争",
+      "actor": "N03"
+    },
+    {
+      "id": "V4-ARC06",
+      "name": "岗位继任",
+      "actor": "N04"
+    }
+  ],
+  "endings": [
+    {
+      "id": "END01",
+      "name": "自然退休",
+      "resume_policy": "permanent_end"
+    },
+    {
+      "id": "END02",
+      "name": "主动离开",
+      "resume_policy": "permanent_end"
+    },
+    {
+      "id": "END03",
+      "name": "长期边缘化",
+      "resume_policy": "stage_end"
+    },
+    {
+      "id": "END04",
+      "name": "调离原局势",
+      "resume_policy": "stage_end"
+    },
+    {
+      "id": "END05",
+      "name": "组织处分后退出",
+      "resume_policy": "stage_end"
+    },
+    {
+      "id": "END06",
+      "name": "调查程序终章",
+      "resume_policy": "stage_end"
+    },
+    {
+      "id": "END07",
+      "name": "健康或照护退出",
+      "resume_policy": "stage_end"
+    },
+    {
+      "id": "END08",
+      "name": "死亡终局",
+      "resume_policy": "permanent_end"
+    }
+  ],
+  "mechanisms": [
+    {
+      "id": "M01",
+      "name": "申请与递交",
+      "handler": "game.world_projects",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "permit",
+        "permit_done"
+      ],
+      "precondition": "项目主管收到前置材料",
+      "entities": [
+        "P02",
+        "P03"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_projects.py"
+    },
+    {
+      "id": "M02",
+      "name": "签署、拒签与暂缓",
+      "handler": "game.world_office",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "authority",
+        "coord_sign"
+      ],
+      "precondition": "岗位或有效限期授权支持签署",
+      "entities": [
+        "S04",
+        "P01"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_office.py"
+    },
+    {
+      "id": "M03",
+      "name": "承诺及到期",
+      "handler": "game.world_social",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "commitment",
+        "promise_due"
+      ],
+      "precondition": "已送达的明确承诺",
+      "entities": [
+        "K02",
+        "K15"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_social.py"
+    },
+    {
+      "id": "M04",
+      "name": "修订与复制",
+      "handler": "game.world_projects",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "revise",
+        "revise"
+      ],
+      "precondition": "原版本可查并已比对",
+      "entities": [
+        "K01",
+        "P01"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_projects.py"
+    },
+    {
+      "id": "M05",
+      "name": "建立分期任务",
+      "handler": "game.world_projects",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "offer",
+        "mobilize"
+      ],
+      "precondition": "方案、授权、前置和时段齐备",
+      "entities": [
+        "P01",
+        "P02",
+        "P03"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_projects.py"
+    },
+    {
+      "id": "M06",
+      "name": "执行与资源结算",
+      "handler": "game.world_projects",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "offer",
+        "construction_done"
+      ],
+      "precondition": "已预留资金、班组和施工范围",
+      "entities": [
+        "P01",
+        "P03"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_projects.py"
+    },
+    {
+      "id": "M07",
+      "name": "延期与重排",
+      "handler": "game.world_projects",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "cancel_reservation",
+        "offer_review"
+      ],
+      "precondition": "限定未进场且未支付的阶段",
+      "entities": [
+        "K03",
+        "K09"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_projects.py"
+    },
+    {
+      "id": "M08",
+      "name": "检查验收整改",
+      "handler": "game.world_projects",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "passage",
+        "passage_stage"
+      ],
+      "precondition": "已建成实物及相应检查记录",
+      "entities": [
+        "K03",
+        "P01"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_projects.py"
+    },
+    {
+      "id": "M09",
+      "name": "邀约与回复",
+      "handler": "game.world_social",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "invite",
+        "invite_end"
+      ],
+      "precondition": "已有指定邀请及回复期",
+      "entities": [
+        "L04",
+        "N12"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_social.py"
+    },
+    {
+      "id": "M10",
+      "name": "会面与出入",
+      "handler": "game.world",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "travel",
+        "arrive"
+      ],
+      "precondition": "可达地点及必要预约",
+      "entities": [
+        "L05",
+        "L06"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world.py"
+    },
+    {
+      "id": "M11",
+      "name": "说话与试探",
+      "handler": "game.world_social",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "speak",
+        "speak"
+      ],
+      "precondition": "已到场且具有实际听者",
+      "entities": [
+        "L04",
+        "L09"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_social.py"
+    },
+    {
+      "id": "M12",
+      "name": "条件协商",
+      "handler": "game.world_projects",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "propose",
+        "offer_review"
+      ],
+      "precondition": "存在可行范围与财政答复",
+      "entities": [
+        "K09",
+        "N06"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_projects.py"
+    },
+    {
+      "id": "M13",
+      "name": "主观关系更新",
+      "handler": "game.world_office",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "consult",
+        "actor_response"
+      ],
+      "precondition": "本人实际收到有出处的答复",
+      "entities": [
+        "N10",
+        "N18"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_office.py"
+    },
+    {
+      "id": "M14",
+      "name": "人情与回请",
+      "handler": "game.world_office",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "favour",
+        "favour_done"
+      ],
+      "precondition": "先有当事人知道的具体帮助和回请",
+      "entities": [
+        "N03",
+        "N12"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_office.py"
+    },
+    {
+      "id": "M15",
+      "name": "合作与竞争",
+      "handler": "game.world_projects",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "cooperate",
+        "cooperate"
+      ],
+      "precondition": "道路协作意见及真实岗位候选窗口",
+      "entities": [
+        "N03",
+        "K08"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_projects.py"
+    },
+    {
+      "id": "M16",
+      "name": "共同暴露",
+      "handler": "game.world_social",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "gift",
+        "witness"
+      ],
+      "precondition": "实际双方交接、签收和取证",
+      "entities": [
+        "N17",
+        "K13"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_social.py"
+    },
+    {
+      "id": "M17",
+      "name": "空缺与考察",
+      "handler": "game.world_career",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "nominate",
+        "appointment_review"
+      ],
+      "precondition": "实际离任、任期与履职资格",
+      "entities": [
+        "N04",
+        "K10"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_career.py"
+    },
+    {
+      "id": "M18",
+      "name": "任命、调任与交接",
+      "handler": "game.world_career",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "career_exit",
+        "handover"
+      ],
+      "precondition": "有权机构办理与接收人交接",
+      "entities": [
+        "K10",
+        "K16"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_career.py"
+    },
+    {
+      "id": "M19",
+      "name": "预算和工作组",
+      "handler": "game.world_projects",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "offer",
+        "mobilize"
+      ],
+      "precondition": "年度资金、季度上限和实际容量",
+      "entities": [
+        "K09",
+        "P03"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_projects.py"
+    },
+    {
+      "id": "M20",
+      "name": "授权与撤销",
+      "handler": "game.world_office",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "authority",
+        "auth_expire"
+      ],
+      "precondition": "签署范围、有效主体和截止",
+      "entities": [
+        "N10",
+        "P01"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_office.py"
+    },
+    {
+      "id": "M21",
+      "name": "消息送达",
+      "handler": "game.world_office",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "inquire",
+        "actor_response"
+      ],
+      "precondition": "合法接收渠道和实际收件人",
+      "entities": [
+        "N10",
+        "N11"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_office.py"
+    },
+    {
+      "id": "M22",
+      "name": "转述与失真",
+      "handler": "game.world_social",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "speak",
+        "relay"
+      ],
+      "precondition": "传播者实际听到原话",
+      "entities": [
+        "N15",
+        "N17"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_social.py"
+    },
+    {
+      "id": "M23",
+      "name": "查证及反证",
+      "handler": "game.world_projects",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "evidence",
+        "evidence"
+      ],
+      "precondition": "独立来源、日期和范围",
+      "entities": [
+        "K01",
+        "K06"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_projects.py"
+    },
+    {
+      "id": "M24",
+      "name": "澄清与认知更新",
+      "handler": "game.world_social",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "clarify",
+        "clarified"
+      ],
+      "precondition": "曾有真实接触及签收渠道",
+      "entities": [
+        "K11",
+        "K12"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_social.py"
+    },
+    {
+      "id": "M25",
+      "name": "线索与主张",
+      "handler": "game.world_career",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "refer",
+        "acquire"
+      ],
+      "precondition": "有可交付独立材料",
+      "entities": [
+        "K13",
+        "K14"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_career.py"
+    },
+    {
+      "id": "M26",
+      "name": "保全与取得链",
+      "handler": "game.world_social",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "copy_note",
+        "copy_note"
+      ],
+      "precondition": "实际原件可访问",
+      "entities": [
+        "N19",
+        "K14"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_social.py"
+    },
+    {
+      "id": "M27",
+      "name": "程序推进",
+      "handler": "game.world_career",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "review",
+        "review_done"
+      ],
+      "precondition": "核查机构取得材料并完成受理",
+      "entities": [
+        "N05",
+        "N19"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_career.py"
+    },
+    {
+      "id": "M28",
+      "name": "制度认定",
+      "handler": "game.world_career",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "hearing",
+        "finding_done"
+      ],
+      "precondition": "已有来源、证词与听取意见程序",
+      "entities": [
+        "N05",
+        "N17"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_career.py"
+    },
+    {
+      "id": "M29",
+      "name": "家庭计划",
+      "handler": "game.world_social",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "family_plan",
+        "family_train"
+      ],
+      "precondition": "培训和照护使用真实日历",
+      "entities": [
+        "N14",
+        "N15"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_social.py"
+    },
+    {
+      "id": "M30",
+      "name": "休息与照护",
+      "handler": "game.world_social",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "rest",
+        "rest"
+      ],
+      "precondition": "用时与日内恢复上限",
+      "entities": [
+        "K16",
+        "L07"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_social.py"
+    },
+    {
+      "id": "M31",
+      "name": "不可逆意图确认",
+      "handler": "game.world_social",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "confirm_note",
+        "confirm_note"
+      ],
+      "precondition": "同一持有物、位置、版本与确认时点",
+      "entities": [
+        "K13",
+        "K14"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_social.py"
+    },
+    {
+      "id": "M32",
+      "name": "生涯终局",
+      "handler": "game.world_career",
+      "schema_version": "action/1",
+      "rule_version": "chengchuan/4.0.1",
+      "trigger_types": [
+        "career_exit",
+        "handover"
+      ],
+      "precondition": "既有状态及实际程序结果",
+      "entities": [
+        "K16",
+        "END01",
+        "END02"
+      ],
+      "input": "kind + validated action args",
+      "output": "committed effects + source-linked event",
+      "dedupe_policy": "command_id + expected_revision; task token or state precondition",
+      "offline_source": "game/world_career.py"
+    }
+  ],
+  "institutions": {
+    "county": {
+      "name": "澄川县任用委员会",
+      "contact": "N04",
+      "superior": "city",
+      "positions": [
+        "POS-C0",
+        "POS-C1",
+        "POS-C2"
+      ]
+    },
+    "city": {
+      "name": "临江市任用委员会",
+      "contact": "N21",
+      "superior": "province",
+      "positions": [
+        "POS-M1"
+      ]
+    },
+    "province": {
+      "name": "江岚省岗位审议组",
+      "contact": "N23",
+      "superior": "central",
+      "positions": [
+        "POS-P1"
+      ]
+    },
+    "central": {
+      "name": "跨辖区议题任用组",
+      "contact": "N24",
+      "superior": null,
+      "positions": [
+        "POS-Z1"
+      ]
+    }
+  },
+  "regional_pools": [
+    {
+      "rank": 2,
+      "office": "县域统筹",
+      "contact": "N22",
+      "authority": "临江市协调处",
+      "jurisdictions": [
+        "澄川县",
+        "望宁县"
+      ],
+      "unit": "联合核查人日",
+      "capacity": 3
+    },
+    {
+      "rank": 3,
+      "office": "市级协调",
+      "contact": "N22",
+      "authority": "临江市协调处",
+      "jurisdictions": [
+        "澄川县",
+        "望宁县"
+      ],
+      "unit": "跨县技术复核人日",
+      "capacity": 3
+    },
+    {
+      "rank": 4,
+      "office": "省级统筹",
+      "contact": "N23",
+      "authority": "江岚省审议组",
+      "jurisdictions": [
+        "临江市",
+        "云田市"
+      ],
+      "unit": "跨市档案审查人日",
+      "capacity": 3
+    },
+    {
+      "rank": 5,
+      "office": "中央议题",
+      "contact": "N24",
+      "authority": "专题材料处",
+      "jurisdictions": [
+        "江岚省",
+        "岐川省"
+      ],
+      "unit": "专题资料核查人日",
+      "capacity": 3
+    }
+  ],
+  "verification": {
+    "arcs": "tests/test_world_v4.py::test_six_character_arcs_have_sourced_intermediate_steps_and_branching_outcomes",
+    "instances": "tests/test_world_v4.py::test_institution_can_appoint_a_new_identity_without_copying_private_beliefs",
+    "regional": "tests/test_cross_system_routes.py::test_separate_jurisdictions_compete_for_a_single_real_pool",
+    "historical_routes": "tests/test_cross_system_routes.py"
+  },
+  "visibility": "本目录为开发者覆盖索引；玩家界面只读取实时 PlayerView。"
+}
