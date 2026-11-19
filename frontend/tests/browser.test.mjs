@@ -1,51 +1,13 @@
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { createInterface } from 'node:readline'
-import { once } from 'node:events'
-import { after, before, test } from 'node:test'
-import { chromium, webkit } from 'playwright-core'
+import { after, test } from 'node:test'
+import { startBrowserFixture } from './browser-engine.mjs'
 
-const root = fileURLToPath(new URL('../../', import.meta.url))
-let server, browser, profile, session, address
-before(async () => {
-  profile = await mkdtemp(join(tmpdir(), 'jzs-browser-'))
-  const bundle = process.env.JZS_TEST_APP
-  const env={...process.env}
-  if(bundle){delete env.PYTHONPATH;delete env.PYTHONHOME}
-  server = spawn(
-    bundle ? join(bundle,'Contents/MacOS/jzs-engine') : process.env.PYTHON || join(root, '.venv/bin/python'),
-    [...(bundle?['--assets',join(bundle,'Contents/Resources/web')]:['main.py']), '--no-browser', '--data-dir', profile],
-    { cwd: bundle ? profile : root, env, stdio: ['ignore', 'pipe', 'pipe'] },
-  )
-  const stdout = createInterface({ input: server.stdout })
-  const [entry] = await Promise.race([
-    once(stdout, 'line'),
-    once(server, 'exit').then(() => {
-      throw Error('Local test engine did not start')
-    }),
-  ])
-  session = String(entry)
-  address = new URL(session).origin
-  browser =
-    process.env.JZS_BROWSER === 'webkit'
-      ? await webkit.launch()
-      : await chromium.launch(
-          process.env.CHROME_BIN ? { executablePath: process.env.CHROME_BIN } : { channel: 'chrome' },
-        )
-})
-after(async () => {
-  await browser?.close()
-  if (server?.exitCode === null) {
-    const ended = once(server, 'exit')
-    server.kill()
-    await ended
-  }
-  if (profile) await rm(profile, { recursive: true, force: true })
-})
+const fixture = await startBrowserFixture()
+const { browser, profile, session, address } = fixture
+after(() => fixture.close())
+
 async function screen(page, name) {
   if (process.env.JZS_SCREENSHOT_DIR)
     await page.screenshot({ path: join(process.env.JZS_SCREENSHOT_DIR, name + '.png'), fullPage: true })
@@ -71,8 +33,11 @@ async function current(page) {
   })
 }
 async function openCareer(page, wide = true) {
-  await page.goto(session)
+  // A second visit that only adds the session fragment does not remount the app.
+  if (new URL(page.url()).origin === new URL(session).origin) await page.reload()
+  else await page.goto(session)
   if (wide) await screen(page, 'cover')
+  await enterCareerMenu(page)
   await page.getByRole('button', { name: '建立生涯' }).click()
   assert.equal(await page.getByRole('radio').count(), 8)
   await page.getByRole('radio', { name: /专业技术转任/ }).check()
@@ -92,6 +57,9 @@ async function openCareer(page, wide = true) {
   if (wide) await screen(page, 'create')
   await page.getByRole('button', { name: '进入办公室' }).click()
   await page.getByRole('heading', { name: '我的办公桌' }).waitFor()
+}
+async function enterCareerMenu(page) {
+  await page.getByRole('button', { name: '生涯模式', exact: true }).click()
 }
 async function noOverflow(page) {
   assert.ok(
@@ -150,6 +118,7 @@ test('sound switch, archive paper and saved mute', { timeout: 30000 }, async () 
     const restored = page.waitForResponse(r => r.url().endsWith('/api/preferences') && r.request().method() === 'GET')
     await page.reload()
     assert.equal((await (await restored).json()).sound_volume, 0)
+    await enterCareerMenu(page)
     await page.getByRole('button', { name: '继续生涯' }).click()
     assert.equal(await toggle.getAttribute('aria-checked'), 'false')
     assert.deepEqual(await recorded(), [])
@@ -396,6 +365,7 @@ test(
     try {
       await openCareer(sender, false)
       await receiver.goto(session)
+      await enterCareerMenu(receiver)
       await receiver.getByRole('button', { name: '继续生涯' }).click()
       await navigate(receiver, '记事本')
       await navigate(sender, '记事本')
@@ -417,6 +387,7 @@ test(
       await receiver.waitForFunction(
         () => getComputedStyle(document.documentElement).fontSize === '22px',
       )
+      await enterCareerMenu(receiver)
       await receiver.getByRole('button', { name: '继续生涯' }).click()
       assert.equal(await receiver.locator('.page-hint').count(), 0)
       await noOverflow(receiver)
@@ -431,12 +402,14 @@ test('enter with the default title and reload a saved career', { timeout: 30000 
     page = await ctx.newPage()
   try {
     await page.goto(session)
+    await enterCareerMenu(page)
     await page.getByRole('button', { name: '建立生涯' }).click()
     await page.getByRole('button', { name: '进入办公室' }).click()
     await page.getByRole('heading', { name: '我的办公桌' }).waitFor()
     const original = await current(page)
     assert.equal(original.name, '新任联络员')
     await page.reload()
+    await enterCareerMenu(page)
     await page.getByRole('button', { name: '刷新档案' }).click()
     await page.getByRole('button', { name: '继续生涯' }).click()
     await page.getByRole('heading', { name: '我的办公桌' }).waitFor()
@@ -491,6 +464,7 @@ test('all eight careers can be entered from their published profiles', { timeout
     page = await ctx.newPage()
   try {
     await page.goto(session)
+    await enterCareerMenu(page)
     for (let i = 0; i < 8; i++) {
       await page.getByRole('button', { name: '建立生涯' }).click()
       const option = page.getByRole('radio').nth(i)
@@ -700,7 +674,10 @@ test('report choices, social and family visits, notebook custody and a twelve-qu
       assert.ok(view.documents.find((d) => d.id === 'INVITE-reply'))
       view = await act('report', {mode})
       if (view.busy) await wait('8 小时')
-      if (choice !== 'yes') await page.getByRole('button', {name:'局中事 主菜单'}).click()
+      if (choice !== 'yes') {
+        await page.getByRole('button', {name:'局中事 主菜单'}).click()
+        await page.getByRole('button', {name:'模式选择', exact: true}).click()
+      }
     }
     await act('appointment', {place:'L05'})
     await act('write_note', {}, {'记录原文':'等收件人确认会面，原报告仍待核对。'})
@@ -757,6 +734,7 @@ test('report choices, social and family visits, notebook custody and a twelve-qu
     assert.ok(view.quarter >= 13)
     const id = view.world_id
     await page.reload()
+    await enterCareerMenu(page)
     await page.getByRole('button', {name: '继续生涯'}).click()
     assert.equal((await current(page)).world_id, id)
     assert.equal((await current(page)).revision, view.revision)

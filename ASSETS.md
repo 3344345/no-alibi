@@ -8,6 +8,8 @@
 | `frontend/public/seal.svg` | 游戏界面的「局」字标识。 |
 | `frontend/src/sound.ts` | 翻纸、案卷落桌和脚步均由游戏在本机短时合成，可在游玩时开关和调节音量。 |
 | `frontend/public/game-icon.png`、`src-tauri/icons/game.icns`、`src-tauri/icons/icon.png` | 应用图标「窗内留灯」。深蓝色办公室窗框内亮着一盏台灯。 |
+| `frontend/public/chronicle/*.webp` | 为长篇创作的年代情境插画。人物篇以环境和实物标识事件，画面标有「年代情境插画」。 |
+| `frontend/public/chronicle/*.mp3` | 从本作原创声音样带制作的三段短配乐，分别用于受挫、取得材料和局势转折。按已提交的选择触发，沿用音效开关与音量设置。 |
 | 字体 | 使用系统自带中文字体，新局与存档不依赖网络字体。 |
 | 运行时和开发依赖 | Python、JavaScript、Rust 版本分别见 requirements-dev.lock、frontend/pnpm-lock.yaml、src-tauri/Cargo.lock。macOS 包的 Contents/Resources/THIRD_PARTY_NOTICES.txt 列出构建所用组件和上游许可。 |
 

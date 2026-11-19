@@ -14,6 +14,8 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
+from api.chronicle import chronicle_router
+from game.chronicle import ChronicleStore
 from api.preferences import preferences_router
 from api.confirmations import Confirmations, consequence
 from ai.player_intent import parse_visible
@@ -48,6 +50,7 @@ def make_app(
     player_view = confirmations.attach
     app = FastAPI(title="局中事", docs_url=None, redoc_url=None, openapi_url=None)
     app.include_router(preferences_router(preferences_path))
+    app.include_router(chronicle_router(ChronicleStore(store)))
     authority = f"127.0.0.1:{port}"
     origin = f"http://{authority}"
 

@@ -15,6 +15,7 @@ import webbrowser
 import uvicorn
 
 from api.routes import make_app
+from game.chronicle import ChronicleStore
 from game.store import GameStore
 
 
@@ -36,6 +37,14 @@ def default_data_dir() -> Path:
     if not (new_path / "careers.sqlite3").exists() and (mac_path / "careers.sqlite3").is_file():
         return mac_path
     return new_path
+
+
+def restore_archive(store: GameStore, path: Path):
+    with path.open(encoding="utf-8") as archive:
+        data = json.load(archive)
+    if isinstance(data, dict) and data.get("format") in ("juzhongshi-chronicle/1","juzhongshi-chronicle/2","juzhongshi-chronicle/3"):
+        return ChronicleStore(store).restore(data)
+    return store.restore(data)
 
 
 def launch() -> None:
@@ -63,8 +72,7 @@ def launch() -> None:
     store = GameStore(args.data_dir / "careers.sqlite3")
     if args.restore_file is not None:
         try:
-            with args.restore_file.open(encoding="utf-8") as archive:
-                store.restore(json.load(archive))
+            restore_archive(store, args.restore_file)
         except (OSError, ValueError):
             parser.exit(3, "备份未通过版本或完整性校验。\n")
     token = secrets.token_urlsafe(32)

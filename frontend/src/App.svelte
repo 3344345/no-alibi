@@ -5,6 +5,10 @@
   import { balanceString, dateAt, saveFile, stamp, starts, str, title } from './game'
   import type { Action, Attempt, AttemptResult, Choice, Command, Page, Row, Value, View, World } from './types'
   import Menu from './Menu.svelte'
+  import Chronicle from './Chronicle.svelte'
+  import ModeSelection from './ModeSelection.svelte'
+  let chronicle: 'family'|'witness'|null = null
+  let countyMenu = false
   import Dialog from './Dialog.svelte'
   import Balance from './Balance.svelte'
   import Recap from './Recap.svelte'
@@ -542,9 +546,9 @@
   }
 </script>
 
-<svelte:window on:pointerup={() => v && enableSound()} on:keydown={() => v && enableSound()} on:blur={silence}/>
+<svelte:window on:pointerup={() => (v || chronicle) && enableSound()} on:keydown={() => (v || chronicle) && enableSound()} on:blur={silence}/>
 <svelte:document on:visibilitychange={() => { if (document.hidden) silence() }}/>
-<svelte:head><title>{v ? page + ' · 局中事' : '局中事'}</title></svelte:head>
+<svelte:head><title>{chronicle ? '历史长篇 · 局中事' : v ? page + ' · 局中事' : '局中事'}</title></svelte:head>
 <a class="skip-link" href="#main">跳至主要内容</a>
 <input
   class="visually-hidden"
@@ -564,8 +568,15 @@
     >
   </aside>
 {/if}
-{#if !v}
+{#if chronicle}
+  <Chronicle initialCampaign={chronicle} {volume} toggleAudio={() => chooseVolume(volume > 0 ? 0 : lastAudibleVolume)}
+    leave={(campaign) => {countyMenu = campaign === 'family'; chronicle = null}} />
+{:else if !v && !countyMenu}
+  <ModeSelection county={() => (countyMenu = true)} witness={() => (chronicle = 'witness')} />
+{:else if !v}
   <Menu
+    selectMode={() => (countyMenu = false)}
+    openChronicle={() => (chronicle = 'family')}
     {profiles}
     {worlds}
     {busy}

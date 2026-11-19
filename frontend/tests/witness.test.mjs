@@ -1,0 +1,296 @@
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+import { startBrowserFixture } from './browser-engine.mjs'
+
+const api = '/api/chronicle'
+const chapterId = 'witness_deng_xiaoping'
+const button = (scope, name) => scope.getByRole('button', { name, exact: true })
+const story = (page) => page.locator('article.story')
+const handover = (page) => page.locator('section.handover')
+
+async function interact(page, method, path, action) {
+  const [response] = await Promise.all([
+    page.waitForResponse((r) => r.request().method() === method && new URL(r.url()).pathname === path),
+    action(),
+  ])
+  assert.ok(response.ok(), method + ' ' + path + ' returned ' + response.status())
+  return response.json()
+}
+
+async function openLobby(page, fixture) {
+  await page.goto(fixture.session)
+  const catalog = await interact(page, 'GET', api, () => button(page, '历史主角模式').click())
+  await page.getByRole('heading', { name: '亲历者', exact: true }).waitFor()
+  assert.ok(catalog.chapters.some((c) => c.id === chapterId))
+  return catalog
+}
+
+async function choose(page, before, id) {
+  const offered = before.scene.choices.find((choice) => choice.id === id)
+  assert.ok(offered, before.scene.id + ' should offer ' + id)
+  await story(page).getByRole('heading', { name: before.scene.title, exact: true }).waitFor()
+  const next = await interact(page, 'POST', api + '/' + before.id + '/choices', () =>
+    button(story(page), offered.label).click(),
+  )
+  assert.equal(next.revision, before.revision + 1)
+  const entry = next.journal.at(-1)
+  assert.equal(entry.choice, id)
+  const arrival = next.finished || next.chapter.id !== before.chapter.id ? handover(page) : story(page)
+  await arrival.getByText(entry.result, { exact: true }).waitFor()
+  return next
+}
+
+async function turnPage(page, view) {
+  await handover(page).getByRole('button', { name: /^(翻至 |打开全卷行记)/ }).click()
+  await page.getByRole('heading', { name: view.finished ? '全卷行记' : view.scene.title, exact: true }).waitFor()
+}
+
+async function compareOutcome(page, before, id, fates) {
+  const next = await choose(page, before, id)
+  assert.notEqual(next.chapter.id, before.chapter.id)
+  const actual = handover(page)
+  const result = next.journal.at(-1).result
+  for (const fate of fates) assert.match(result, fate)
+  await actual.getByRole('heading', { name: '史实对照', exact: true }).waitFor()
+  await actual.getByText(before.chapter.history, { exact: true }).waitFor()
+  assert.match(before.chapter.history, /蒋捷连.{0,15}遇难/)
+  assert.match(before.chapter.history, /赵紫阳.{0,15}被撤职/)
+  await turnPage(page, next)
+  return next
+}
+
+async function resume(page, record) {
+  const row = page.locator('.saves button').filter({ has: page.getByText(record.name, { exact: true }) })
+  const saved = await interact(page, 'GET', api + '/' + record.id, () => row.click())
+  assert.deepEqual(saved, record)
+  await page.getByRole('heading', { name: record.finished ? '全卷行记' : record.scene.title, exact: true }).waitFor()
+}
+
+test('1989 witness, two named outcomes, their historical comparison, and both saves after restart', { timeout: 120000 }, async () => {
+  const fixture = await startBrowserFixture()
+  const errors = []
+  let context
+  async function freshPage() {
+    context = await fixture.browser.newContext({ viewport: { width: 960, height: 820 } })
+    const page = await context.newPage()
+    page.setDefaultTimeout(8000)
+    page.on('pageerror', (error) => errors.push(error.message))
+    return page
+  }
+  try {
+    let page = await freshPage()
+    await openLobby(page, fixture)
+    const picker = page.getByLabel('选择亲历者与起始事件')
+    await picker.selectOption(chapterId)
+    assert.match(await picker.locator('option:checked').innerText(), /1989/)
+    await page.getByLabel('为这段长篇命名').fill('一九八九年的两种结局')
+    let view = await interact(page, 'POST', api, () => button(page, '开始长篇').click())
+    assert.equal(view.campaign, 'witness')
+    assert.equal(view.start_chapter, chapterId)
+    assert.equal(view.scene.id, 'april')
+    assert.match(await story(page).locator('.date-line').innerText(), /邓小平/)
+    await button(page, '本章史料').click()
+    const sources = page.getByRole('dialog', { name: '年代与出处' })
+    await sources.getByText(view.chapter.history, { exact: true }).waitFor()
+    const testimony = view.chapter.sources.find((source) => source.name.includes('丁子霖'))
+    assert.ok(testimony)
+    await sources.locator('summary').getByText(testimony.name, { exact: true }).click()
+    assert.equal(await sources.getByRole('link', { name: testimony.url, exact: true }).getAttribute('href'), testimony.url)
+    await button(sources, '关闭').click()
+    for (const id of ['endorse', 'private', 'martial', 'stand']) view = await choose(page, view, id)
+    assert.equal(view.scene.id, 'deadline')
+    const junction = view
+    const changed = await choose(page, junction, 'change')
+    assert.equal(changed.scene.id, 'civil')
+    await story(page).getByText(/蒋捷连在这个夜晚平安回家/).waitFor()
+    const original = await compareOutcome(page, changed, 'retain', [/蒋捷连活了下来/, /赵紫阳.{0,15}留任/])
+
+    await button(page, '行记与存档').click()
+    const journal = page.getByRole('dialog', { name: '行记' })
+    const forkPoint = journal.locator('details').filter({ has: page.locator('summary').filter({ hasText: junction.scene.title }) })
+    await forkPoint.locator('summary').click()
+    await forkPoint.getByText(changed.journal.at(-1).result, { exact: true }).waitFor()
+    const forked = await interact(page, 'POST', api + '/' + original.id + '/fork', () =>
+      button(forkPoint, '从此次选择前另开分线').click(),
+    )
+    assert.notEqual(forked.id, original.id)
+    assert.equal(forked.start_chapter, chapterId)
+    assert.equal(forked.scene.id, junction.scene.id)
+    assert.deepEqual(forked.journal, junction.journal)
+    const kept = await choose(page, forked, 'keep')
+    assert.equal(kept.scene.id, 'loss')
+    await story(page).getByText(/蒋捷连6月3日晚在北京遇难/).waitFor()
+    let alternate = await compareOutcome(page, kept, 'official', [/蒋捷连遇难/, /赵紫阳随后被撤职/])
+    assert.equal(alternate.chapter.id, original.chapter.id)
+    assert.deepEqual(alternate.journal.slice(0, junction.revision), original.journal.slice(0, junction.revision))
+    assert.notDeepEqual(alternate.marks, original.marks)
+
+    for (let step = 0; !alternate.finished && step < 80; step++) {
+      const previous = alternate
+      const plain = previous.scene.choices.find((c) => !c.cites)
+      assert.ok(plain, 'An ordinary decision is available from ' + previous.scene.id)
+      alternate = await choose(page, previous, plain.id)
+      if (alternate.finished || alternate.chapter.id !== previous.chapter.id) await turnPage(page, alternate)
+    }
+    assert.ok(alternate.finished)
+    await context.close()
+    context = null
+    await fixture.restart()
+    page = await freshPage()
+    const restored = await openLobby(page, fixture)
+    assert.deepEqual(new Set(restored.careers.map((s) => s.id)), new Set([original.id, alternate.id]))
+    const comparison = page.locator('details.my-outcomes')
+    await comparison.locator('summary').click()
+    for (const record of [original, alternate]) {
+      const ending = record.journal.findLast((e) => e.chapter_id === chapterId)
+      await comparison.getByText(ending.result, { exact: true }).waitFor()
+    }
+    for (const record of [original, alternate]) {
+      await resume(page, record)
+      await button(page, '行记与存档').click()
+      const log = page.getByRole('dialog', { name: '行记' })
+      const end = record.journal.findLast((e) => e.chapter_id === chapterId)
+      await log.locator('summary').filter({ hasText: end.title }).click()
+      await log.getByText(end.result, { exact: true }).waitFor()
+      await button(log, '关闭').click()
+      await interact(page, 'GET', api, () => button(page, '长篇目录').click())
+    }
+    assert.deepEqual(errors, [])
+  } finally {
+    try {
+      await context?.close()
+    } finally {
+      await fixture.close()
+    }
+  }
+})
+
+test('two home modes keep same-named county, family and witness records independent after restart', { timeout: 60000 }, async () => {
+  const fixture = await startBrowserFixture()
+  let context
+  const name = '同名存档'
+  async function rootVisible(page) {
+    for (const mode of ['生涯模式', '历史主角模式']) {
+      const target = button(page, mode)
+      await target.waitFor()
+      assert.equal(await target.count(), 1)
+    }
+    assert.equal(await page.getByRole('main').getByRole('button').count(), 2)
+    for (const child of ['建立生涯', '继续生涯', '市井家书', '开始长篇']) {
+      assert.equal(await button(page, child).count(), 0, child + ' is only available inside its mode')
+    }
+  }
+  async function careerLobby(page) {
+    await button(page, '生涯模式').click()
+    await button(page, '建立生涯').waitFor()
+    assert.equal(await button(page, '历史主角模式').count(), 0)
+  }
+  async function archiveLobby(page, campaign) {
+    const label = campaign === 'family' ? '市井家书' : '历史主角模式'
+    const result = await interact(page, 'GET', api, () => button(page, label).click())
+    await page.getByLabel('为这段长篇命名').waitFor()
+    assert.ok(result.chapters.length)
+    assert.ok(result.chapters.every(c => c.id.startsWith('witness_') === (campaign === 'witness')))
+    assert.equal(await page.getByLabel('选择亲历者与起始事件').count(), campaign === 'family' ? 0 : 1)
+    assert.equal(await button(page, '市井家书').count(), 0)
+    return result
+  }
+  async function toArchiveLobby(page) {
+    await interact(page, 'GET', api, () => button(page, '长篇目录').click())
+  }
+  async function createArchive(page, campaign) {
+    if (campaign === 'witness') await page.getByLabel('选择亲历者与起始事件').selectOption(chapterId)
+    await page.getByLabel('为这段长篇命名').fill(name)
+    const created = await interact(page, 'POST', api, () => button(page, '开始长篇').click())
+    assert.equal(created.name, name)
+    assert.equal(created.campaign, campaign)
+    return choose(page, created, created.scene.choices.find(c => !c.cites).id)
+  }
+  try {
+    context = await fixture.browser.newContext()
+    let page = await context.newPage()
+    page.setDefaultTimeout(8000)
+    await page.goto(fixture.session)
+    await rootVisible(page)
+    await careerLobby(page)
+    await button(page, '建立生涯').click()
+    await page.getByLabel('角色称谓').fill(name)
+    const county = await interact(page, 'POST', '/api/worlds', () => button(page, '进入办公室').click())
+    assert.equal(county.name, name)
+    await button(page, '局中事 主菜单').click()
+    await button(page, '继续生涯').waitFor()
+    assert.deepEqual((await archiveLobby(page, 'family')).careers, [])
+    const family = await createArchive(page, 'family')
+    await toArchiveLobby(page)
+    await button(page, '生涯模式').click()
+    await button(page, '继续生涯').waitFor()
+    await button(page, '模式选择').click()
+    await rootVisible(page)
+    assert.deepEqual((await archiveLobby(page, 'witness')).careers, [])
+    const witness = await createArchive(page, 'witness')
+    assert.equal(new Set([witness.id, family.id, county.world_id]).size, 3)
+    await toArchiveLobby(page)
+    await button(page, '模式选择').click()
+    await rootVisible(page)
+    await context.close()
+    context = null
+    await fixture.restart()
+    context = await fixture.browser.newContext()
+    page = await context.newPage()
+    page.setDefaultTimeout(8000)
+    await page.goto(fixture.session)
+    await rootVisible(page)
+    const remembered = await archiveLobby(page, 'witness')
+    assert.deepEqual(remembered.careers.map(c => c.id), [witness.id])
+    await resume(page, witness)
+    await toArchiveLobby(page)
+    await button(page, '模式选择').click()
+    await rootVisible(page)
+    await careerLobby(page)
+    const restoredCounty = await interact(page, 'GET', '/api/worlds/' + county.world_id, () => button(page, '继续生涯').click())
+    assert.equal(restoredCounty.world_id, county.world_id)
+    assert.equal(restoredCounty.name, name)
+    assert.equal(restoredCounty.revision, county.revision)
+    await button(page, '局中事 主菜单').click()
+    const restoredFamily = await archiveLobby(page, 'family')
+    assert.deepEqual(restoredFamily.careers.map(c => c.id), [family.id])
+    await resume(page, family)
+  } finally {
+    try {
+      await context?.close()
+    } finally {
+      await fixture.close()
+    }
+  }
+})
+
+test('event directory covers the published catalogue, filters by era and launches the chosen witness',async()=>{
+  const fixture=await startBrowserFixture()
+  try {
+    const page=await fixture.browser.newPage({viewport:{width:390,height:844}})
+    const {chapters}=await openLobby(page,fixture)
+    await page.getByRole('button',{name:'浏览全部 '+chapters.length+' 个历史事件 ↓'}).click()
+    const directory=page.getByRole('region',{name:'可选历史事件'})
+    const cards=directory.locator('.event-grid>button')
+    assert.equal(await cards.count(),chapters.length)
+    const imageSizes=await cards.locator('img').evaluateAll(async imgs=>Promise.all(imgs.map(async img=>{
+      img.loading='eager'
+      await img.decode()
+      return [img.naturalWidth,img.naturalHeight]
+    })))
+    assert.ok(imageSizes.every(([w,h])=>w>=400 && h>=250))
+    await directory.getByRole('button',{name:'1949年前',exact:true}).click()
+    assert.equal(await cards.count(),chapters.filter(ch=>Number.parseInt(ch.year,10)<1949).length)
+    await directory.getByRole('button',{name:'全部',exact:true}).click()
+    await directory.getByRole('searchbox').fill('卞仲耘')
+    const selected=cards.filter({hasText:'文革中的卞仲耘'})
+    await selected.click()
+    assert.equal(await page.getByLabel('选择亲历者与起始事件').inputValue(),'witness_bian')
+    assert.equal(await page.getByLabel('为这段长篇命名').inputValue(),'')
+    const view=await interact(page,'POST',api,()=>button(page,'开始长篇').click())
+    assert.equal(view.start_chapter,'witness_bian')
+    assert.match(view.name,/1966/)
+    assert.match(await story(page).locator('.date-line').innerText(),/王晶垚/)
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
+  } finally { await fixture.close() }
+})

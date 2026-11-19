@@ -89,6 +89,7 @@ export function setSoundVolume(volume: number) {
 }
 
 export function silence() {
+  stopScore()
   generation++
   active?.stop()
   active = undefined
@@ -155,5 +156,45 @@ export function cue(kind: Sound | undefined) {
         .catch(() => {})
   } catch {
     /* Presentation failures never interrupt play. */
+  }
+}
+
+export type Score = 'setback' | 'evidence' | 'turn'
+let scoreVoice: AudioBufferSourceNode | undefined
+let scoreRequest = 0
+const scores = new Map<Score, AudioBuffer>()
+
+export function stopScore() {
+  scoreRequest++
+  scoreVoice?.stop()
+  scoreVoice = undefined
+}
+
+export async function playScore(tone?: Score) {
+  if (!tone || !context || !master || !level || !foreground()) return
+  stopScore()
+  const issued = scoreRequest,
+    audio = context,
+    output = master
+  try {
+    let buffer = scores.get(tone)
+    if (!buffer) {
+      const response = await fetch('/chronicle/' + tone + '.mp3')
+      if (!response.ok) return
+      buffer = await audio.decodeAudioData(await response.arrayBuffer())
+      scores.set(tone, buffer)
+    }
+    if (issued !== scoreRequest || !level || !foreground() || audio.state !== 'running') return
+    const voice = audio.createBufferSource()
+    voice.buffer = buffer
+    voice.connect(output)
+    voice.onended = () => {
+      voice.disconnect()
+      if (scoreVoice === voice) scoreVoice = undefined
+    }
+    scoreVoice = voice
+    voice.start()
+  } catch {
+    /* A missing audio device must never block the story. */
   }
 }

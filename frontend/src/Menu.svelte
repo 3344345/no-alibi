@@ -9,6 +9,8 @@
   export let unavailable = false
   export let create: (data: { start: string; name: string; balance: string; seed?: string }) => void
   export let resume: (id: string) => void
+  export let openChronicle: () => void
+  export let selectMode: () => void
   export let importFile: () => void
   export let reload: () => void
   let creating = false,
@@ -35,6 +37,7 @@
       ><img alt="" src="./seal.svg" />局中事</button
     >
     <div class="place">江岚省<span>／</span>临江市<span>／</span>澄川县</div>
+    <button class="plain" disabled={busy} on:click={selectMode}>模式选择</button>
     <button class="link-button" disabled={busy} on:click={importFile}
       >导入存档 <span aria-hidden="true">↗</span></button
     >
@@ -58,6 +61,7 @@
               disabled={busy}
               on:click={() => (creating = true)}>建立生涯 <span aria-hidden="true">→</span></button
             >
+            <button class="button outline-light" on:click={openChronicle}>市井家书 <span aria-hidden="true">→</span></button>
           </div>
         </div>
       </div>
