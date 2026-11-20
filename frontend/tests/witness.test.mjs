@@ -35,8 +35,17 @@ async function choose(page, before, id) {
   assert.equal(next.revision, before.revision + 1)
   const entry = next.journal.at(-1)
   assert.equal(entry.choice, id)
-  const arrival = next.finished || next.chapter.id !== before.chapter.id ? handover(page) : story(page)
-  await arrival.getByText(entry.result, { exact: true }).waitFor()
+  if (next.finished || next.chapter.id !== before.chapter.id) {
+    await handover(page).getByText(entry.result, { exact: true }).waitFor()
+  } else {
+    const receipt = story(page).locator('details.receipt')
+    const summary = receipt.locator('summary')
+    await summary.waitFor()
+    assert.equal(await receipt.evaluate((el) => el.open), false)
+    await summary.click()
+    await receipt.getByText(entry.result, { exact: true }).waitFor()
+    await summary.click()
+  }
   return next
 }
 
@@ -65,6 +74,72 @@ async function resume(page, record) {
   assert.deepEqual(saved, record)
   await page.getByRole('heading', { name: record.finished ? '全卷行记' : record.scene.title, exact: true }).waitFor()
 }
+
+async function sceneArt(page, filename) {
+  const img = page.locator('.scene-art img')
+  assert.equal(await img.getAttribute('src'), '/chronicle/' + filename + '.webp')
+  assert.ok(await img.evaluate(async (node) => {
+    await node.decode()
+    return node.naturalWidth >= 400 && node.naturalHeight >= 250
+  }))
+}
+
+test('Shanghai tram passengers remember the chosen kitchen on reload and vote six months later', async () => {
+  const fixture = await startBrowserFixture()
+  try {
+    const page = await fixture.browser.newPage()
+    await openLobby(page, fixture)
+    for (const [choice, other, ending] of [
+      ['reserve_seat', '巷口传来滋啦一声', 'hospital'],
+      ['invite_cooks', '老袁把饭盒送回来了', 'old_stop'],
+    ]) {
+      await page.getByLabel('选择亲历者与起始事件').selectOption('witness_shanghai_prices')
+      await page.getByLabel('为这段长篇命名').fill(choice)
+      let view = await interact(page, 'POST', api, () => button(page, '开始长篇').click())
+      await sceneArt(page, 'shanghai_tram')
+      for (const id of ['tram_bowl', 'keep_twelve', choice]) view = await choose(page, view, id)
+      assert.equal(view.scene.id, 'tram_run')
+      const echo = choice === 'reserve_seat' ? '老袁把饭盒送回来了' : '巷口传来滋啦一声'
+      await page.reload()
+      await openLobby(page, fixture)
+      await resume(page, view)
+      const narrative = story(page).locator('.scene-body')
+      assert.ok((await narrative.innerText()).includes(echo))
+      assert.ok(!(await narrative.innerText()).includes(other))
+      for (const id of ['meet_barge', 'turn_over']) view = await choose(page, view, id)
+      assert.equal(view.scene.id, 'tram_map')
+      await sceneArt(page, 'shanghai_tram')
+      await page.locator('.art-caption').getByText('半年后', {exact:true}).waitFor()
+      view = await choose(page, view, ending)
+      const result = view.journal.at(-1)
+      assert.match(result.result, ending === 'hospital' ? /医院门前有了末班车/ : /保住一站的人/)
+      await handover(page).getByText('史实对照', {exact:true}).waitFor()
+      await interact(page, 'GET', api, () => button(page, '长篇目录').click())
+    }
+  } finally {
+    await fixture.close()
+  }
+})
+
+test('Beijing leaves the office for a live studio and reaches the alternate 1992 broadcast', async () => {
+  const fixture = await startBrowserFixture()
+  try {
+    const page = await fixture.browser.newPage()
+    await openLobby(page, fixture)
+    await page.getByLabel('选择亲历者与起始事件').selectOption(chapterId)
+    let view = await interact(page, 'POST', api, () => button(page, '开始长篇').click())
+    await sceneArt(page, chapterId)
+    for (const id of ['go_live', 'phones', 'second_night', 'local_air']) {
+      view = await choose(page, view, id)
+      await sceneArt(page, 'beijing_live')
+    }
+    await page.locator('.art-caption').getByText('架空的1992年', {exact:true}).waitFor()
+    const next = await choose(page, view, 'listeners_veto')
+    assert.ok(next.journal.at(-1).marks.includes('结局 · 不用等北京开门的星期三'))
+  } finally {
+    await fixture.close()
+  }
+})
 
 test('1989 witness, two named outcomes, their historical comparison, and both saves after restart', { timeout: 120000 }, async () => {
   const fixture = await startBrowserFixture()

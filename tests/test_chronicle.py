@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.routes import make_app
-from game.chronicle import Book, ChronicleStore, Command, load_book, load_witness
+from game.chronicle import Book, Branch, ChronicleStore, Command, load_book, load_witness
 from game.engine import GameError
 from game.store import GameStore
 
@@ -88,6 +88,31 @@ def act(revision, choice, key=None):
 
 def store_at(path):
     return ChronicleStore(GameStore(path), Book(sample()))
+
+
+def test_joined_scene_remembers_first_choice_after_import_and_fork(tmp_path):
+    chapters = sample()
+    chapters[1]["scenes"][0]["echoes"] = [
+        {"mark": "原件", "body": "书架上还放着原件。"},
+        {"mark": "借据", "body": "借书人亲自来了。"},
+    ]
+
+    def opened(filename):
+        return ChronicleStore(GameStore(tmp_path / filename), Book(chapters))
+
+    store = opened("first.db")
+    start = store.create("旧书")
+    kept = store.choose(start["id"], act(0, "keep"))
+    assert kept["scene"]["body"] == "可见正文\n\n书架上还放着原件。"
+    restored = opened("second.db").restore(store.export(start["id"]))
+    assert restored == kept
+    branch = store.fork(start["id"], Branch(revision=0))
+    lent = store.choose(branch["id"], act(0, "lend"))
+    assert lent["scene"]["body"] == "可见正文\n\n借书人亲自来了。"
+    assert store.view(start["id"]) == kept
+    chapters[0]["scenes"][0]["echoes"] = [{"mark": "原件", "body": "出现得太早"}]
+    with pytest.raises(ValueError, match="后续叙事"):
+        Book(chapters)
 
 
 def test_multiple_careers_handoff_chapter_history_and_hidden_branches(tmp_path):

@@ -55,12 +55,18 @@ class Choice(Strict):
     cites: list[Short] = Field(default_factory=list)
 
 
+class Echo(Strict):
+    mark: Short
+    body: Text
+
+
 class Scene(Strict):
     id: Short
     title: Text
     body: Text
     choices: list[Choice] = Field(min_length=1)
     exhibits: list[Exhibit] = Field(default_factory=list)
+    echoes: list[Echo] = Field(default_factory=list)
 
 
 class Chapter(Strict):
@@ -155,11 +161,10 @@ class Book:
         # do not expand into the entire Cartesian product of past playthroughs.
         future = [frozenset() for _ in range(len(self.chapters) + 1)]
         for i in reversed(range(len(self.chapters))):
+            scenes = self.chapters[i].scenes
             future[i] = future[i + 1].union(
-                m
-                for scene in self.chapters[i].scenes
-                for choice in scene.choices
-                for m in choice.requires
+                (m for scene in scenes for choice in scene.choices for m in choice.requires),
+                (e.mark for scene in scenes for e in scene.echoes),
             )
         entry = {frozenset()}
         for i, (ch, scenes) in enumerate(
@@ -175,6 +180,7 @@ class Book:
                     raise ValueError(f"{ch.id} 资料链接无效")
             for s in ch.scenes:
                 _unique([c.id for c in s.choices], f"{ch.id}/{s.id}")
+                _unique([e.mark for e in s.echoes], f"{ch.id}/{s.id} 后续叙事")
                 exhibit_ids = [e.id for e in s.exhibits]
                 _unique(exhibit_ids, f"{ch.id}/{s.id} 案头材料")
                 for c in s.choices:
@@ -193,12 +199,16 @@ class Book:
             needed = {"END": future[i + 1]}
             for sid in order:
                 needed[sid] = frozenset().union(
-                    *(needed[c.next].union(c.requires) for c in scenes[sid].choices)
+                    *(needed[c.next].union(c.requires) for c in scenes[sid].choices),
+                    (e.mark for e in scenes[sid].echoes),
                 )
             states = defaultdict(set)
             states[ch.scenes[0].id] = entry
             for sid in reversed(order):
                 variants = states.pop(sid)
+                for echo in scenes[sid].echoes:
+                    if not any(echo.mark in marks for marks in variants):
+                        raise ValueError(f"{ch.id}/{sid} 的后续叙事缺少可取得的凭据：{echo.mark}")
                 for c in scenes[sid].choices:
                     possible = [m for m in variants if m.issuperset(c.requires)]
                     if not possible:
@@ -321,7 +331,9 @@ class Book:
                     else {}
                 ),
                 "title": current.title,
-                "body": current.body,
+                "body": "\n\n".join(
+                    [current.body, *(e.body for e in current.echoes if e.mark in owned)]
+                ),
                 "choices": [
                     {
                         "id": c.id,

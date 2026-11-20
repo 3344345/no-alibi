@@ -68,8 +68,8 @@
     name = '',
     topic = ''
   let book: Chapter | null = null,
-    handover: Entry | null = null,
-    last: Entry | null = null
+    handover: Entry | null = null
+  $: last = game?.journal.at(-1)
   let pending: { revision: number; choice: string; command_id: string } | null = null
   let input: HTMLInputElement,
     heading: HTMLElement,
@@ -159,7 +159,12 @@
   )
   $: previousChapter = catalogue.chapters.find((ch) => ch.id === handover?.chapter_id)
   const prefix = '/chronicle'
-  function picture(id: string) {
+  const televisionScenes = new Set(['studio', 'switchboard', 'cutting_room', 'summer_broadcast', 'city_frequency'])
+  function picture(id: string, sceneId = '') {
+    if (id === 'witness_shanghai_prices' && (sceneId === 'rice' || sceneId.startsWith('tram_')))
+      return '/chronicle/shanghai_tram.webp'
+    if (id === 'witness_deng_xiaoping' && televisionScenes.has(sceneId))
+      return '/chronicle/beijing_live.webp'
     const sharedArt: Record<string, string> = {
       witness_liu_qingshan: 'river_grain',
       witness_xiaogang: 'household_field',
@@ -204,7 +209,6 @@
     book = null
     handover = null
     topic = ''
-    last = null
     pending = null
     error = ''
     await focusScene()
@@ -245,7 +249,6 @@
       await refresh()
       stopScore()
       game = null
-      last = null
       handover = null
       pending = null
       topic = ''
@@ -264,7 +267,6 @@
       pending = null
       game = next
       const entry = next.journal[command.revision]
-      last = entry
       if (next.chapter.id !== previous.chapter.id || next.finished) handover = entry
       void playScore(entry?.tone)
       await focusScene()
@@ -305,7 +307,6 @@
   }
   function turnPage() {
     handover = null
-    last = null
     void focusScene()
   }
   onMount(() => {
@@ -503,9 +504,15 @@
   {:else if game.scene}
     <div class="stage">
       <aside class="scene-art">
-        <img src={picture(game.chapter.id)} alt="" />
+        <img src={picture(game.chapter.id, game.scene.id)} alt="" />
         <div class="art-caption">
-          <span>{game.chapter.year}</span><strong>{game.chapter.place}</strong>
+          {#if game.chapter.id === 'witness_deng_xiaoping' && ['city_frequency', 'workers_budget'].includes(game.scene.id)}
+            <span>架空的1992年</span><strong>{game.scene.id === 'city_frequency' ? '地方电视台' : '厂区'}</strong>
+          {:else if game.chapter.id === 'witness_shanghai_prices' && game.scene.id === 'tram_map'}
+            <span>半年后</span><strong>上海 · 电车沿线</strong>
+          {:else}
+            <span>{game.chapter.year}</span><strong>{game.chapter.place}</strong>
+          {/if}
           <p>年代情境插画</p>
         </div>
       </aside>
@@ -519,12 +526,11 @@
           >
             {game.chapter.intro}
           </p>{/if}
-        {#if last && last.chapter_id === game.chapter.id}<aside class="receipt" role="status">
-            <strong>{last.label}</strong>
-            <p>{last.result}</p>
-            {#if last.marks.length}<small>留存 · {last.marks.join('、')}</small>{/if}
-          </aside>{/if}
-        <p class="scene-body">{game.scene.body}</p>
+        <div class="scene-body">
+          {#each game.scene.body.split(/\n+/).filter((paragraph) => paragraph.trim()) as paragraph}
+            <p>{paragraph}</p>
+          {/each}
+        </div>
         {#if game.scene.exhibits}
           <section class="exhibits" aria-label="案头材料">
             <h2>案头材料</h2>
@@ -556,6 +562,16 @@
               ><span>{c.label}</span><b aria-hidden="true">→</b></button
             >{/each}
         </div>
+        {#if last && last.chapter_id === game.chapter.id}
+          {#key game.id + '/' + game.revision}
+            <details class="receipt">
+              <summary>回看上一幕 · {last.title}</summary>
+              <b>{last.label}</b>
+              <p>{last.result}</p>
+              {#if last.marks.length}<small>留存 · {last.marks.join('、')}</small>{/if}
+            </details>
+          {/key}
+        {/if}
         <footer>
           <span>{game.name} · 已保存 {game.revision} 次选择</span><button
             on:click={() => {
@@ -819,11 +835,14 @@
     font-size: 0.85rem;
   }
   .stage {
-    grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.2fr);
-    background: #f3eee1;
+    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.35fr);
+    background: #282a25;
     color: #2e2a23;
   }
   .scene-art {
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
     background: #282a25;
     min-height: 410px;
   }
@@ -865,7 +884,8 @@
     color: #ede2cc;
   }
   .story {
-    padding: clamp(24px, 3.6vw, 58px);
+    background: #f3eee1;
+    padding: clamp(24px, 3.5vw, 54px) clamp(24px, 5vw, 84px);
     min-width: 0;
   }
   .story .date-line,
@@ -884,6 +904,7 @@
     color: #605744;
     font-size: 0.91rem;
     margin: 1rem 0;
+    white-space: pre-line;
   }
   .scene-body,
   .handover blockquote {
@@ -892,13 +913,23 @@
     line-height: 1.95;
     white-space: pre-line;
   }
-  .receipt {
-    border-left: 3px solid #977248;
-    padding: 0.08rem 0.9rem;
-    margin: 1rem 0;
-    color: #5c4e3e;
+  .scene-body p {
+    margin: 0;
+    overflow-wrap: break-word;
   }
-  .receipt strong,
+  .scene-body p + p {
+    margin-top: 0.9em;
+  }
+  .receipt {
+    color: #5c4e3e;
+    margin: 0.5rem 0;
+  }
+  .receipt summary {
+    cursor: pointer;
+    padding: 0.7rem 0;
+    font-size: 0.9rem;
+  }
+  .receipt b,
   .receipt small {
     font-size: 0.8rem;
     color: #705739;
@@ -906,6 +937,8 @@
   .receipt p {
     font-size: 0.94rem;
     line-height: 1.7;
+    white-space: pre-line;
+    margin: 0.3rem 0;
   }
   .decisions {
     display: grid;
@@ -1050,6 +1083,10 @@
     }
     .scene-art img {
       object-position: 50% 40%;
+    }
+    .scene-art {
+      position: relative;
+      height: clamp(100px, 28vw, 180px);
     }
     .art-caption {
       bottom: 12px;

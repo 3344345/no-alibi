@@ -61,6 +61,41 @@ async function openCareer(page, wide = true) {
 async function enterCareerMenu(page) {
   await page.getByRole('button', { name: '生涯模式', exact: true }).click()
 }
+
+test('the first county desk decision sends the technician and shows her actual finding', async () => {
+  const context = await browser.newContext()
+  try {
+    const page = await context.newPage()
+    await openCareer(page, false)
+    const desk = page.locator('.passage-request')
+    await desk.getByRole('heading', { name: '今天还得绕南渠吗？' }).waitFor()
+    const view = await current(page)
+    assert.match(await desk.innerText(), /吴静禾/)
+    assert.ok((await desk.innerText()).includes(view.documents.find((doc) => doc.id === 'D01-r1').body))
+    const submit = async (action) => {
+      const [response] = await Promise.all([
+        page.waitForResponse((r) => r.url().endsWith('/commands') && r.request().method() === 'POST'),
+        action.click(),
+      ])
+      assert.equal(response.status(), 200)
+      return response.json()
+    }
+    await submit(desk.getByRole('button', { name: /申请检查临时便道/ }))
+    await desk.getByText(/程向晚去验路了/).waitFor()
+    const due = page.getByRole('button', { name: /前往下一事项/ })
+    let after
+    for (let i = 0; i < 6; i++) {
+      after = await submit(due)
+      if (after.documents.some((doc) => doc.kind === '检查记录' && doc.scope === '西段便道')) break
+    }
+    const finding = after.documents.find((doc) => doc.kind === '检查记录' && doc.scope === '西段便道')
+    assert.ok(finding, 'technician delivered the inspection record')
+    await desk.getByText(finding.body, { exact: false }).waitFor()
+    assert.ok(await desk.getByRole('button', { name: /报请批准开放|安排便道整改/ }).isEnabled())
+  } finally {
+    await context.close()
+  }
+})
 async function noOverflow(page) {
   assert.ok(
     await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
@@ -475,6 +510,8 @@ test('all eight careers can be entered from their published profiles', { timeout
       const state = await current(page)
       assert.equal(state.start, expected)
       assert.ok(state.documents.length > 0 && state.commitments.length > 0)
+      const personalNote = state.documents.find((row) => ['START-field', 'START-tech'].includes(row.id))
+      assert.ok((await page.locator('.passage-request').innerText()).includes(personalNote?.body ?? state.opening))
       await page.getByRole('button', { name: '局中事 主菜单' }).click()
     }
   } finally {

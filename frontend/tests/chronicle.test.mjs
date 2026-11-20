@@ -87,7 +87,10 @@ async function toggle(page, enabled) {
 }
 async function sceneVisible(page, view) {
   await story(page).getByRole('heading', { name: view.scene.title, exact: true }).waitFor()
-  await story(page).getByText(view.scene.body, { exact: true }).waitFor()
+  assert.deepEqual(
+    await story(page).locator('.scene-body p').allTextContents(),
+    view.scene.body.split(/\n+/).filter((paragraph) => paragraph.trim()),
+  )
   assert.deepEqual(
     await story(page).locator('.decisions button span').allTextContents(),
     view.scene.choices.filter((x) => !x.cites).map((x) => x.label),

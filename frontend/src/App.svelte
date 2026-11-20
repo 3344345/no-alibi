@@ -16,6 +16,7 @@
   import WorkingNote from './WorkingNote.svelte'
   import Sites from './Sites.svelte'
   import CurrentScene from './CurrentScene.svelte'
+  import PassageRequest from './PassageRequest.svelte'
   import { committedSound, cue, enableSound, setSoundVolume, silence } from './sound'
   import Records from './Records.svelte'
   import Timeline from './Timeline.svelte'
@@ -138,6 +139,8 @@
   )
   $: if (v) reports = v.reports ?? v.quarter_reports ?? []
   $: date = dateAt(v?.minute ?? 0)
+  $: passageRequest = v?.documents.find((doc) => doc.id === 'D16-r1')
+  $: firstBriefing = v?.appointments.find((item) => item.title === '办公室汇总首轮意见')
   const storageKey = (id: string) => 'jzs-pending-' + id
   onMount(() => {
     reduceMotion = window.matchMedia('(prefers-reduced-motion:reduce)').matches
@@ -679,6 +682,10 @@
           <div class="desk-grid">
             <div class="column">
               <section class="paper lead-paper">
+                {#if passageRequest && firstBriefing && v.location.id === 'L01' && !v.ending}
+                  <PassageRequest view={v} request={passageRequest} deadline={firstBriefing.due}
+                    select={selectAction} busy={busy || !!pending} />
+                {:else}
                 <div class="section-title">
                   <div>
                     <p class="kicker">桌面来件</p>
@@ -707,6 +714,7 @@
                     {#if str(doc, 'scope')}<small>涉及范围　{str(doc, 'scope')}</small>{/if}
                   </article>
                 {:else}<p class="empty">目前没有可查阅的来文。</p>{/if}
+                {/if}
                 {#if v.actions?.length}<div class="button-row">
                     <button class="button primary" on:click={() => goto('行动')}
                       >选择办理方式 <span aria-hidden="true">→</span></button
