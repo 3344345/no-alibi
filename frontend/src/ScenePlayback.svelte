@@ -12,6 +12,8 @@
   export let previous: string
   export let revision: number
   export let gameId: string
+  export let volume: number
+  export let toggleAudio: () => void
   export let decide: () => void
   let index = 0, looking = false
   $: beats = sceneBeats(body,previous)
@@ -34,6 +36,12 @@
     looking = !looking
     if (looking && shot?.prop) { enableSound(); void playScore(shot.prop.cue) }
     else stopScore()
+  }
+  function replayProp() {
+    if (!shot?.prop) return
+    if (!volume) toggleAudio()
+    enableSound()
+    void playScore(shot.prop.cue)
   }
   function key(e: KeyboardEvent) {
     if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
@@ -61,6 +69,7 @@
     <div class="script">
       <div class="credit">{looking ? shot?.prop?.name : beat?.kind === 'consequence' ? '刚才的决定' : role}</div>
       <p aria-live="polite" aria-atomic="true">{looking ? shot?.prop?.detail : beat?.text}</p>
+      {#if looking}<button class="replay" on:keydown={key} on:click={replayProp}>{volume ? '再听一次' : '开声重听'}</button>{/if}
       <nav aria-label="镜头控制">
         <button on:keydown={key} class="back" disabled={!index} on:click={() => seek(index-1)} aria-label="上一段">←</button>
         <span class="counter">{index+1} / {beats.length}</span>
@@ -81,6 +90,7 @@
   .slate{display:flex;align-items:center;gap:.65em;font:600 clamp(.9rem,1.3vw,1.2rem)/1.4 var(--sans);text-shadow:0 1px 6px #121713}.slate span{font-family:var(--serif);font-variant-numeric:tabular-nums}.slate i{display:block;height:1px;width:1.4em;background:#dfbf83}
   .listen{position:absolute;right:clamp(17px,3vw,48px);top:clamp(14px,2.6vw,40px);display:inline-flex;align-items:center;gap:.5em;background:#17201ce3;color:#f4e9d1;padding:.45rem .7rem;border:1px solid #b9a88a;border-radius:2px;font-size:.83rem}.listen[aria-pressed=true]{background:#494034}.listen svg{width:16px;height:14px;fill:none;stroke:#eac888;stroke-width:1.7}
   .script{margin-top:auto;padding-top:6.5rem;max-width:49em;text-shadow:0 1px 9px #101010}.credit{font-size:.83rem;color:#f3d59c;letter-spacing:.12em}.script p{margin:.4em 0 .8em;font:500 clamp(1.04rem,1.7vw,1.52rem)/1.65 var(--serif);color:#fff8ea}
+  .replay{background:#171d19de;color:#f1dfbc;border:1px solid #b6a384;padding:.3rem .65rem;margin-bottom:.6rem;font-size:.85rem}
   nav{display:flex;align-items:center;flex-wrap:wrap;gap:.7rem}.counter{font: .82rem/1 var(--mono);color:#e7dece}.back,.advance,.skip{min-height:38px;text-shadow:none}.back,.skip{color:#f4e8d3;background:transparent;border:0}.back{border:1px solid #9a9484;width:38px}.advance{color:#2b2b23;background:#e9d4aa;border:1px solid #e9d4aa;padding:.38rem .85rem;font-weight:600}.advance b{margin-left:.6em}.skip{font-size:.84rem;text-decoration:underline;text-underline-offset:4px}.reel button:focus-visible{outline:2px solid #fff2d7;outline-offset:3px}
   @media(max-width:600px){.frame{min-height:360px}.slate{max-width:60%;flex-wrap:wrap}.script{padding-top:6.3rem}.image:after{background:linear-gradient(0deg,#101411fa 6%,#101411c7 38%,transparent 80%)}nav{gap:.45rem}}
   @media(prefers-reduced-motion:reduce){.image img{transition:none;transform:none!important}}:global(.reduce-motion) .image img{transition:none;transform:none!important}

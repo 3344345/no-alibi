@@ -20,6 +20,10 @@ test('the scene reader keeps its place, exposes the original words, and hands th
     assert.match(first,/喜棚|小圆/)
     await reel.getByRole('button',{name:'听影杆'}).click()
     assert.match(await words.innerText(),/细杆/)
+    const sample = p.waitForResponse(r => r.url().endsWith('/sound/paper_rods.mp3') && r.ok())
+    await reel.getByRole('button',{name:'开声重听'}).click()
+    await sample
+    assert.equal(await p.getByRole('switch',{name:'历史长篇音效'}).getAttribute('aria-checked'),'true')
     await reel.getByRole('button',{name:'下一段'}).press('ArrowRight')
     const second = await words.innerText()
     assert.notEqual(first,second)

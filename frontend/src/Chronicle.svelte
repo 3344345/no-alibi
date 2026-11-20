@@ -111,6 +111,9 @@
     const target = control ?? decisionArea
     target.focus({preventScroll:true})
   }
+  $: currentWork = game?.scene?.id.startsWith('face_') ? '借我一张脸'
+    : game?.scene?.id.startsWith('reel_') ? '倒带七秒'
+    : game?.chapter.title
   $: usingPuppets = game?.chapter.id === 'may_fourth' && game?.scene?.id === 'face_screen'
   $: usingTape = game?.chapter.id === 'witness_deng_xiaoping' && game?.scene?.id === 'reel_mix'
   $: surveyingRidge = game?.chapter.id === 'witness_gao' && game?.scene?.id === 'bank_map'
@@ -574,7 +577,7 @@
           <ScenePlayback portrait={picture(game.chapter.id, game.scene.id)} shot={directedShot(game.scene.id)}
             caption={pictureCaption(game.chapter.id, game.scene.id)} date={setting?.year ?? game.chapter.year}
             place={setting?.place ?? game.chapter.place} role={game.chapter.role} body={game.scene.base_body ?? game.scene.body}
-            previous={last?.chapter_id === game.chapter.id && !['borrow_a_face','seven_seconds'].includes(last.choice ?? '') ? last.result : ''} revision={game.revision} gameId={game.id} decide={reachDecision}/>
+            previous={last?.chapter_id === game.chapter.id && !['borrow_a_face','seven_seconds'].includes(last.choice ?? '') ? last.result : ''} revision={game.revision} gameId={game.id} decide={reachDecision} {volume} {toggleAudio}/>
         {/key}
         </div>
       {:else}<aside class="scene-art">
@@ -586,7 +589,7 @@
       </aside>{/if}
       <article class="story">
         <p class="date-line">
-          {mode === 'witness' ? '历史推演 · ' : ''}{game.chapter.title}　／　{game.chapter.role}
+          {mode === 'witness' ? '历史推演 · ' : ''}{currentWork}　／　{game.chapter.role}
         </p>
         <h1 tabindex="-1" bind:this={heading}>{game.scene.title}</h1>
         {#if !game.journal.length || game.journal.at(-1)?.chapter_id !== game.chapter.id}<p
