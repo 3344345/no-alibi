@@ -7,6 +7,9 @@ test('the night dispatch works by keyboard on a narrow screen and returns to the
   try {
     const ctx = await fixture.browser.newContext({ viewport: { width: 360, height: 740 } })
     const page = await ctx.newPage()
+    // macOS WebKit defaults to Option-Tab for visiting all form controls.
+    const nextControl = process.platform === 'darwin' && fixture.browser.browserType().name() === 'webkit'
+      ? 'Alt+Tab' : 'Tab'
     await page.goto(fixture.session)
     await page.getByRole('button', { name: '生涯模式', exact: true }).click()
     await page.getByRole('button', { name: '建立生涯' }).click()
@@ -17,14 +20,16 @@ test('the night dispatch works by keyboard on a narrow screen and returns to the
     await board.getByRole('radio', { name: '22:40' }).focus()
     await page.keyboard.press('ArrowRight')
     assert.ok(await board.getByRole('radio', { name: '22:46' }).isChecked())
-    await page.keyboard.press('Tab')
+    await page.keyboard.press(nextControl)
+    assert.ok(await board.getByRole('radio', { name: '沿河直行' }).evaluate(el => el === document.activeElement))
     await page.keyboard.press('ArrowRight')
     assert.ok(await board.getByRole('radio', { name: '绕澡堂' }).isChecked())
     await board.getByText('23:04', { exact: true }).waitFor()
     await board.getByText('三人都能搭上车').waitFor()
     await board.getByText('到桥时，接班车已经走了').waitFor()
     assert.ok(await board.evaluate(el => el.scrollWidth <= el.clientWidth + 1))
-    await page.keyboard.press('Tab')
+    await page.keyboard.press(nextControl)
+    assert.ok(await board.getByRole('button', { name: /把这张表念给伍琴听/ }).evaluate(el => el === document.activeElement))
     await page.keyboard.press('Enter')
     await story.getByRole('heading', { name: '南门旧站牌碰面' }).waitFor()
     await story.getByRole('button', { name: /^赴约/ }).click()

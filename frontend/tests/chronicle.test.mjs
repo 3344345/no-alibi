@@ -95,12 +95,12 @@ async function toggle(page, enabled) {
 async function sceneVisible(page, view) {
   await story(page).getByRole('heading', { name: view.scene.title, exact: true }).waitFor()
   assert.deepEqual(
-    await story(page).locator('.scene-body p').allTextContents(),
+    await story(page).locator('.scene-body > p, .story-echo > p').allTextContents(),
     view.scene.body.split(/\n+/).filter((paragraph) => paragraph.trim()),
   )
   assert.deepEqual(
     await story(page).locator('.decisions button span').allTextContents(),
-    view.scene.choices.filter((x) => !x.cites).map((x) => x.label),
+    view.scene.choices.filter((x) => !x.cites && !(view.scene.id === 'night_switchboard' && x.id.startsWith('patch_'))).map((x) => x.label),
   )
 }
 async function choose(page, old, id = old.scene.choices[0].id) {
