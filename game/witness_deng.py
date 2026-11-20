@@ -2,6 +2,7 @@
 
 
 from game.witness_night_line import add_night_line
+from game.witness_seven_seconds import add_seven_seconds
 
 
 def choice(key, label, result, dest, mark=None, need=None):
@@ -272,3 +273,4 @@ add_tailor(CHAPTERS[0])
 
 
 add_night_line(CHAPTERS[1])
+add_seven_seconds(CHAPTERS[1])

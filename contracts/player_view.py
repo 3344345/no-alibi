@@ -257,7 +257,19 @@ class NightBus(PlayerInput):
     dispatch: list[DispatchPlan] = Field(default_factory=list)
 
 
+class Aftershow(PlayerInput):
+    node: str
+    act: str
+    title: str
+    body: str
+    reply: str
+    stage: Literal["invitation", "waiting", "playing", "ending"]
+    sound: Literal["foyer", "booth", "turn", "after"]
+    due: NonNegative | None
+
+
 class PlayerView(PlayerInput):
+    aftershow: Aftershow | None = None
     night_bus: NightBus | None = None
     id: str
     world_id: str

@@ -6,6 +6,7 @@
   import type { Action, NightBusScene, View } from './types'
 
   export let scene: NightBusScene
+  export let quiet = false
   export let view: View
   export let busy: boolean
   export let choose: (action: Action) => void
@@ -15,7 +16,7 @@
   $: choices = view.actions.filter(a => a.kind === 'night_bus')
   $: hearing = view.actions.some(a => a.kind === 'hearing')
   $: image = '/scenes/county-' + scene.art + '.webp'
-  $: setSoundscape(scene.stage === 'playing' && !view.ending
+  $: setSoundscape(scene.stage === 'playing' && !view.ending && !quiet
     ? { room: scene.art === 'nightbus' ? 'platform' : 'room', music: scene.art === 'nightbus' ? 'vigil' : 'question' }
     : undefined)
   onDestroy(() => setSoundscape())

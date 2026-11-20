@@ -67,6 +67,7 @@ class Scene(Strict):
     body: Text
     choices: list[Choice] = Field(min_length=1)
     exhibits: list[Exhibit] = Field(default_factory=list)
+    role: Text | None = None
     echoes: list[Echo] = Field(default_factory=list)
 
 
@@ -294,7 +295,7 @@ class Book:
             "chapter_id": ch.id,
             "year": ch.year,
             "place": ch.place,
-            "role": ch.role,
+            "role": scene.role or ch.role,
             "scene": scene.id,
             "title": scene.title,
             "choice": choice.id,
@@ -330,8 +331,11 @@ class Book:
         ch = self.chapters[i]
         sid = state["scene"]
         scene = None
+        chapter = ch.model_dump(exclude={"scenes"})
         if sid is not None:
             current = self.scene_maps[i][sid]
+            if current.role:
+                chapter["role"] = current.role
             owned = set(state["marks"])
             callbacks = [echo for echo in current.echoes if echo.mark in owned]
             scene = {
@@ -373,7 +377,7 @@ class Book:
             "chapter_count": len(self.chapters),
             "revision": len(state["journal"]),
             "finished": sid is None,
-            "chapter": ch.model_dump(exclude={"scenes"}),
+            "chapter": chapter,
             "scene": scene,
             "journal": deepcopy(state["journal"]),
             "marks": list(state["marks"]),

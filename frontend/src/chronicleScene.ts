@@ -44,6 +44,12 @@ const homecoming = new Set([
 export function sceneMix(chapter: string, scene: string, tone?: Score): Soundscape {
   let room: RoomTone = 'room'
   let music: Soundscape['music'] = tone === 'setback' ? 'vigil' : 'question'
+  if (scene.startsWith('face_')) {
+    return {room: scene === 'face_letter' ? 'room' : 'courtyard', music: 'shadow_duet'}
+  }
+  if (scene.startsWith('reel_')) {
+    return {room: ['reel_lobby','reel_mix','reel_open','reel_sale','reel_booth','reel_ticket'].includes(scene) ? 'exchange' : 'room', music:'empty_hall'}
+  }
   if (chapter === 'witness_deng_xiaoping') {
     if (exchange.has(scene)) room = 'exchange'
     else if (screenings.has(scene)) room = 'projector'
@@ -69,6 +75,7 @@ export function outcomeCue(
   nextScene: string,
   tone?: Score,
 ): StoryCue | undefined {
+  if (scene === 'reel_mix' && choice === 'cut_ad' || scene === 'face_settle' && nextScene === 'face_platform') return 'held_breath'
   if (chapter !== 'witness_deng_xiaoping') return tone
   if (scene.startsWith('night_loss_') || nextScene.startsWith('night_loss_')) return
   if (
@@ -92,6 +99,14 @@ export function sceneSetting(
   title: string,
   original: Setting,
 ): Setting {
+  if (scene.startsWith('reel_')) {
+    const place = ({reel_yard:'北京 · 小院',reel_shop:'北京 · 家具店',reel_truck:'北京 · 礼堂门口',reel_kitchen:'北京 · 灶间',reel_landing:'北京 · 楼梯间'} as Record<string,string>)[scene]
+    return {year:'架空的1992年',place:place ?? '北京'}
+  }
+  if (scene.startsWith('face_')) {
+    const place = ({face_quay:'北京 · 通州码头',face_bench:'北京 · 墙根',face_platform:'北京 · 车站',face_letter:'北京 · 印铺'} as Record<string,string>)[scene]
+    return {year: scene === 'face_letter' ? '1919年立秋' : '1919',place:place ?? '北京 · 喜棚'}
+  }
   if (chapter === 'witness_bian' && scene.startsWith('sky_')) {
     const dates: Record<string, string> = { 一幕: '1966', 二幕: '1972', 三幕: '1978', 四幕: '1986' }
     return { year: dates[title.split(' · ')[0]] ?? original.year, place: '北京' }

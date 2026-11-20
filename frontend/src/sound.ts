@@ -168,7 +168,7 @@ export function cue(kind: Sound | undefined) {
 export type Score = 'setback' | 'evidence' | 'turn'
 let scoreVoice: AudioBufferSourceNode | undefined
 let scoreRequest = 0
-export type StoryCue = Score | 'kitchen_waltz'
+export type StoryCue = Score | 'kitchen_waltz' | 'cup_rim' | 'paper_rods' | 'piano_wire' | 'rain_tin' | 'held_breath'
 const scores = new Map<StoryCue, AudioBuffer>()
 
 export function stopScore() {
@@ -194,7 +194,7 @@ export async function playScore(tone?: StoryCue) {
     if (issued !== scoreRequest || !level || !foreground()) return
     let buffer = scores.get(tone)
     if (!buffer) {
-      const folder = tone === 'kitchen_waltz' ? '/chronicle/sound/' : '/chronicle/'
+      const folder = ['setback', 'evidence', 'turn'].includes(tone) ? '/chronicle/' : '/chronicle/sound/'
       const response = await fetch(folder + tone + '.mp3')
       if (!response.ok) return
       buffer = await audio.decodeAudioData(await response.arrayBuffer())
@@ -217,7 +217,7 @@ export async function playScore(tone?: StoryCue) {
 }
 
 export type RoomTone = 'room' | 'exchange' | 'projector' | 'courtyard' | 'platform'
-export type Movement = 'question' | 'vigil' | 'afterlight'
+export type Movement = 'question' | 'vigil' | 'afterlight' | 'shadow_duet' | 'empty_hall'
 export type Soundscape = { room: RoomTone; music: Movement }
 type Track = RoomTone | Movement
 type Layer = {

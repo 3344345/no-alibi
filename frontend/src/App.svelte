@@ -20,6 +20,8 @@
   import CurrentScene from './CurrentScene.svelte'
   import PassageRequest from './PassageRequest.svelte'
   import NightBus from './NightBus.svelte'
+  import Aftershow from './Aftershow.svelte'
+  let aftershowOpen = false
   import { committedSound, cue, enableSound, setSoundVolume, silence } from './sound'
   import Records from './Records.svelte'
   import Timeline from './Timeline.svelte'
@@ -685,8 +687,13 @@
           <div class="desk-grid">
             <div class="column">
               {#if v.night_bus}
-                <NightBus scene={v.night_bus} view={v} busy={busy || !!pending} choose={selectAction}
+                <NightBus quiet={aftershowOpen} scene={v.night_bus} view={v} busy={busy || !!pending} choose={selectAction}
                   advance={(minutes) => send('advance', { minutes })} actionsPage={() => goto('行动')} />
+              {/if}
+              {#if v.aftershow}
+                <Aftershow scene={v.aftershow} view={v} {volume} {error} busy={busy || !!pending} bind:open={aftershowOpen}
+                  choose={selectAction} advance={(minutes) => send('advance', { minutes })} actionsPage={() => goto('行动')}
+                  toggleAudio={() => chooseVolume(volume > 0 ? 0 : lastAudibleVolume)} />
               {/if}
               <section class="paper lead-paper">
                 {#if passageRequest && firstBriefing && v.location.id === 'L01' && !v.ending}

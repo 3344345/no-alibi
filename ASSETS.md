@@ -25,3 +25,11 @@
 - `arrival.mp4` 是1946年 United News 第197卷第一则上海新闻，取馆藏 DVD 转录第00:24至01:31，保留原声。美国国家档案馆馆藏 208-UN-197，NAID 39104，使用限制栏为 Unrestricted。所用 FedFlix 数字拷贝标注 CC0。[馆藏记录](https://catalog.archives.gov/id/39104) · [拷贝与使用说明](https://archive.org/details/gov.archives.arc.39104)
 - `factory.mp4` 节选自1984年4月30日白宫电视办公室在上海福克斯波罗公司拍摄的同期录像，第09:20至12:12，带号 F87，NAID 75502096。馆方将 WHTV 系列列为公版，本片取自档案馆 MP4。[原卷记录](https://www.reaganlibrary.gov/archives/video/trip-china-president-reagans-remarks-shanghai-foxboro-company) · [馆方权属说明](https://www.reaganlibrary.gov/archives/audiovisual/white-house-television-office-whtv)
 - 三段影片均位于 `frontend/public/cinema/`。选片按钮与海报使用原片内容；可切换的中文镜头注释为本作撰写。
+
+## 镜头阅读与三出新戏
+
+此版的宽幅插画为剧情创作，以戏中人和想象场面为画面主体。喜棚两侧、折椅与旧钢琴、放映间和工作台使用独立画面。县城片中插入的黑白影像亦为本作创作。
+
+- `scripts/score_scene_reel.py` 生成影戏双声部和旧礼堂钢琴配乐、茶盖、竹杆、琴弦、雨点及低音退场声。
+- `scripts/score_seven_seconds.py` 合成十二秒双话筒素材，台口、后门和两路合听可离线切换；波形取自相同音轨。
+- `scripts/score_shadow_window.py` 和 `scripts/score_aftershow.py` 分别制作皮影锣点和旧影院声效。玩家能在静音时根据文字和画面操作全部新场面。

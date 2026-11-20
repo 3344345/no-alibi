@@ -12,6 +12,10 @@
   import CourtyardMoon from './CourtyardMoon.svelte'
   import NightSwitchboard from './NightSwitchboard.svelte'
   import XianTable from './XianTable.svelte'
+  import FaceBooth from './FaceBooth.svelte'
+  import TapeRoom from './TapeRoom.svelte'
+  import ScenePlayback from './ScenePlayback.svelte'
+  import { directedShot } from './sceneReel'
   import RidgeSurvey from './RidgeSurvey.svelte'
   import Dialog from './Dialog.svelte'
   export let initialCampaign: Campaign
@@ -88,6 +92,27 @@
     handover: Entry | null = null
   $: setting = game?.scene ? sceneSetting(game.chapter.id, game.scene.id, game.scene.title, game.chapter) : null
   $: handoverSetting = handover ? sceneSetting(handover.chapter_id, handover.scene, handover.title, handover) : null
+  let reelPreference: boolean | null = null
+  let decisionArea: HTMLElement
+  let reelTop: HTMLElement
+  $: reels = reelPreference ?? !!game?.scene?.id.match(/^(face_|reel_)/u)
+  async function switchReader() {
+    reelPreference = !reels
+    try { localStorage.setItem('jzs.reading', reelPreference ? 'reel' : 'page') } catch {}
+    await tick()
+    const target = reels ? reelTop : heading
+    target?.focus({preventScroll:true})
+    target?.scrollIntoView({block:'start'})
+  }
+  function reachDecision() {
+    if (!decisionArea) return
+    const control = decisionArea.querySelector<HTMLElement>('button:not(:disabled),input:not(:disabled),summary')
+    decisionArea.scrollIntoView({block:'start'})
+    const target = control ?? decisionArea
+    target.focus({preventScroll:true})
+  }
+  $: usingPuppets = game?.chapter.id === 'may_fourth' && game?.scene?.id === 'face_screen'
+  $: usingTape = game?.chapter.id === 'witness_deng_xiaoping' && game?.scene?.id === 'reel_mix'
   $: surveyingRidge = game?.chapter.id === 'witness_gao' && game?.scene?.id === 'bank_map'
   $: moonTable = game?.chapter.id === 'witness_bian' && game?.scene?.id === 'sky_half'
   $: switchboard = game?.chapter.id === 'witness_deng_xiaoping' && game?.scene?.id === 'night_switchboard'
@@ -96,7 +121,7 @@
   $: last = game?.journal.at(-1)
   $: chapterSteps = (game?.journal ?? []).map((entry, index) => ({ ...entry, index }))
     .filter((entry) => entry.chapter_id === (handover?.chapter_id ?? game?.chapter.id))
-  $: setSoundscape(game?.scene && !game.finished && !handover && !topic
+  $: setSoundscape(game?.scene && game.scene.id !== 'reel_mix' && !game.finished && !handover && !topic
     ? sceneMix(game.chapter.id, game.scene.id, last?.chapter_id === game.chapter.id ? last.tone : undefined)
     : undefined)
   let pending: { revision: number; choice: string; command_id: string } | null = null
@@ -237,7 +262,8 @@
     selected = []
     opened = []
     if (alive) {
-      heading?.focus({ preventScroll: true })
+      const focus = game?.scene && reels && !handover && !topic && reelTop ? reelTop : heading
+      focus?.focus({ preventScroll: true })
       window.scrollTo(0, 0)
     }
   }
@@ -329,6 +355,10 @@
     void focusScene()
   }
   onMount(() => {
+    try {
+      const previous = localStorage.getItem('jzs.reading')
+      if (previous === 'reel' || previous === 'page') reelPreference = previous === 'reel'
+    } catch {}
     void perform(async () => {
       await refresh()
       if (!featured || !alive) return
@@ -359,6 +389,7 @@
     >
     <span class="mast-title">历史长篇</span>
     <div class="utilities">
+      {#if game?.scene && !handover}<button aria-pressed={reels} on:click={switchReader}>镜头阅读</button>{/if}
       <button
         disabled={busy}
         on:click={() => {
@@ -536,14 +567,23 @@
       <button class="gold" on:click={() => (topic = '行记')}>回看沿途的选择</button>
     </section>
   {:else if game.scene}
-    <div class="stage">
-      <aside class="scene-art">
+    <div class="stage" class:reel-stage={reels}>
+      {#if reels}
+        <div tabindex="-1" class="reel-top" bind:this={reelTop}>
+        {#key game.id + '/' + game.revision}
+          <ScenePlayback portrait={picture(game.chapter.id, game.scene.id)} shot={directedShot(game.scene.id)}
+            caption={pictureCaption(game.chapter.id, game.scene.id)} date={setting?.year ?? game.chapter.year}
+            place={setting?.place ?? game.chapter.place} role={game.chapter.role} body={game.scene.base_body ?? game.scene.body}
+            previous={last?.chapter_id === game.chapter.id && !['borrow_a_face','seven_seconds'].includes(last.choice ?? '') ? last.result : ''} revision={game.revision} gameId={game.id} decide={reachDecision}/>
+        {/key}
+        </div>
+      {:else}<aside class="scene-art">
         <img src={picture(game.chapter.id, game.scene.id)} alt="" />
         <div class="art-caption">
           <span>{setting?.year}</span><strong>{setting?.place}</strong>
           <p>{pictureCaption(game.chapter.id, game.scene.id)}</p>
         </div>
-      </aside>
+      </aside>{/if}
       <article class="story">
         <p class="date-line">
           {mode === 'witness' ? '历史推演 · ' : ''}{game.chapter.title}　／　{game.chapter.role}
@@ -554,11 +594,12 @@
           >
             {game.chapter.intro}
           </p>{/if}
-        {#key game.id + '/' + game.revision}<div class="scene-body">
+        {#key game.id + '/' + game.revision}<svelte:element this={reels ? 'details' : 'div'} class="scene-body" class:transcript={reels}>
+          {#if reels}<summary>翻阅本幕全文</summary>{/if}
           {#each (game.scene.base_body ?? game.scene.body).split(/\n+/).filter((paragraph) => paragraph.trim()) as paragraph}
             <p>{#each linesOfSpeech(paragraph) as phrase}{#if phrase.startsWith('“')}<span class="speech">{phrase}</span>{:else}{phrase}{/if}{/each}</p>
           {/each}
-        </div>{/key}
+        </svelte:element>{/key}
         {#key game.id + '/' + game.revision}
           {#each game.scene.callbacks ?? [] as callback}
             {@const source = game.journal[callback.origin]}
@@ -570,6 +611,11 @@
               </details>{/if}
             </aside>
           {/each}
+        {/key}
+        <div class="play-area" aria-label="本幕行动" role="group" tabindex="-1" bind:this={decisionArea}>
+        {#key game.id + '/' + game.revision}
+          {#if usingPuppets}<FaceBooth choices={game.scene.choices} disabled={busy || !!pending} {volume} onChoose={choose}/>{/if}
+          {#if usingTape}<TapeRoom choices={game.scene.choices} disabled={busy || !!pending} {volume} onChoose={choose}/>{/if}
           {#if moonTable}<CourtyardMoon disabled={busy || (!!pending && pending.choice !== 'sky_keep_sketch')} onChoose={choose}/>{/if}
           {#if switchboard}<NightSwitchboard choices={game.scene.choices} disabled={busy || !!pending} {volume} onChoose={choose}/>{/if}
           {#if xianTable}<XianTable sceneId={game.scene.id} choices={game.scene.choices} marks={game.marks} disabled={busy || !!pending} onChoose={choose}/>{/if}
@@ -602,13 +648,14 @@
             <small aria-live="polite">已选 {selected.length} / 2 件</small>
           </svelte:element>
         {/if}
-        {#if !usingExamMixer && !xianTable}<div class="decisions" aria-label="你的选择">
-          {#each game.scene.choices.filter((c) => !(moonTable && c.id === 'sky_keep_sketch') && !(switchboard && c.id.startsWith('patch_')) && (!c.cites || (selected.length === 2 && canCite(c)))) as c}<button
+        {#if !usingExamMixer && !xianTable && !usingPuppets}<div class="decisions" aria-label="你的选择">
+          {#each game.scene.choices.filter((c) => !(usingTape && c.id.startsWith('cut_')) && !(moonTable && c.id === 'sky_keep_sketch') && !(switchboard && c.id.startsWith('patch_')) && (!c.cites || (selected.length === 2 && canCite(c)))) as c}<button
               disabled={busy || (!!pending && pending.choice !== c.id)}
               on:click={() => choose(c.id)}
               ><span>{c.label}</span><b aria-hidden="true">→</b></button
             >{/each}
         </div>{/if}
+        </div>
         {#if last && last.chapter_id === game.chapter.id}
           {#key game.id + '/' + game.revision}
             <details class="receipt">
@@ -981,6 +1028,12 @@
   .story-echo p { margin: .25rem 0; line-height: 1.75; }
   .story-echo summary { color: #6c5231; font-size: .83rem; cursor: pointer; line-height: 1.55; }
   .story-echo details b, .story-echo details p { font-size: .91rem; }
+  .stage.reel-stage{display:block;background:#19201c}
+  .reel-stage .story{padding:clamp(20px,3vw,40px) clamp(22px,7vw,100px)}
+  .reel-stage .story h1{font-size:clamp(1.55rem,2.6vw,2.4rem)}
+  .reel-top:focus,.story:focus{outline:none}
+  .transcript summary{font:500 .9rem/1.65 var(--sans);color:#685337;cursor:pointer}
+  .transcript summary{margin-bottom:.45rem}
   .receipt {
     color: #5c4e3e;
     margin: 0.5rem 0;

@@ -1,0 +1,44 @@
+import { strict as assert } from 'node:assert'
+import { test } from 'node:test'
+import { startBrowserFixture } from './browser-engine.mjs'
+
+test('the scene reader keeps its place, exposes the original words, and hands the decision back to the player', async () => {
+  const f = await startBrowserFixture()
+  try {
+    const p = await f.browser.newPage({ viewport: { width: 395, height: 810 } })
+    const errors = []
+    p.on('pageerror', e => errors.push(e.message))
+    await p.goto(f.session)
+    const open = () => p.getByRole('button',{name:'钻进喜棚后面的影箱'}).click()
+    await p.getByRole('button',{name:'借我一张脸',exact:true}).click()
+    await open()
+    const reel = p.getByRole('region',{name:'镜头阅读'})
+    await reel.waitFor()
+    await reel.locator('img').evaluate(el=>el.decode())
+    const words = reel.locator('.script p')
+    const first = await words.innerText()
+    assert.match(first,/喜棚|小圆/)
+    await reel.getByRole('button',{name:'听影杆'}).click()
+    assert.match(await words.innerText(),/细杆/)
+    await reel.getByRole('button',{name:'下一段'}).press('ArrowRight')
+    const second = await words.innerText()
+    assert.notEqual(first,second)
+    await p.reload()
+    await p.getByRole('button',{name:'借我一张脸',exact:true}).click()
+    await open()
+    await p.waitForFunction(s=>document.querySelector('.script p')?.textContent===s,second)
+    await reel.getByRole('button',{name:'直接作决定'}).click()
+    assert.ok(await p.getByRole('group',{name:'本幕行动'}).evaluate(el=>el.contains(document.activeElement)))
+    await p.getByText('翻阅本幕全文',{exact:true}).click()
+    assert.ok((await p.locator('.scene-body').innerText()).includes(first))
+    assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
+    const before = await p.locator('article.story footer > span').innerText()
+    await p.getByRole('button',{name:'镜头阅读',exact:true}).click()
+    await p.locator('.scene-art').waitFor()
+    assert.equal(await p.locator('article.story footer > span').innerText(),before)
+    await p.getByRole('button',{name:'镜头阅读',exact:true}).click()
+    await reel.waitFor()
+    assert.ok(await p.getByRole('button',{name:'镜头阅读',exact:true}).getAttribute('aria-pressed')==='true')
+    assert.deepEqual(errors,[])
+  } finally { await f.close() }
+})

@@ -73,7 +73,18 @@ export interface NightBusScene {
   art: 'nightbus' | 'depot'
   dispatch?: DispatchPlan[]
 }
+export interface Aftershow {
+  node: string
+  act: string
+  title: string
+  body: string
+  reply: string
+  stage: 'invitation' | 'waiting' | 'playing' | 'ending'
+  sound: 'foyer' | 'booth' | 'turn' | 'after'
+  due: number | null
+}
 export interface View {
+  aftershow?: Aftershow | null
   night_bus?: NightBusScene | null
   world_id: string
   id?: string

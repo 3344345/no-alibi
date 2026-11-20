@@ -23,7 +23,7 @@
         <img alt="" src="/scenes/county-nightbus.webp" />
         <span class="copy"
           ><small>澄川县</small><strong>生涯模式</strong>
-          <span>七路的末班车天天记在账上，站台却一直没人等到它。进入澄川县，建立或继续你的生涯。</span>
+          <span>有人愿意付三千块，请你在县城旧影院的镜头里站一会儿。从办公桌进入《散场以后》，看看他们拿这段影像做了什么。</span>
         </span><b aria-hidden="true">→</b>
       </button>
       <button aria-label="历史主角模式" on:click={witness}>

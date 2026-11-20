@@ -8,7 +8,7 @@
     "dev": "vite",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test:sound": "node --test tests/sound.test.mjs",
-    "test:e2e": "node --test --test-concurrency=1 tests/browser.test.mjs tests/chronicle.test.mjs tests/witness.test.mjs tests/cinema.test.mjs tests/xian-table.test.mjs tests/switchboard.test.mjs tests/night-dispatch.test.mjs"
+    "test:e2e": "node --test --test-concurrency=1 tests/browser.test.mjs tests/chronicle.test.mjs tests/witness.test.mjs tests/cinema.test.mjs tests/xian-table.test.mjs tests/switchboard.test.mjs tests/night-dispatch.test.mjs tests/seven-seconds.test.mjs tests/family-face.test.mjs tests/aftershow.test.mjs tests/scene-playback.test.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "5.1.1",

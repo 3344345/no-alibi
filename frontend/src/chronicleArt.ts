@@ -1,3 +1,4 @@
+import { directedShot } from './sceneReel'
 const televisionScenes = new Set(['studio', 'switchboard', 'cutting_room', 'summer_broadcast', 'city_frequency'])
 const sharedArt: Record<string, string> = {
   witness_liu_qingshan: 'river_grain',
@@ -11,6 +12,8 @@ const tailorBench = new Set(['air_store', 'air_cut', 'air_monitor', 'air_button'
 const backstage = new Set(['air_curtain', 'air_mother','air_letter','air_after'])
 
 export function picture(id: string, scene = '') {
+  const directed = directedShot(scene)
+  if (directed) return '/chronicle/' + directed.image + '.webp'
   if (scene.startsWith('birthday_')) {
     if (id === 'may_fourth') return '/chronicle/family_quilt.webp'
     if (id === 'nantao_refuge') return '/chronicle/family_kitchen.webp'
@@ -40,6 +43,8 @@ export function picture(id: string, scene = '') {
 }
 
 export function pictureCaption(chapter: string, scene: string) {
+  const directed = directedShot(scene)
+  if (directed) return directed.caption
   if (chapter === 'witness_deng_xiaoping' && reunions.has(scene)) return '情境插画 · 街坊记得的十七线车库'
   if (chapter === 'witness_gao' && scene === 'bank_serial_table') return '情境插画 · 小莲给孙女当了一回尺'
   // These drawings depict a particular moment even when they accompany a later life.

@@ -3,6 +3,7 @@
 
 from .chronicle_early_threads import _choice, _scene, enrich
 from .family_birthdays import add_birthdays
+from .family_shadow_window import add_shadow_window
 
 
 CHAPTERS = [
@@ -193,3 +194,4 @@ CHAPTERS = [
 
 enrich(CHAPTERS)
 add_birthdays(CHAPTERS)
+add_shadow_window(CHAPTERS)

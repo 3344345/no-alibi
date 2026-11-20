@@ -14,8 +14,20 @@ export const features: Feature[] = [
   {
     title: '年代连演', setting: '五部长篇 · 西安到运城',
     pitch: '1936年，坐进张学良的会客室。六十多年后，走到山西一座只砌了半边的水池。你先后以张学良、王晶垚、邓小平和高勤荣的身份作决定。上一代留下的东西，会跟着你走到最后。',
-    action: '从西安的第三把椅子开始', image: '/chronicle/xian_chairs.webp',
+    action: '从西安的第三把椅子开始', image: '/chronicle/still_xian.webp',
     chapter: 'witness_zhang_xueliang', edition: 'serial_v1', campaign: 'witness',
+  },
+  {
+    title: '借我一张脸', setting: '北京喜棚，1919',
+    pitch: '今晚的戏票卖的是两位母亲抢闺女。新娘就坐在台下。你和桂喜把饭碗押给了这只影箱，离开场还差一声锣。',
+    action: '钻进喜棚后面的影箱', image: '/chronicle/still_shadow.webp',
+    chapter: 'may_fourth', opening: 'borrow_a_face', campaign: 'family',
+  },
+  {
+    title: '倒带七秒', setting: '架空的北京，1992',
+    pitch: '一间厂子要买七秒钟的满堂喝彩。有了这笔钱，天亮前就能把旧钢琴搬走。可有个孩子提着一把折椅来找你：那几声，真是人拍出来的吗？',
+    action: '戴上耳机，听那七秒', image: '/chronicle/still_piano.webp',
+    chapter: 'witness_deng_xiaoping', opening: 'seven_seconds', campaign: 'witness',
   },
   {
     title: '夜班来电', setting: '北京，1989年春',
