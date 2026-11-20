@@ -254,7 +254,7 @@ test('two home modes keep same-named county, family and witness records independ
       await target.waitFor()
       assert.equal(await target.count(), 1)
     }
-    assert.equal(await page.getByRole('main').getByRole('button').count(), 2)
+    assert.equal(await page.getByRole('group', { name: '模式选择' }).getByRole('button').count(), 2)
     for (const child of ['建立生涯', '继续生涯', '市井家书', '开始长篇']) {
       assert.equal(await button(page, child).count(), 0, child + ' is only available inside its mode')
     }
@@ -376,4 +376,113 @@ test('event directory covers the published catalogue, filters by era and launche
     assert.match(await story(page).locator('.date-line').innerText(),/王晶垚/)
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
   } finally { await fixture.close() }
+})
+
+test('a featured dressmaking story remembers the chosen pattern and resumes from the title screen', async () => {
+  const f = await startBrowserFixture()
+  try {
+    const page = await f.browser.newPage({viewport: {width: 390, height: 844}})
+    await page.goto(f.session)
+    await button(page,'借一只袖子').click()
+    const name = '拆开裁缝学徒的布信封'
+    const view = await interact(page,'POST',api,() => page.getByRole('button',{name}).click())
+    assert.equal(view.chapter_count,1)
+    const path = api + '/' + view.id
+    let game = view
+    for (const id of ['ask_wearer','keep_playing','owner_cloth'])
+      game = await choose(page,game,id)
+    assert.equal(game.scene.id,'air_monitor')
+    const bench = page.getByRole('region',{name:'裁缝试样台'})
+    await button(bench,'腋下嵌三角').click()
+    await bench.getByRole('slider').focus()
+    await page.keyboard.press('End')
+    await bench.getByText(/弓走到底/).waitFor()
+    game = await interact(page,'POST',path+'/choices',() => bench.getByRole('button',{name:/剪开里襟/}).click())
+    assert.equal(game.scene.id,'air_flash')
+    await page.reload()
+    await button(page,'借一只袖子').click()
+    const resumed = await interact(page,'GET',path,() => page.getByRole('button',{name}).click())
+    assert.equal(resumed.id,game.id)
+    assert.equal(resumed.revision,game.revision)
+    await page.getByRole('heading',{name:game.scene.title}).waitFor()
+    assert.ok(await page.locator('.scene-art img').evaluate(i => i.complete && i.naturalWidth>100))
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth<=innerWidth))
+  } finally { await f.close() }
+})
+
+test('the cover can resume the same five-part serial while the two mode entrances remain available', async () => {
+  const f = await startBrowserFixture()
+  try {
+    const p = await f.browser.newPage({viewport:{width:1024,height:768}})
+    await p.goto(f.session)
+    const open = () => p.getByRole('button',{name:/从西安的第三把椅子开始/}).click()
+    const first = await interact(p,'POST',api,open)
+    assert.equal(first.chapter_count,5)
+    assert.equal(first.edition,'serial_v1')
+    assert.equal(first.scene.id,'xian_wait')
+    const next = await choose(p,first,first.scene.choices[0].id)
+    await p.reload()
+    const resumed = await interact(p,'GET',api+'/'+first.id,open)
+    assert.equal(resumed.id,first.id)
+    assert.equal(resumed.scene.id,next.scene.id)
+    assert.equal(resumed.revision,next.revision)
+    await p.getByRole('heading',{name:next.scene.title,exact:true}).waitFor()
+  } finally { await f.close() }
+})
+
+test('walking around the half cistern changes its outline and reports a field comparison', async () => {
+  const fixture = await startBrowserFixture()
+  try {
+    for (const [width, picked] of [[390, 'bank_one'], [1100, 'bank_two'], [800, 'bank_why']]) {
+      const page = await fixture.browser.newPage({ viewport: { width, height: 850 } })
+      await openLobby(page, fixture)
+      await page.getByLabel('选择亲历者与起始事件').selectOption('witness_gao')
+      await page.getByLabel('为这段长篇命名').fill('坡背' + width)
+      let v = await interact(page, 'POST', api, () => button(page, '开始长篇').click())
+      for (const id of ['bank_long', 'bank_up', 'bank_measure', 'bank_trace']) v = await choose(page,v,id)
+      const survey = page.getByRole('region', { name: '绕池勘察' })
+      await survey.waitFor()
+      if (picked === 'bank_why') {
+        await page.getByText('翻阅纸本走访记录', {exact:true}).click()
+        await page.getByText('两个木牌',{ exact:true }).click()
+        await survey.waitFor()
+        v = await choose(page, v, picked)
+      } else {
+        const road = await survey.locator('svg').innerHTML()
+        await button(survey, '侧坡').focus()
+        await page.keyboard.press('Space')
+        assert.equal(await button(survey, '侧坡').getAttribute('aria-pressed'), 'true')
+        assert.notEqual(await survey.locator('svg').innerHTML(), road)
+        const slider = survey.getByRole('slider', { name: '沿田埂移动' })
+        await slider.focus()
+        await page.keyboard.press('ArrowRight')
+        assert.equal(await slider.inputValue(), '89')
+        await button(survey,'背坡').click()
+        await survey.getByRole('img', {name:/从背坡看，墙只砌了半弧/}).waitFor()
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+        await button(survey, '南路 · 三号牌').click()
+        await button(survey, '东滩 · 饮水池').click()
+        await button(survey,'核对这两处').click()
+        await survey.getByText(/这两处对不上/).waitFor()
+        if (picked === 'bank_one') {
+          await button(survey, '东滩 · 饮水池').focus()
+          await page.keyboard.press('Enter')
+          await button(survey, '北路 · 四号牌').click()
+          await button(survey,'核对这两处').click()
+          await survey.getByText(/两条路指到同一道缺墙/).waitFor()
+          if (process.env.JZS_RIDGE_PREVIEW) await survey.screenshot({path: process.env.JZS_RIDGE_PREVIEW})
+        }
+        const next = await interact(page,'POST',api+'/'+v.id+'/choices',() =>
+          button(survey, picked === 'bank_one' ? '把这两条路记为一座池' : '先向木匠问清编号').click())
+        assert.equal(next.revision, v.revision + 1)
+        v = next
+      }
+      assert.equal(v.journal.at(-1).choice,picked)
+      assert.equal(v.scene.id,picked === 'bank_two' ? 'bank_number' : 'bank_wages')
+      if(picked === 'bank_one') assert.deepEqual(v.journal.at(-1).citations.map(c => c.id).sort(), ['north','south'])
+      await page.close()
+    }
+  } finally {
+    await fixture.close()
+  }
 })

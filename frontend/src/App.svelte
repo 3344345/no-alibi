@@ -6,6 +6,8 @@
   import type { Action, Attempt, AttemptResult, Choice, Command, Page, Row, Value, View, World } from './types'
   import Menu from './Menu.svelte'
   import Chronicle from './Chronicle.svelte'
+  import type { Feature } from './features'
+  let featured: Feature | null = null
   import ModeSelection from './ModeSelection.svelte'
   let chronicle: 'family'|'witness'|null = null
   let countyMenu = false
@@ -17,6 +19,7 @@
   import Sites from './Sites.svelte'
   import CurrentScene from './CurrentScene.svelte'
   import PassageRequest from './PassageRequest.svelte'
+  import NightBus from './NightBus.svelte'
   import { committedSound, cue, enableSound, setSoundVolume, silence } from './sound'
   import Records from './Records.svelte'
   import Timeline from './Timeline.svelte'
@@ -572,10 +575,10 @@
   </aside>
 {/if}
 {#if chronicle}
-  <Chronicle initialCampaign={chronicle} {volume} toggleAudio={() => chooseVolume(volume > 0 ? 0 : lastAudibleVolume)}
-    leave={(campaign) => {countyMenu = campaign === 'family'; chronicle = null}} />
+  <Chronicle initialCampaign={chronicle} {featured} {volume} toggleAudio={() => chooseVolume(volume > 0 ? 0 : lastAudibleVolume)}
+    leave={(campaign) => {countyMenu = campaign === 'family'; featured = null; chronicle = null}} />
 {:else if !v && !countyMenu}
-  <ModeSelection county={() => (countyMenu = true)} witness={() => (chronicle = 'witness')} />
+  <ModeSelection play={(story) => { featured = story; chronicle = story.campaign }} county={() => (countyMenu = true)} witness={() => (chronicle = 'witness')} />
 {:else if !v}
   <Menu
     selectMode={() => (countyMenu = false)}
@@ -681,6 +684,10 @@
         {#if page === '办公桌'}
           <div class="desk-grid">
             <div class="column">
+              {#if v.night_bus}
+                <NightBus scene={v.night_bus} view={v} busy={busy || !!pending} choose={selectAction}
+                  advance={(minutes) => send('advance', { minutes })} actionsPage={() => goto('行动')} />
+              {/if}
               <section class="paper lead-paper">
                 {#if passageRequest && firstBriefing && v.location.id === 'L01' && !v.ending}
                   <PassageRequest view={v} request={passageRequest} deadline={firstBriefing.due}

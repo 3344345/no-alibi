@@ -2,7 +2,14 @@
   import { onMount, onDestroy, tick } from 'svelte'
   import { api, download, message } from './api'
   import { saveFile } from './game'
-  import { enableSound, playScore, stopScore, type Score } from './sound'
+  import { enableSound, playScore, stopScore, setSoundscape, type Score } from './sound'
+  import { picture, pictureCaption } from './chronicleArt'
+  import { sceneMix, linesOfSpeech, outcomeCue, sceneSetting } from './chronicleScene'
+  import ChapterPath from './ChapterPath.svelte'
+  import type { Feature } from './features'
+  export let featured: Feature | null = null
+  import ExamMixer from './ExamMixer.svelte'
+  import RidgeSurvey from './RidgeSurvey.svelte'
   import Dialog from './Dialog.svelte'
   export let initialCampaign: Campaign
   export let leave: (campaign: Campaign) => void
@@ -24,6 +31,7 @@
   type Entry = {
     chapter_id: string
     scene: string
+    choice?: string
     year: string
     place: string
     role: string
@@ -35,11 +43,15 @@
     citations?: Exhibit[]
   }
   type Career = {
+    start_chapter: string
     id: string
     name: string
     revision: number
     chapter_id: string
     finished: boolean
+    edition?: 'serial_v1'
+    opening_choice?: string
+    standalone?: boolean
     outcomes?: Pick<Entry, 'chapter_id' | 'label' | 'result' | 'marks'>[]
   }
   type View = {
@@ -69,7 +81,16 @@
     topic = ''
   let book: Chapter | null = null,
     handover: Entry | null = null
+  $: setting = game?.scene ? sceneSetting(game.chapter.id, game.scene.id, game.scene.title, game.chapter) : null
+  $: handoverSetting = handover ? sceneSetting(handover.chapter_id, handover.scene, handover.title, handover) : null
+  $: surveyingRidge = game?.chapter.id === 'witness_gao' && game?.scene?.id === 'bank_map'
+  $: usingExamMixer = game?.chapter.id === 'witness_entrance_exam' && game?.scene?.id === 'air_monitor'
   $: last = game?.journal.at(-1)
+  $: chapterSteps = (game?.journal ?? []).map((entry, index) => ({ ...entry, index }))
+    .filter((entry) => entry.chapter_id === (handover?.chapter_id ?? game?.chapter.id))
+  $: setSoundscape(game?.scene && !game.finished && !handover && !topic
+    ? sceneMix(game.chapter.id, game.scene.id, last?.chapter_id === game.chapter.id ? last.tone : undefined)
+    : undefined)
   let pending: { revision: number; choice: string; command_id: string } | null = null
   let input: HTMLInputElement,
     heading: HTMLElement,
@@ -157,20 +178,9 @@
       .filter((e) => e.chapter_id === startChapter)
       .map((e) => ({ ...e, name: c.name })),
   )
+  $: if (topic) stopScore()
   $: previousChapter = catalogue.chapters.find((ch) => ch.id === handover?.chapter_id)
   const prefix = '/chronicle'
-  const televisionScenes = new Set(['studio', 'switchboard', 'cutting_room', 'summer_broadcast', 'city_frequency'])
-  function picture(id: string, sceneId = '') {
-    if (id === 'witness_shanghai_prices' && (sceneId === 'rice' || sceneId.startsWith('tram_')))
-      return '/chronicle/shanghai_tram.webp'
-    if (id === 'witness_deng_xiaoping' && televisionScenes.has(sceneId))
-      return '/chronicle/beijing_live.webp'
-    const sharedArt: Record<string, string> = {
-      witness_liu_qingshan: 'river_grain',
-      witness_xiaogang: 'household_field',
-    }
-    return '/chronicle/' + (sharedArt[id] ?? id) + '.webp'
-  }
   function endpoint(id: string) {
     return prefix + '/' + encodeURIComponent(id)
   }
@@ -204,6 +214,7 @@
     }
   }
   async function enter(view: View) {
+    stopScore()
     if (mode !== view.campaign) await refresh(view.campaign)
     game = view
     book = null
@@ -268,7 +279,7 @@
       game = next
       const entry = next.journal[command.revision]
       if (next.chapter.id !== previous.chapter.id || next.finished) handover = entry
-      void playScore(entry?.tone)
+      if (previous.scene) void playScore(outcomeCue(previous.chapter.id, previous.scene.id, id, next.scene?.id ?? '', entry?.tone))
       await focusScene()
     })
   }
@@ -310,10 +321,25 @@
     void focusScene()
   }
   onMount(() => {
-    void perform(refresh)
+    void perform(async () => {
+      await refresh()
+      if (!featured || !alive) return
+      const opening = featured
+      const saved = catalogue.careers.find((c) => !c.finished && (opening.edition
+        ? c.edition === opening.edition
+        : !c.edition && c.start_chapter === opening.chapter && c.opening_choice === opening.opening &&
+          (opening.campaign === 'family' || c.standalone)))
+      const view = saved ? await api<View>(endpoint(saved.id)) : await api<View>(prefix, {
+        name: opening.title, campaign: opening.campaign, opening_choice: opening.opening,
+        ...(opening.edition ? { edition: opening.edition } :
+          opening.campaign === 'witness' ? { start_chapter: opening.chapter } : {}),
+      })
+      if (alive) await enter(view)
+    })
   })
   onDestroy(() => {
     alive = false
+    setSoundscape(undefined)
     stopScore()
   })
 </script>
@@ -471,7 +497,7 @@
     {/if}
   {:else if handover}
     <section class="handover">
-      <p class="date-line">{handover.year} {handover.place}</p>
+      <p class="date-line">{handoverSetting?.year} {handoverSetting?.place}</p>
       <h1 tabindex="-1" bind:this={heading}>{handover.title}</h1>
       <blockquote>{handover.result}</blockquote>
       {#if mode === 'witness' && previousChapter}<section class="comparison">
@@ -506,14 +532,8 @@
       <aside class="scene-art">
         <img src={picture(game.chapter.id, game.scene.id)} alt="" />
         <div class="art-caption">
-          {#if game.chapter.id === 'witness_deng_xiaoping' && ['city_frequency', 'workers_budget'].includes(game.scene.id)}
-            <span>架空的1992年</span><strong>{game.scene.id === 'city_frequency' ? '地方电视台' : '厂区'}</strong>
-          {:else if game.chapter.id === 'witness_shanghai_prices' && game.scene.id === 'tram_map'}
-            <span>半年后</span><strong>上海 · 电车沿线</strong>
-          {:else}
-            <span>{game.chapter.year}</span><strong>{game.chapter.place}</strong>
-          {/if}
-          <p>年代情境插画</p>
+          <span>{setting?.year}</span><strong>{setting?.place}</strong>
+          <p>{pictureCaption(game.chapter.id, game.scene.id)}</p>
         </div>
       </aside>
       <article class="story">
@@ -526,14 +546,18 @@
           >
             {game.chapter.intro}
           </p>{/if}
-        <div class="scene-body">
+        {#key game.id + '/' + game.revision}<div class="scene-body">
           {#each game.scene.body.split(/\n+/).filter((paragraph) => paragraph.trim()) as paragraph}
-            <p>{paragraph}</p>
+            <p>{#each linesOfSpeech(paragraph) as phrase}{#if phrase.startsWith('“')}<span class="speech">{phrase}</span>{:else}{phrase}{/if}{/each}</p>
           {/each}
-        </div>
-        {#if game.scene.exhibits}
-          <section class="exhibits" aria-label="案头材料">
-            <h2>案头材料</h2>
+        </div>{/key}
+        {#if usingExamMixer}<ExamMixer choices={game.scene.choices} disabled={busy || !!pending} onChoose={choose}/>{/if}
+        {#if surveyingRidge}
+          {#key game.id + '/' + game.revision}<RidgeSurvey {busy} pendingChoice={pending?.choice} onChoose={choose} />{/key}
+        {/if}
+        {#if game.scene.exhibits?.length}
+          <svelte:element this={surveyingRidge ? 'details' : 'section'} class="exhibits" aria-label="案头材料">
+            {#if surveyingRidge}<summary>翻阅纸本走访记录</summary>{:else}<h2>案头材料</h2>{/if}
             <p>翻看实物，选两份摆在一起，再作判断。</p>
             {#each game.scene.exhibits as e}
               <div class="object">
@@ -553,15 +577,15 @@
               </div>
             {/each}
             <small aria-live="polite">已选 {selected.length} / 2 件</small>
-          </section>
+          </svelte:element>
         {/if}
-        <div class="decisions" aria-label="你的选择">
+        {#if !usingExamMixer}<div class="decisions" aria-label="你的选择">
           {#each game.scene.choices.filter((c) => !c.cites || (selected.length === 2 && canCite(c))) as c}<button
               disabled={busy || (!!pending && pending.choice !== c.id)}
               on:click={() => choose(c.id)}
               ><span>{c.label}</span><b aria-hidden="true">→</b></button
             >{/each}
-        </div>
+        </div>{/if}
         {#if last && last.chapter_id === game.chapter.id}
           {#key game.id + '/' + game.revision}
             <details class="receipt">
@@ -573,12 +597,14 @@
           {/key}
         {/if}
         <footer>
-          <span>{game.name} · 已保存 {game.revision} 次选择</span><button
+          <span>{game.name} · 已保存 {game.revision} 次选择</span>
+          <div>{#if chapterSteps.length}<button on:click={() => (topic = '本章足迹')}>本章足迹</button>{/if}
+          <button
             on:click={() => {
               topic = '年代与出处'
               book = game?.chapter ?? null
             }}>本章史料</button
-          >
+          ></div>
         </footer>
       </article>
     </div>
@@ -622,6 +648,8 @@
           </p>
         {/if}
       </div>
+    {:else if topic === '本章足迹'}
+      <ChapterPath entries={chapterSteps} {busy} {fork} {volume} {toggleAudio}/>
     {:else if game}
       <div class="reader">
         <div class="journal-tools">
@@ -633,7 +661,7 @@
         <h3>走过的路</h3>
         {#each game.journal.map((e, i) => ({ e, i })).reverse() as row}
           <details>
-            <summary>{row.e.year} · {row.e.title}</summary>
+            <summary>{sceneSetting(row.e.chapter_id, row.e.scene, row.e.title, row.e).year} · {row.e.title}</summary>
             <p>{row.e.role} {row.e.label}</p>
             <p>{row.e.result}</p>
             {#if row.e.citations?.length}
@@ -913,6 +941,12 @@
     line-height: 1.95;
     white-space: pre-line;
   }
+  .scene-body { animation: page-in .26s ease-out both }
+  .speech { color: #62462d; font-weight: 550 }
+  .story footer div { display: flex; flex-wrap: wrap; gap: .85rem; }
+  @keyframes page-in { from { opacity: .4 } to { opacity: 1 } }
+  @media (prefers-reduced-motion: reduce) { .scene-body { animation: none } }
+  :global(.reduce-motion) .scene-body { animation: none }
   .scene-body p {
     margin: 0;
     overflow-wrap: break-word;

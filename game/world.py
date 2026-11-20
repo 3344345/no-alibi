@@ -5,6 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from hashlib import sha256
 from . import world_projects as projects
+from . import world_night_bus
 from .catalog import (
     ARCS,
     CASES,
@@ -54,6 +55,7 @@ def _modules():
         world_disclosure,
         world_interop,
         world_maintenance,
+        world_night_bus,
     )
 
 
@@ -628,6 +630,7 @@ def project(d):
         {
             "player": p,
             "opening": d["opening"],
+            "night_bus": world_night_bus.project(d),
             "location": {
                 "id": loc["id"],
                 "name": loc["name"],
@@ -706,6 +709,7 @@ def validate(d):
     from . import world_regional
 
     world_regional.validate(d)
+    world_night_bus.validate(d)
     f = d["fiscal"]
     if not (
         0 <= f["quarter_used"] <= 2000 * WAN

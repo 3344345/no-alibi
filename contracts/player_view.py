@@ -233,7 +233,19 @@ class Parent(PlayerInput):
     revision: NonNegative
 
 
+class NightBus(PlayerInput):
+    stage: Literal["invitation", "waiting", "playing", "ending"]
+    act: str
+    title: str
+    place: str
+    body: str
+    reply: str
+    due: NonNegative | None
+    art: Literal["nightbus", "depot"]
+
+
 class PlayerView(PlayerInput):
+    night_bus: NightBus | None = None
     id: str
     world_id: str
     player_id: Literal["player"]

@@ -17,7 +17,7 @@ def chronicle_router(store: ChronicleStore):
 
     @router.post("", status_code=201)
     def create(body: NewChronicle):
-        return store.create(body.name, body.campaign, body.start_chapter)
+        return store.create(body.name, body.campaign, body.start_chapter, body.opening_choice, body.edition)
 
     @router.post("/import")
     def restore(body: dict[str, Any]):

@@ -51,7 +51,18 @@ export interface Entry {
   actor?: string
   refs?: string[]
 }
+export interface NightBusScene {
+  stage: 'invitation' | 'waiting' | 'playing' | 'ending'
+  act: string
+  title: string
+  place: string
+  body: string
+  reply: string
+  due: number | null
+  art: 'nightbus' | 'depot'
+}
 export interface View {
+  night_bus?: NightBusScene | null
   world_id: string
   id?: string
   name: string

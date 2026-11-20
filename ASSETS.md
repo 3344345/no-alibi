@@ -11,7 +11,17 @@
 | `frontend/public/chronicle/*.webp` | 为长篇创作的年代情境插画。人物篇以环境和实物标识事件，画面标有「年代情境插画」。 |
 | `shanghai_tram.webp`、`beijing_live.webp` | 为架空剧情创作的两幅人物场景。上海粥摊和电车售票员、北京演播室和上镜女工均为虚构。 |
 | `frontend/public/chronicle/*.mp3` | 从本作原创声音样带制作的三段短配乐，分别用于受挫、取得材料和局势转折。按已提交的选择触发，沿用音效开关与音量设置。 |
+| `frontend/public/chronicle/sound/*.mp3` | 由 `scripts/score_chronicle.py` 为本作编曲和合成。三首循环配乐与房间、院落、接线台、车站、放映机五条立体声环境轨交叉淡入。另有乔素琴家宴的一段手风琴舞曲，随玩家的广播决定播放。 |
+| 长篇场景图 | 16 幅为本作制作的原创情境画面，分布于 `frontend/public/chronicle/` 和 `frontend/public/scenes/`。北京的接线间与院落放映、山西塬上的半面池、裁缝铺的三件袖样、上海两代人的家与澄川七路站台均作剧情演出使用。实景史料在主菜单的「年代放映室」单列。 |
+| `frontend/public/cinema/` | 北京宫城全景（1901年拍摄）、上海新闻片（馆藏编目1946年）及1984年上海仪表厂现场。馆藏号、片段出处和使用依据可在每段影片的「来源」中查阅。附游戏编写的中文镜头注释。 |
 | 字体 | 使用系统自带中文字体，新局与存档不依赖网络字体。 |
 | 运行时和开发依赖 | Python、JavaScript、Rust 版本分别见 requirements-dev.lock、frontend/pnpm-lock.yaml、src-tauri/Cargo.lock。macOS 包的 Contents/Resources/THIRD_PARTY_NOTICES.txt 列出构建所用组件和上游许可。 |
 
 虚构世界的规则和规模依据用户提供的 V4.0 连续参数规格。原仓库没有明示项目整体的开放许可，本次改动沿用仓库现有权属安排。
+
+## 年代放映室
+
+- `palace.mp4` 是美国国会图书馆的《The Forbidden City, Pekin》全片。C. Fred Ackerman 于1901年1月31日拍摄，American Mutoscope & Biograph Company 于1903年在美国发行，美国版权登记号 H34805，原片已进入公版。数字拷贝由 Library of Congress, Motion Picture, Broadcasting, and Recorded Sound Division 提供。[馆藏记录](https://www.loc.gov/item/mp76000090/)
+- `arrival.mp4` 是1946年 United News 第197卷第一则上海新闻，取馆藏 DVD 转录第00:24至01:31，保留原声。美国国家档案馆馆藏 208-UN-197，NAID 39104，使用限制栏为 Unrestricted。所用 FedFlix 数字拷贝标注 CC0。[馆藏记录](https://catalog.archives.gov/id/39104) · [拷贝与使用说明](https://archive.org/details/gov.archives.arc.39104)
+- `factory.mp4` 节选自1984年4月30日白宫电视办公室在上海福克斯波罗公司拍摄的同期录像，第09:20至12:12，带号 F87，NAID 75502096。馆方将 WHTV 系列列为公版，本片取自档案馆 MP4。[原卷记录](https://www.reaganlibrary.gov/archives/video/trip-china-president-reagans-remarks-shanghai-foxboro-company) · [馆方权属说明](https://www.reaganlibrary.gov/archives/audiovisual/white-house-television-office-whtv)
+- 三段影片均位于 `frontend/public/cinema/`。选片按钮与海报使用原片内容；可切换的中文镜头注释为本作撰写。

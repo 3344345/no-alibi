@@ -44,6 +44,8 @@ async function startContext(fixture) {
   // offline graph, so a release test never sends sound to the user's speakers.
   await ctx.addInitScript(() => {
     window.scoreStarts = []
+    window.loopStarts = []
+    window.loopStops = 0
     window.AudioContext = class extends OfflineAudioContext {
       constructor() {
         super(1, 24000, 24000)
@@ -59,11 +61,16 @@ async function startContext(fixture) {
       }
       createBufferSource() {
         const voice = super.createBufferSource(),
-          start = voice.start.bind(voice)
+          start = voice.start.bind(voice), stop = voice.stop.bind(voice)
+        voice.stop = (...args) => {
+          if (voice.loop) window.loopStops++
+          stop(...args)
+        }
         voice.start = (...args) => {
           if (voice.buffer.duration > 1) {
             const samples = voice.buffer.getChannelData(0)
-            window.scoreStarts.push({
+            const log = voice.loop ? window.loopStarts : window.scoreStarts
+            log.push({
               seconds: voice.buffer.duration,
               audible: samples.some((x) => Math.abs(x) > 0.01),
             })
@@ -199,7 +206,12 @@ test(
       await readSource(page, view.chapter)
       await overflow(page)
       view = await choose(page, view, 'set_sheet')
+      assert.deepEqual(await page.evaluate(() => window.loopStarts), [])
       await toggle(page, true)
+      await page.waitForFunction(() => window.loopStarts.length === 2)
+      const layers = await page.evaluate(() => window.loopStarts)
+      assert.ok(layers.every((layer) => layer.seconds > 25 && layer.audible))
+      assert.notEqual(layers[0].seconds, layers[1].seconds)
       assert.deepEqual(await page.evaluate(() => window.scoreStarts), [])
       const requests = []
       page.on('request', (r) => {
@@ -229,6 +241,15 @@ test(
       assert.ok(sounds[0].seconds > 1 && sounds[0].audible)
       assert.ok(view.marks.includes('双行校样') && view.scene.choices.some((c) => c.id === 'compare_proof'))
       await toggle(page, false)
+      assert.equal(await page.evaluate(() => window.loopStops), 2)
+      assert.deepEqual(await page.evaluate(() => window.loopStarts), layers)
+      await button(story(page), '本章足迹').click()
+      const path = page.getByRole('dialog', { name: '本章足迹' })
+      await path.getByText(view.journal[1].result, { exact: true }).waitFor()
+      await button(path, '上一场').click()
+      await path.getByText(view.journal[0].result, { exact: true }).waitFor()
+      assert.equal(await path.locator('option').count(), 2)
+      await button(path, '关闭').click()
       const originalAfterTwo = view
       await button(page, '行记与存档').click()
       const journal = page.getByRole('dialog', { name: '行记' })
@@ -372,3 +393,53 @@ test(
     }
   },
 )
+
+test('the night broadcast follows the location and plays the family waltz only after permission', async () => {
+  const fixture = await startBrowserFixture()
+  let context
+  try {
+    context = await startContext(fixture)
+    const { page } = context
+    const requests = []
+    page.on('request', (r) => {
+      const path = new URL(r.url()).pathname
+      if (path.startsWith('/chronicle/sound/')) requests.push(path.split('/').at(-1))
+    })
+    await page.goto(fixture.session)
+    await submit(page, endpoint, 'GET', () => button(page, '历史主角模式').click())
+    await page.getByLabel('选择亲历者与起始事件').selectOption('witness_deng_xiaoping')
+    let view = await submit(page, endpoint, 'POST', () => button(page, '开始长篇').click())
+    await toggle(page, true)
+    for (const id of ['night_line', 'private', 'laugh', 'sheet', 'date', 'whole', 'child',
+                      'cut', 'correct', 'letters', 'together']) {
+      view = await choose(page, view, id)
+    }
+    assert.equal(view.scene.id, 'night_supper')
+    for (const track of ['exchange.mp3', 'projector.mp3', 'platform.mp3', 'afterlight.mp3'])
+      assert.ok(requests.includes(track), track)
+    assert.ok(!requests.includes('kitchen_waltz.mp3'))
+    const dance = page.waitForResponse((r) => new URL(r.url()).pathname.endsWith('/kitchen_waltz.mp3'))
+    view = await choose(page, view, 'music')
+    assert.ok((await dance).ok())
+    await page.waitForFunction(() => window.scoreStarts.some((s) => s.seconds >= 13.7 && s.seconds < 14 && s.audible))
+    await button(story(page), '本章足迹').click()
+    const path = page.getByRole('dialog', {name: '本章足迹'})
+    assert.equal(await path.locator('option').count(), view.journal.length)
+    await button(path, '重听那晚的手风琴').click()
+    await page.waitForFunction(() => window.scoreStarts.filter((s) => s.seconds >= 13.7 && s.seconds < 14).length === 2)
+    const fork = await submit(page, endpoint + '/' + view.id + '/fork', 'POST', () =>
+      button(path, '从这场另走一条路').click())
+    assert.equal(fork.scene.id, 'night_supper')
+    const startCount = requests.filter((file) => file === 'kitchen_waltz.mp3').length
+    const voices = await page.evaluate(() => window.scoreStarts.filter((s) => s.seconds >= 13.7 && s.seconds < 14).length)
+    view = await choose(page, fork, 'closed')
+    assert.equal(view.scene.id, 'night_clock')
+    assert.equal(requests.filter((file) => file === 'kitchen_waltz.mp3').length, startCount)
+    assert.equal(await page.evaluate(() => window.scoreStarts.filter((s) => s.seconds >= 13.7 && s.seconds < 14).length), voices)
+    assert.deepEqual(context.errors, [])
+    assert.deepEqual(context.outside, [])
+  } finally {
+    await context?.ctx.close()
+    await fixture.close()
+  }
+})

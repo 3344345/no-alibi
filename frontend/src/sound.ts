@@ -89,6 +89,7 @@ export function setSoundVolume(volume: number) {
 }
 
 export function silence() {
+  quietScene()
   stopScore()
   generation++
   active?.stop()
@@ -106,7 +107,12 @@ export function enableSound() {
       master.gain.value = level
       master.connect(context.destination)
     }
-    if (context.state === 'suspended') void context.resume().catch(() => {})
+    if (context.state === 'suspended')
+      void context
+        .resume()
+        .then(mixScene)
+        .catch(() => {})
+    else mixScene()
   } catch {
     /* Some devices have no available audio output. */
   }
@@ -162,24 +168,34 @@ export function cue(kind: Sound | undefined) {
 export type Score = 'setback' | 'evidence' | 'turn'
 let scoreVoice: AudioBufferSourceNode | undefined
 let scoreRequest = 0
-const scores = new Map<Score, AudioBuffer>()
+export type StoryCue = Score | 'kitchen_waltz'
+const scores = new Map<StoryCue, AudioBuffer>()
 
 export function stopScore() {
   scoreRequest++
   scoreVoice?.stop()
   scoreVoice = undefined
+  if (duckUntil && context) {
+    const now = context.currentTime
+    musicLayer.gain?.gain.cancelScheduledValues(now)
+    musicLayer.gain?.gain.setTargetAtTime(0.53, now, 0.35)
+    duckUntil = 0
+  }
 }
 
-export async function playScore(tone?: Score) {
-  if (!tone || !context || !master || !level || !foreground()) return
+export async function playScore(tone?: StoryCue) {
   stopScore()
+  if (!tone || !context || !master || !level || !foreground()) return
   const issued = scoreRequest,
     audio = context,
     output = master
   try {
+    if (audio.state === 'suspended' && navigator.userActivation?.isActive) await audio.resume()
+    if (issued !== scoreRequest || !level || !foreground()) return
     let buffer = scores.get(tone)
     if (!buffer) {
-      const response = await fetch('/chronicle/' + tone + '.mp3')
+      const folder = tone === 'kitchen_waltz' ? '/chronicle/sound/' : '/chronicle/'
+      const response = await fetch(folder + tone + '.mp3')
       if (!response.ok) return
       buffer = await audio.decodeAudioData(await response.arrayBuffer())
       scores.set(tone, buffer)
@@ -193,8 +209,129 @@ export async function playScore(tone?: Score) {
       if (scoreVoice === voice) scoreVoice = undefined
     }
     scoreVoice = voice
+    duckMusic(buffer.duration)
     voice.start()
   } catch {
     /* A missing audio device must never block the story. */
   }
+}
+
+export type RoomTone = 'room' | 'exchange' | 'projector' | 'courtyard' | 'platform'
+export type Movement = 'question' | 'vigil' | 'afterlight'
+export type Soundscape = { room: RoomTone; music: Movement }
+type Track = RoomTone | Movement
+type Layer = {
+  name?: Track
+  gain?: GainNode
+  source?: AudioBufferSourceNode
+  loading?: AbortController
+}
+const roomLayer: Layer = {}
+const musicLayer: Layer = {}
+const fading = new Set<AudioBufferSourceNode>()
+let desiredScene: Soundscape | undefined
+let duckUntil = 0
+
+function fadeOut(layer: Layer, immediate = false) {
+  layer.loading?.abort()
+  layer.loading = undefined
+  layer.name = undefined
+  const gain = layer.gain,
+    source = layer.source
+  layer.source = undefined
+  layer.gain = undefined
+  if (!gain || !source || !context) return
+  const now = context.currentTime
+  gain.gain.cancelScheduledValues(now)
+  gain.gain.setTargetAtTime(0, now, immediate ? 0.003 : 0.19)
+  if (!immediate) fading.add(source)
+  source.stop(now + (immediate ? 0 : 1.15))
+}
+
+function quietScene() {
+  fadeOut(roomLayer, true)
+  fadeOut(musicLayer, true)
+  for (const source of fading) source.stop()
+  fading.clear()
+  duckUntil = 0
+}
+
+async function mixLayer(layer: Layer, name: Track, strength: number) {
+  if (
+    layer.name === name ||
+    !context ||
+    !master ||
+    !level ||
+    !foreground() ||
+    context.state !== 'running'
+  )
+    return
+  // Keep the previous room audible while the new tape loads. A later scene, mute,
+  // or exit invalidates the request even when decoding has already begun.
+  layer.loading?.abort()
+  const loading = new AbortController(),
+    audio = context,
+    output = master
+  layer.loading = loading
+  layer.name = name
+  try {
+    const response = await fetch('/chronicle/sound/' + name + '.mp3', { signal: loading.signal })
+    if (!response.ok) throw Error('missing track')
+    const buffer = await audio.decodeAudioData(await response.arrayBuffer())
+    if (loading.signal.aborted || !level || !foreground() || audio.state !== 'running') return
+    layer.loading = undefined
+    fadeOut(layer)
+    const source = audio.createBufferSource(),
+      gain = audio.createGain(),
+      now = audio.currentTime
+    source.buffer = buffer
+    source.loop = true
+    source.connect(gain)
+    gain.connect(output)
+    source.onended = () => {
+      fading.delete(source)
+      source.disconnect()
+      gain.disconnect()
+    }
+    gain.gain.value = 0
+    if (layer === musicLayer && duckUntil > now) {
+      gain.gain.setTargetAtTime(strength * 0.32, now, 0.22)
+      gain.gain.setTargetAtTime(strength, duckUntil, 0.7)
+    } else gain.gain.setTargetAtTime(strength, now, 0.45)
+    source.start()
+    layer.source = source
+    layer.gain = gain
+    layer.name = name
+  } catch {
+    // An unavailable output or one missing stem leaves gameplay and the other stem playable.
+  } finally {
+    if (layer.loading === loading) {
+      layer.loading = undefined
+      layer.name = undefined
+    }
+  }
+}
+
+function mixScene() {
+  if (!desiredScene) return
+  void mixLayer(roomLayer, desiredScene.room, 0.8)
+  void mixLayer(musicLayer, desiredScene.music, 0.53)
+}
+
+/** One looping room recording and one independent musical movement across scenes. */
+export function setSoundscape(scene?: Soundscape) {
+  desiredScene = scene
+  if (scene) mixScene()
+  else quietScene()
+}
+
+function duckMusic(duration: number) {
+  if (!context || !desiredScene) return
+  const now = context.currentTime
+  duckUntil = now + duration
+  const level = musicLayer.gain?.gain
+  if (!level) return
+  level.cancelScheduledValues(now)
+  level.setTargetAtTime(0.17, now, 0.11)
+  level.setTargetAtTime(0.53, duckUntil, 0.7)
 }

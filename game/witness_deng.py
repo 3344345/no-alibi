@@ -1,6 +1,9 @@
 """Player-led counterfactuals. Only the chapter's history field reports what happened."""
 
 
+from game.witness_night_line import add_night_line
+
+
 def choice(key, label, result, dest, mark=None, need=None):
     return dict(id=key, label=label, result=result, next=dest,
                 marks=[mark] if mark else [], requires=[need] if need else [])
@@ -261,4 +264,11 @@ def extend_exam(chapter):
     ])
 
 
+from game.witness_tailor import add_tailor
+
+
 extend_exam(CHAPTERS[0])
+add_tailor(CHAPTERS[0])
+
+
+add_night_line(CHAPTERS[1])

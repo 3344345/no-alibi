@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, Validation
 
 from game.balance import canonical
 from game.chronicle_editions import legacy_books
+from game.chronicle_serial import SERIAL_EDITION, SERIAL_STAGES, serial_chapters
 from game.engine import GameError
 
 
@@ -85,6 +86,8 @@ class NewChronicle(Strict):
     name: CareerName
     campaign: Campaign = "family"
     start_chapter: Short | None = None
+    opening_choice: Short | None = None
+    edition: Literal["serial_v1"] | None = None
 
 
 class Branch(Strict):
@@ -138,7 +141,8 @@ def _postorder(ch, scenes):
 
 
 class Book:
-    def __init__(self, chapters, campaign: Campaign = "family"):
+    def __init__(self, chapters, campaign: Campaign = "family", edition=None):
+        self.edition = edition
         self.campaign = campaign
         self.chapters = tuple(Chapter.model_validate(ch) for ch in chapters)
         if not self.chapters:
@@ -154,6 +158,12 @@ class Book:
         }
         self.max_commands = sum(len(ch.scenes) for ch in self.chapters)
         self._validate_routes()
+
+    @property
+    def manifest(self):
+        if self.edition:
+            return tuple(f"{self.edition}/{cid}" for cid in self.indices)
+        return tuple(self.indices)
 
     def _validate_routes(self):
         # Marks never expire. A superset can enable every future route of its subset.
@@ -348,6 +358,7 @@ class Book:
             "id": cid,
             "name": name,
             "campaign": self.campaign,
+            **({"edition": self.edition} if self.edition else {}),
             "start_chapter": state["start_chapter"],
             "chapter_count": len(self.chapters),
             "revision": len(state["journal"]),
@@ -431,7 +442,7 @@ class ChronicleStore:
                 db.execute(
                     "UPDATE chronicle_careers SET chapter_order=?,start_chapter=? WHERE id=?",
                     (
-                        canonical(list(old.indices)),
+                        canonical(list(old.manifest)),
                         row["start_chapter"] or old.chapters[0].id,
                         row["id"],
                     ),
@@ -444,6 +455,17 @@ class ChronicleStore:
     @cached_property
     def witness(self):
         return load_witness()
+
+    @cached_property
+    def serial(self):
+        return Book(serial_chapters(self.witness), "witness", SERIAL_EDITION)
+
+    def _from_manifest(self, full, order, start):
+        if order and order[0].startswith(SERIAL_EDITION + "/"):
+            if full.campaign == "witness" and start == SERIAL_STAGES[0][0] and order == self.serial.manifest:
+                return self.serial
+            raise GameError("invalid_archive", "年代连演的五章次序或起点有误。")
+        return full.in_order(order)
 
     def _book(self, campaign):
         if campaign == "family":
@@ -480,7 +502,7 @@ class ChronicleStore:
                     raise ValueError
             except ValueError as exc:
                 raise GameError("invalid_archive", "本地章节目录损坏。") from exc
-            return full.in_order(tuple(order))
+            return self._from_manifest(full, tuple(order), head["start_chapter"])
         for candidate in legacy_books(full):
             try:
                 self._replay(candidate, head["start_chapter"], rows)
@@ -517,6 +539,9 @@ class ChronicleStore:
                             k: head[k]
                             for k in ("id", "name", "campaign", "start_chapter")
                         },
+                        opening_choice=rows[0]["choice"] if rows else None,
+                        standalone=len(book.chapters) == 1,
+                        **({"edition": book.edition} if book.edition else {}),
                         revision=len(state["journal"]),
                         chapter_id=book.chapters[state["chapter"]].id,
                         finished=state["scene"] is None,
@@ -529,22 +554,30 @@ class ChronicleStore:
                 )
         return {"chapters": chapters, "careers": careers}
 
-    def create(self, name, campaign="family", start_chapter=None):
-        req = NewChronicle(name=name, campaign=campaign, start_chapter=start_chapter)
+    def create(self, name, campaign="family", start_chapter=None, opening_choice=None, edition=None):
+        req = NewChronicle(name=name, campaign=campaign, start_chapter=start_chapter, opening_choice=opening_choice, edition=edition)
         name = req.name
-        book = self._book(req.campaign)
+        if req.edition and (campaign != "witness" or req.start_chapter or req.opening_choice):
+            raise GameError("invalid_input", "年代连演从西安开场，请在历史亲历者模式中开卷。")
+        book = self.serial if req.edition else self._book(req.campaign)
         if campaign == "family" and start_chapter is not None:
             raise GameError("invalid_input", "市井家书从第一章开卷。")
+        if req.opening_choice and campaign == "witness":
+            if not req.start_chapter:
+                raise GameError("invalid_input", "请选择人物长篇的起点。")
+            book = book.in_order((req.start_chapter,))
         state = book.beginning(req.start_chapter)
         start = state["start_chapter"]
         cid = uuid4().hex
-        view = book.view(cid, name, state)
         with self.database._db(write=True) as db:
             db.execute(
                 "INSERT INTO chronicle_careers(id,name,campaign,start_chapter,chapter_order) VALUES(?,?,?,?,?)",
-                (cid, name, campaign, start, canonical(list(book.indices))),
+                (cid, name, campaign, start, canonical(list(book.manifest))),
             )
-        return view
+            if req.opening_choice:
+                command = Command(revision=0, command_id=uuid4().hex, choice=req.opening_choice)
+                self._record(db, book, cid, command, book.advance(state, command.choice))
+        return book.view(cid, name, state)
 
     def view(self, cid):
         with self.database._db(snapshot=True) as db:
@@ -606,7 +639,7 @@ class ChronicleStore:
             state = self._replay(book, start, rows[: branch.revision])
             db.execute(
                 "INSERT INTO chronicle_careers(id,name,campaign,start_chapter,chapter_order) VALUES(?,?,?,?,?)",
-                (new_id, name, head["campaign"], start, canonical(list(book.indices))),
+                (new_id, name, head["campaign"], start, canonical(list(book.manifest))),
             )
             db.execute(
                 """INSERT INTO chronicle_choices(career,revision,command_id,choice,event_hash)
@@ -635,7 +668,7 @@ class ChronicleStore:
                 "format": "juzhongshi-chronicle/3",
                 "campaign": head["campaign"],
                 "start_chapter": state["start_chapter"],
-                "chapters": list(book.indices),
+                "chapters": list(book.manifest),
                 "id": cid,
                 "name": name,
                 "commands": commands,
@@ -661,7 +694,7 @@ class ChronicleStore:
                 or not archive.chapters
             ):
                 raise GameError("invalid_archive", "长篇存档缺少战役、章节年表或起点。")
-            candidates = [full.in_order(tuple(archive.chapters))]
+            candidates = [self._from_manifest(full, tuple(archive.chapters), archive.start_chapter)]
             if (
                 archive.campaign == "family"
                 and archive.start_chapter != archive.chapters[0]
@@ -717,7 +750,7 @@ class ChronicleStore:
                 head["name"] != archive.name
                 or head["campaign"] != archive.campaign
                 or (head["start_chapter"] or book.chapters[0].id) != start
-                or tuple(self._saved_book(head, rows).indices) != tuple(book.indices)
+                or self._saved_book(head, rows).manifest != book.manifest
                 or len(rows) > len(commands)
             ):
                 raise GameError(
@@ -741,7 +774,7 @@ class ChronicleStore:
                         archive.name,
                         archive.campaign,
                         start,
-                        canonical(list(book.indices)),
+                        canonical(list(book.manifest)),
                     ),
                 )
             for i in range(len(rows), len(commands)):

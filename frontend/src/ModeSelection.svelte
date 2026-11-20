@@ -1,5 +1,11 @@
 <script lang="ts">
   import GameUpdate from './GameUpdate.svelte'
+  import ArchiveCinema from './ArchiveCinema.svelte'
+  import Dialog from './Dialog.svelte'
+  let cinema = false
+  import FeaturedStories from './FeaturedStories.svelte'
+  import type { Feature } from './features'
+  export let play: (story: Feature) => void
   export let county: () => void
   export let witness: () => void
 </script>
@@ -9,17 +15,19 @@
     <header>
       <img src="/seal.svg" alt="" />
       <h1>局中事</h1>
+      <button class="cinema-link" on:click={() => (cinema = true)}>年代放映室</button>
     </header>
-    <div class="modes" aria-label="模式选择">
+    <FeaturedStories {play} />
+    <div class="modes" role="group" aria-label="模式选择">
       <button aria-label="生涯模式" on:click={county}>
-        <img alt="" src="/county-office.jpg" />
+        <img alt="" src="/scenes/county-nightbus.webp" />
         <span class="copy"
           ><small>澄川县</small><strong>生涯模式</strong>
-          <span>从八种任职经历出发，接手工程、家庭与人事，也可以继续已有生涯。</span>
+          <span>七路的末班车天天记在账上，站台却一直没人等到它。进入澄川县，建立或继续你的生涯。</span>
         </span><b aria-hidden="true">→</b>
       </button>
       <button aria-label="历史主角模式" on:click={witness}>
-        <img alt="" src="/chronicle/witness_deng_xiaoping.webp" />
+        <img alt="" src="/chronicle/night_screen.webp" />
         <span class="copy"
           ><small>从戊戌变法到新世纪</small><strong>历史主角模式</strong>
           <span>选一件真实发生的事，成为亲历者。你作的决定，可以让人走向另一种命运。</span>
@@ -30,7 +38,13 @@
   <GameUpdate />
 </div>
 
+{#if cinema}
+  <Dialog title="年代放映室" onclose={() => (cinema = false)}><ArchiveCinema /></Dialog>
+{/if}
+
 <style>
+  .cinema-link {margin-left:auto; padding:.6rem .9rem; min-height:44px; background:transparent; color:#e5d9c1; border:1px solid #857a63;}
+  .cinema-link:hover {background:#353a32;}
   .mode-page {
     background: #1c201e;
     color: #f3e9d4;
@@ -46,7 +60,7 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: clamp(25px, 5vh, 55px) 0;
+    padding: clamp(18px, 2.8vh, 38px) 0;
   }
   header img {
     width: 36px;
@@ -67,7 +81,7 @@
     align-items: flex-end;
     isolation: isolate;
     overflow: hidden;
-    min-height: clamp(390px, 67vh, 720px);
+    min-height: clamp(165px, 23vh, 280px);
     padding: clamp(20px, 3.5vw, 58px);
     gap: 14px;
     color: #fff3dc;
@@ -129,7 +143,7 @@
       grid-template-columns: 1fr;
     }
     .modes button {
-      min-height: clamp(235px, 33vh, 350px);
+      min-height: 155px;
     }
     header {
       padding: 22px 0;

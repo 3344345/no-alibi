@@ -1,6 +1,9 @@
 """Historical witnesses. First-person scenes and alternate decisions are dramatized."""
 
 
+from game.witness_xian_chairs import attach as attach_xian_chairs
+
+
 def _choice(id, label, result, next, *, marks=(), requires=(), cites=(), tone=None):
     choice = dict(id=id, label=label, result=result, next=next)
     for key, values in (("marks", marks), ("requires", requires), ("cites", cites)):
@@ -173,3 +176,6 @@ CHAPTERS = [
         ],
     },
 ]
+
+
+attach_xian_chairs(next(ch for ch in CHAPTERS if ch["id"] == "witness_zhang_xueliang"))

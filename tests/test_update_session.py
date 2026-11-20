@@ -39,7 +39,7 @@ class Service:
 
 def test_auto_start_offline_manual_retry_and_reopen_with_staged_package(tmp_path):
     service = Service()
-    session = UpdateSession(service, tmp_path)
+    session = UpdateSession(service, tmp_path, current="4.2.2")
     assert session.status()["phase"] == "checking"
     assert settled(session)["phase"] == "offline"
     service.online = True
@@ -49,7 +49,7 @@ def test_auto_start_offline_manual_retry_and_reopen_with_staged_package(tmp_path
     service.finish.set()
     assert settled(session)["latest_version"] == "4.3.0"
     assert session.status()["phase"] == "ready"
-    assert UpdateSession(service, tmp_path).status()["phase"] == "ready"
+    assert UpdateSession(service, tmp_path, current="4.2.2").status()["phase"] == "ready"
     assert service.calls == 2
 
 

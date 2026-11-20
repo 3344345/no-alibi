@@ -895,3 +895,35 @@ test('report choices, social and family visits, notebook custody and a twelve-qu
     await ctx.close()
   }
 })
+
+test('a county night shift keeps its appointment and remembers whether you stayed with the passengers', async () => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  try {
+    const page = await context.newPage()
+    await openCareer(page, false)
+    const story = page.getByRole('region', { name: '夜班车不进站' })
+    const submit = async (label) => {
+      const [response] = await Promise.all([
+        page.waitForResponse(r => r.url().endsWith('/commands') && r.request().method() === 'POST'),
+        story.getByRole('button', { name: label }).click(),
+      ])
+      assert.equal(response.status(), 200)
+      return response.json()
+    }
+    await submit('约伍琴在收车前见一面')
+    await story.getByRole('heading', { name: '南门旧站牌碰面' }).waitFor()
+    await navigate(page, '日程')
+    await page.getByText('南门旧站牌碰面', { exact: true }).first().waitFor()
+    await navigate(page, '办公桌')
+    await submit(/^赴约/)
+    await story.getByRole('heading', { name: '车门只开了一半' }).waitFor()
+    assert.ok(await story.locator('img').evaluate(async image => { await image.decode(); return image.naturalWidth > 500 }))
+    await submit('跟白胶鞋的女工留在站牌下')
+    await story.getByRole('heading', { name: '一双鞋走了两趟' }).waitFor()
+    await submit('答应素芹，让她自己决定何时站出来')
+    await story.getByText(/她在昨晚十一点那行用指甲划了一下/).waitFor()
+    await noOverflow(page)
+  } finally {
+    await context.close()
+  }
+})
