@@ -1,30 +1,34 @@
 <script lang="ts">
+  import GameUpdate from './GameUpdate.svelte'
   export let county: () => void
   export let witness: () => void
 </script>
 
-<main id="main" class="mode-page">
-  <header>
-    <img src="/seal.svg" alt="" />
-    <h1>局中事</h1>
-  </header>
-  <div class="modes" aria-label="模式选择">
-    <button aria-label="生涯模式" on:click={county}>
-      <img alt="" src="/county-office.jpg" />
-      <span class="copy"
-        ><small>澄川县</small><strong>生涯模式</strong>
-        <span>从八种任职经历出发，接手工程、家庭与人事，也可以继续已有生涯。</span>
-      </span><b aria-hidden="true">→</b>
-    </button>
-    <button aria-label="历史主角模式" on:click={witness}>
-      <img alt="" src="/chronicle/witness_deng_xiaoping.webp" />
-      <span class="copy"
-        ><small>从戊戌变法到新世纪</small><strong>历史主角模式</strong>
-        <span>选一件真实发生的事，成为亲历者。你作的决定，可以让人走向另一种命运。</span>
-      </span><b aria-hidden="true">→</b>
-    </button>
-  </div>
-</main>
+<div class="mode-page">
+  <main id="main">
+    <header>
+      <img src="/seal.svg" alt="" />
+      <h1>局中事</h1>
+    </header>
+    <div class="modes" aria-label="模式选择">
+      <button aria-label="生涯模式" on:click={county}>
+        <img alt="" src="/county-office.jpg" />
+        <span class="copy"
+          ><small>澄川县</small><strong>生涯模式</strong>
+          <span>从八种任职经历出发，接手工程、家庭与人事，也可以继续已有生涯。</span>
+        </span><b aria-hidden="true">→</b>
+      </button>
+      <button aria-label="历史主角模式" on:click={witness}>
+        <img alt="" src="/chronicle/witness_deng_xiaoping.webp" />
+        <span class="copy"
+          ><small>从戊戌变法到新世纪</small><strong>历史主角模式</strong>
+          <span>选一件真实发生的事，成为亲历者。你作的决定，可以让人走向另一种命运。</span>
+        </span><b aria-hidden="true">→</b>
+      </button>
+    </div>
+  </main>
+  <GameUpdate />
+</div>
 
 <style>
   .mode-page {

@@ -73,6 +73,7 @@ def build_launcher(destination, compiled):
 
 
 def copy_game(stage):
+    shutil.copyfile(ROOT / "VERSION", stage / "VERSION")
     game = stage / "game"
     game.mkdir()
     for name in ("main.py", "config.py", "PARAMETER_REGISTRY.json"):

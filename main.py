@@ -15,6 +15,7 @@ import webbrowser
 import uvicorn
 
 from api.routes import make_app
+from api.updates import UpdateSession
 from game.chronicle import ChronicleStore
 from game.store import GameStore
 
@@ -83,7 +84,11 @@ def launch() -> None:
         server = uvicorn.Server(
             uvicorn.Config(
                 make_app(
-                    store, token, args.assets, port, args.data_dir / "preferences.json"
+                    store, token, args.assets, port, args.data_dir / "preferences.json",
+                    updates=UpdateSession.packaged(
+                        os.environ.get("JUZHONGSHI_UPDATE_PLATFORM"),
+                        Path(os.environ.get("JUZHONGSHI_UPDATE_ROOT") or args.data_dir),
+                    ),
                 ),
                 access_log=False,
                 log_level="error",

@@ -62,6 +62,64 @@ async function enterCareerMenu(page) {
   await page.getByRole('button', { name: '生涯模式', exact: true }).click()
 }
 
+test('desktop updates download in the background and keep both game modes available', async () => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  try {
+    const page = await context.newPage()
+    const state = {
+      current_version: '4.2.0', latest_version: null, phase: 'offline', supported: true,
+      automatic: true, message: '无法连接发布服务。请稍后重试。',
+    }
+    let checks = 0
+    const preferenceWrites = []
+    await page.route(/\/api\/update(?:\/|$)/, async (route) => {
+      const req = route.request()
+      const path = new URL(req.url()).pathname
+      if (path === '/api/update/preferences') {
+        preferenceWrites.push(req.postDataJSON())
+        state.automatic = req.postDataJSON().automatic
+      } else if (path === '/api/update/check') {
+        checks++
+        Object.assign(state, { phase: 'downloading', latest_version: '4.3.0', downloaded_bytes: 16, total_bytes: 64 })
+      } else if (state.phase === 'downloading') {
+        state.phase = 'ready'
+      }
+      await route.fulfill({ json: state })
+    })
+    await page.goto(session)
+    await page.getByText('暂时连不上更新服务').waitFor()
+    await enterCareerMenu(page)
+    await page.getByRole('button', { name: '模式选择', exact: true }).click()
+    await page.getByText('更新设置').click()
+    const automatic = page.getByRole('checkbox', { name: '自动检查并下载更新' })
+    assert.ok(await automatic.isChecked())
+    await automatic.uncheck()
+    await page.getByRole('button', { name: '检查更新', exact: true }).click()
+    const progress = page.getByRole('progressbar', { name: '下载进度' })
+    await progress.waitFor()
+    assert.equal(await progress.getAttribute('value'), '16')
+    await page.getByText('新版 4.3.0 已就绪，下次打开自动更新').waitFor()
+    assert.deepEqual(preferenceWrites, [{ automatic: false }])
+    assert.equal(checks, 1)
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+    await page.getByRole('button', { name: '历史主角模式' }).click()
+    await page.getByRole('button', { name: '开始长篇' }).waitFor()
+    await page.getByRole('button', { name: '模式选择', exact: true }).click()
+    await page.getByText('新版 4.3.0 已就绪，下次打开自动更新').waitFor()
+    await page.getByText('更新设置').click()
+    assert.equal(await automatic.isChecked(), false)
+    assert.equal(checks, 1)
+    state.supported = false
+    await Promise.all([
+      page.waitForResponse((r) => r.url().endsWith('/api/update')),
+      page.reload(),
+    ])
+    assert.equal(await page.getByRole('contentinfo', { name: '游戏更新' }).count(), 0)
+  } finally {
+    await context.close()
+  }
+})
+
 test('the first county desk decision sends the technician and shows her actual finding', async () => {
   const context = await browser.newContext()
   try {

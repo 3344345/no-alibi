@@ -109,6 +109,7 @@ def add_notices(folder):
 
 def build(folder):
     folder.mkdir()
+    shutil.copyfile(ROOT / "VERSION", folder / "VERSION")
     native_entry(folder)
     add_runtime(folder)
     add_notices(folder)

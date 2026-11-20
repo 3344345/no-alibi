@@ -3,7 +3,9 @@ annotated-doc==0.0.6
 annotated-types==0.8.0
 anyio==4.16.0
 certifi==2026.10.23
+cffi==2.1.1
 click==8.5.1
+cryptography==50.0.2
 fastapi==0.163.2
 greenlet==3.5.6
 h11==0.16.0
@@ -18,6 +20,7 @@ playwright==1.65.2
 pluggy==1.7.0
 pydantic==2.14.3
 pydantic_core==2.50.4
+pycparser==3.12
 Pygments==2.21.0
 pyinstaller==6.22.3
 pyinstaller-hooks-contrib==2026.10

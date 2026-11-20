@@ -11,6 +11,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tauri::{Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+mod update;
 
 #[derive(Default)]
 struct Runtime {
@@ -133,6 +134,9 @@ fn launch(app: &tauri::AppHandle, root: &Path, archive: Option<&Path>) -> Result
         root
     };
     let mut cmd = Command::new(macos.join("jzs-engine"));
+    cmd.env("JUZHONGSHI_UPDATE_PLATFORM", update::PLATFORM)
+        .env("JUZHONGSHI_UPDATE_VERSION", update::VERSION.trim())
+        .env("JUZHONGSHI_UPDATE_ROOT", root);
     cmd.args(["--desktop", "--assets"])
         .arg(web)
         .arg("--data-dir")
@@ -254,7 +258,7 @@ fn save_diagnostic(window: WebviewWindow) -> Result<String, String> {
     let file = dir.join(format!("启动诊断-{}.txt", stamp()));
     let report = format!(
         "局中事 · 启动诊断\n版本 {}\n架构 {}\n系统 {}\n阶段 {}\n使用独立恢复档案 {}\n",
-        env!("CARGO_PKG_VERSION"),
+        update::VERSION.trim(),
         std::env::consts::ARCH,
         std::env::consts::OS,
         s.reason,
@@ -303,6 +307,13 @@ fn claim_instance(identifier: &str) -> std::io::Result<Option<File>> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(root) = root_path() {
+        update::activate(&root);
+    }
+    if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new("--version")) {
+        println!("{}", update::VERSION.trim());
+        return Ok(());
+    }
     let mut context = tauri::generate_context!();
     // Explicit data directories are separate player profiles. Each profile still has a single launcher.
     if let Some(path) = std::env::var_os("JUZHONGSHI_DATA_DIR") {

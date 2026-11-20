@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -14,6 +15,10 @@ using System.Windows.Forms;
 
 internal sealed class Launcher : Form
 {
+    private const string Platform = "windows-x64";
+    private static readonly string Package = AppDomain.CurrentDomain.BaseDirectory;
+    private static readonly Regex VersionText = new Regex(@"\A(?:0|[1-9][0-9]{0,5})(?:\.(?:0|[1-9][0-9]{0,5})){2}\z");
+    private readonly string profile;
     private readonly Label status;
     private readonly Button open;
     private readonly System.Windows.Forms.Timer monitor;
@@ -22,9 +27,10 @@ internal sealed class Launcher : Form
     private Uri session;
     private bool closing;
 
-    private Launcher(EventWaitHandle activate)
+    private Launcher(EventWaitHandle activate, string profile)
     {
         this.activate = activate;
+        this.profile = profile;
         Text = "局中事";
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         Font = new Font("Microsoft YaHei UI", 10);
@@ -64,7 +70,7 @@ internal sealed class Launcher : Form
             if (session == null || engine == null || engine.HasExited) {
                 StopEngine();
                 status.Text = "正在启动《局中事》……";
-                string folder = AppDomain.CurrentDomain.BaseDirectory;
+                string folder = Package;
                 var start = new ProcessStartInfo {
                     FileName = Path.Combine(folder, "runtime", "python.exe"),
                     WorkingDirectory = folder,
@@ -73,6 +79,13 @@ internal sealed class Launcher : Form
                     RedirectStandardInput = true, RedirectStandardOutput = true,
                     RedirectStandardError = true
                 };
+                string version = ReadVersion(Path.Combine(folder, "VERSION"));
+                if (version != null) {
+                    start.EnvironmentVariables["JUZHONGSHI_UPDATE_PLATFORM"] = Platform;
+                    start.EnvironmentVariables["JUZHONGSHI_UPDATE_VERSION"] = version;
+                    start.EnvironmentVariables["JUZHONGSHI_UPDATE_ROOT"] = profile;
+                }
+                start.EnvironmentVariables["JUZHONGSHI_DATA_DIR"] = profile;
                 engine = Process.Start(start);
                 engine.BeginErrorReadLine();
                 var line = engine.StandardOutput.ReadLineAsync();
@@ -120,12 +133,47 @@ internal sealed class Launcher : Form
         }
     }
 
+    private static string ReadVersion(string path)
+    {
+        try {
+            string value = File.ReadAllText(path).TrimEnd('\r', '\n');
+            return VersionText.IsMatch(value) ? value : null;
+        } catch (IOException) { return null; }
+        catch (UnauthorizedAccessException) { return null; }
+    }
+
+    private static bool TryUpdatedLaunch(string profile)
+    {
+        string updates = Path.Combine(profile, "updates");
+        string next = ReadVersion(Path.Combine(updates, Platform + ".active"));
+        string current = ReadVersion(Path.Combine(Package, "VERSION"));
+        if (next == null || current == null || new Version(next) <= new Version(current)) return false;
+        string folder = Path.Combine(updates, "versions", next, Platform);
+        string exe = Path.Combine(folder, "局中事.exe");
+        if (ReadVersion(Path.Combine(folder, "VERSION")) != next || !File.Exists(exe)
+                || !File.Exists(Path.Combine(folder, "runtime", "python.exe"))
+                || !File.Exists(Path.Combine(folder, "game", "main.py"))
+                || !File.Exists(Path.Combine(folder, "game", "frontend", "dist", "index.html")))
+            return false;
+        try {
+            var start = new ProcessStartInfo(exe) {
+                WorkingDirectory = folder, UseShellExecute = false
+            };
+            start.EnvironmentVariables["JUZHONGSHI_DATA_DIR"] = profile;
+            using (Process child = Process.Start(start)) { return child != null; }
+        } catch (System.ComponentModel.Win32Exception) { return false; }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
+    }
+
     [STAThread]
     private static void Main()
     {
         string profile = Environment.GetEnvironmentVariable("JUZHONGSHI_DATA_DIR");
         if (String.IsNullOrEmpty(profile))
             profile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "局中事");
+        profile = Path.GetFullPath(profile);
+        if (TryUpdatedLaunch(profile)) return;
         string name;
         using (var hash = SHA256.Create()) {
             var bytes = Encoding.UTF8.GetBytes(Path.GetFullPath(profile).TrimEnd('\\').ToUpperInvariant());
@@ -138,7 +186,7 @@ internal sealed class Launcher : Form
             try {
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-                Application.Run(new Launcher(activate));
+                Application.Run(new Launcher(activate, profile));
             } finally {
                 mutex.ReleaseMutex();
             }

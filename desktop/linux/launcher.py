@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import hashlib
+import re
 import selectors
 import shutil
 import socket
@@ -14,6 +15,32 @@ import tempfile
 import webbrowser
 
 ROOT = Path(__file__).resolve().parent
+PLATFORM = "linux-x86_64"
+
+
+def read_version(path):
+    try:
+        value = path.read_text(encoding="ascii").rstrip("\r\n")
+    except (OSError, UnicodeError):
+        return None
+    return value if re.fullmatch(r"(?:0|[1-9][0-9]{0,5})(?:\.(?:0|[1-9][0-9]{0,5})){2}", value) else None
+
+
+def active_executable(profile, package=ROOT):
+    updates = profile / "updates"
+    next_version = read_version(updates / (PLATFORM + ".active"))
+    current = read_version(package / "VERSION")
+    if not current or not next_version:
+        return None
+    if tuple(map(int, next_version.split("."))) <= tuple(map(int, current.split("."))):
+        return None
+    folder = updates / "versions" / next_version / PLATFORM / "局中事"
+    if read_version(folder / "VERSION") != next_version:
+        return None
+    executable = folder / "局中事"
+    required = (executable, folder / "runtime/bin/python3", folder / "launcher.py",
+                folder / "app/main.py", folder / "app/frontend/dist/index.html")
+    return executable if all(item.is_file() for item in required) else None
 
 
 def xdg(variable, default):
@@ -46,13 +73,10 @@ def open_game(url):
         raise RuntimeError("请在系统设置中选择一个默认浏览器，再打开《局中事》。")
 
 
-def run(stop):
+def run(stop, profile):
     # An abstract Unix socket survives neither crashes nor logout. Its peer UID
     # is checked in both directions before a launcher can open or end the game.
-    sys.path.insert(0, str(ROOT / "app"))
-    from main import default_data_dir
-    profile = os.fsencode(default_data_dir().resolve())
-    key = hashlib.sha256(profile).hexdigest()[:24]
+    key = hashlib.sha256(os.fsencode(profile)).hexdigest()[:24]
     address = f"\0cn.juzhongshi.game.v1.{os.getuid()}.{key}"
     with socket.socket(socket.AF_UNIX) as server:
         try:
@@ -85,6 +109,9 @@ def run(stop):
         with subprocess.Popen(
             [sys.executable, "-EsB", str(ROOT / "app/main.py"), "--desktop"],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
+            env={**os.environ, "JUZHONGSHI_UPDATE_PLATFORM": PLATFORM,
+                 "JUZHONGSHI_UPDATE_VERSION": read_version(ROOT / "VERSION") or "",
+                 "JUZHONGSHI_UPDATE_ROOT": str(profile)},
         ) as engine:
             try:
                 with selectors.DefaultSelector() as ready:
@@ -135,10 +162,21 @@ if __name__ == "__main__":
     if flags not in ([], ["--stop"], ["--install"]):
         sys.exit("用法：局中事 [--stop | --install]")
     try:
-        if flags != ["--stop"]:
+        sys.path.insert(0, str(ROOT / "app"))
+        from main import default_data_dir
+        profile = default_data_dir().resolve()
+        # The user's menu continues to point to the installation they originally opened.
+        if flags != ["--stop"] and not ROOT.is_relative_to(profile / "updates/versions"):
             install_shortcut()
+        if not flags:
+            active = active_executable(profile)
+            if active:
+                try:
+                    os.execv(active, [str(active)])
+                except OSError:
+                    pass  # The staged binary was removed or cannot run. Use this copy.
         if flags != ["--install"]:
-            run(flags == ["--stop"])
+            run(flags == ["--stop"], profile)
     except (OSError, RuntimeError) as error:
         print(error, file=sys.stderr)
         if shutil.which("zenity") and (os.getenv("DISPLAY") or os.getenv("WAYLAND_DISPLAY")):

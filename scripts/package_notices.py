@@ -60,7 +60,8 @@ def render(target):
         if p["license_file"]:
             files.append(folder / p["license_file"])
         add("Rust / " + p["name"], p["version"], p["license"], files)
-    todo = ["fastapi", "pydantic", "uvicorn", "pyinstaller"]
+    dependencies = (root / "requirements.txt").read_text().splitlines()
+    todo = [Requirement(line).name for line in dependencies if line.strip()] + ["pyinstaller"]
     seen = set()
     while todo:
         name = todo.pop().lower()

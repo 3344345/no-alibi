@@ -17,6 +17,7 @@ from starlette.concurrency import run_in_threadpool
 from api.chronicle import chronicle_router
 from game.chronicle import ChronicleStore
 from api.preferences import preferences_router
+from api.updates import UpdateSession, updates_router
 from api.confirmations import Confirmations, consequence
 from ai.player_intent import parse_visible
 from ai.advisor import Endpoint, narrative_menu, optional_parser
@@ -45,11 +46,13 @@ def make_app(
     assets: Path,
     port: int,
     preferences_path: Path | None = None,
+    updates: UpdateSession | None = None,
 ) -> FastAPI:
     confirmations = Confirmations()
     player_view = confirmations.attach
     app = FastAPI(title="局中事", docs_url=None, redoc_url=None, openapi_url=None)
     app.include_router(preferences_router(preferences_path))
+    app.include_router(updates_router(updates or UpdateSession()))
     app.include_router(chronicle_router(ChronicleStore(store)))
     authority = f"127.0.0.1:{port}"
     origin = f"http://{authority}"
