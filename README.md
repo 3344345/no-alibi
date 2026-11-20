@@ -85,6 +85,13 @@ Pop-Location
 
 在 GitHub 创建与清单中 `tag` 一致的发行草稿，把三个压缩包按清单中的英文文件名上传，并上传 `update.json`。四个文件齐全后将该版本发布为 Latest，已安装桌面版就能发现它。
 
+发行前可用 `scripts/verify_portable.py` 的 `--check-updates` 选项，从打好的程序访问公开更新服务。例如在 Mac 上运行下列命令，会在临时存档中同时验证联网、保存和重启。
+
+```sh
+.venv/bin/python scripts/verify_portable.py --check-updates macos-arm64 \
+  --assets "$PWD/release/局中事.app/Contents/Resources/web" -- "$PWD/release/局中事.app/Contents/MacOS/jzs-engine"
+```
+
 ## 可选语言服务
 
 默认采用本地按钮、受限自由输入和带来源的叙述。需要使用外部语言模型时，由玩家在启动服务的环境中同时提供 `JUZHONGSHI_AI_URL`（完整的兼容 chat/completions 请求地址）和 `JUZHONGSHI_AI_MODEL`。需要身份验证的提供商还可读取 `JUZHONGSHI_AI_KEY`。这些值只供服务进程使用。

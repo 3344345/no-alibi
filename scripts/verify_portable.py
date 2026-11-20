@@ -13,6 +13,7 @@ import re
 import subprocess
 from tempfile import TemporaryDirectory
 from threading import Thread
+from time import monotonic, sleep
 from urllib.parse import urlsplit
 from urllib.request import ProxyHandler, Request, build_opener
 
@@ -23,8 +24,10 @@ def require(condition, message):
 
 
 @contextmanager
-def engine_session(command, assets, profile):
+def engine_session(command, assets, profile, *, update_platform=None):
     env = {k: v for k, v in os.environ.items() if not k.startswith("JUZHONGSHI_AI_")}
+    if update_platform is not None:
+        env.update(JUZHONGSHI_UPDATE_PLATFORM=update_platform, JUZHONGSHI_UPDATE_ROOT=str(profile))
     with subprocess.Popen(
         [*command, "--desktop", "--assets", str(assets), "--data-dir", str(profile)],
         stdin=subprocess.PIPE,
@@ -126,12 +129,25 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--assets", type=Path, required=True)
     parser.add_argument("--import-save", type=Path, help="also verify an archive from another platform")
+    parser.add_argument("--check-updates", choices=["macos-arm64", "windows-x64", "linux-x86_64"],
+                        help="check the public signed update feed from the packaged runtime")
     parser.add_argument("engine", nargs=argparse.REMAINDER)
     args = parser.parse_args()
     command = args.engine[1:] if args.engine[:1] == ["--"] else args.engine
     if not command:
         parser.error("supply the packaged engine command after --")
     with TemporaryDirectory(prefix="juzhongshi-qa-") as tmp:
+        if args.check_updates:
+            with engine_session(command, args.assets, Path(tmp) / "updates-profile",
+                                update_platform=args.check_updates) as fetch:
+                status = fetch("/api/update")
+                deadline = monotonic() + 240
+                while status["phase"] in {"checking", "downloading"} and monotonic() < deadline:
+                    sleep(0.5)
+                    status = fetch("/api/update")
+                require(status["supported"] and status["phase"] in {"current", "ready"},
+                        f"The packaged runtime could not verify a public release: {status}")
+                print(f"PASS: official update feed from packaged version {status['current_version']}.")
         assets = args.assets.resolve()
         checksum, revision = verify(command, assets, Path(tmp) / "career")
         if args.import_save:

@@ -60,7 +60,7 @@ class UpdateSession:
             return
         self.started = True
         try:
-            if self._ready() or (not manual and not self._automatic()):
+            if not manual and (self._ready() or not self._automatic()):
                 return
         except (OSError, UpdateError):
             self.phase, self.message = "error", "无法读取更新目录，仍可正常游玩。"
@@ -74,8 +74,9 @@ class UpdateSession:
             release = self.engine.check()
             with self.lock:
                 if release is None:
-                    self.phase, self.message = "current", "已是最新版本。"
-                    self.latest = self.current
+                    if not self._ready():
+                        self.phase, self.message = "current", "已是最新版本。"
+                        self.latest = self.current
                     return
                 self.latest = release.version
                 if not manual and not self._automatic():
@@ -88,12 +89,16 @@ class UpdateSession:
                     raise UpdateError("新版未能完成安装。")
         except OfflineError:
             with self.lock:
-                self.phase, self.message = "offline", "暂时连不上更新服务器，可以继续玩，稍后再试。"
+                if not self._ready():
+                    self.phase, self.message = "offline", "暂时连不上更新服务器，可以继续玩，稍后再试。"
         except (UpdateError, OSError):
             with self.lock:
-                self.phase, self.message = "error", "新版未能通过检查或写入磁盘。当前版本仍可使用，可以稍后重试。"
+                if not self._ready():
+                    self.phase, self.message = "error", "新版未能通过检查或写入磁盘。当前版本仍可使用，可以稍后重试。"
         finally:
             with self.lock:
+                if self.phase in {"checking", "downloading"}:
+                    self.phase, self.message = "error", "更新未完成，可以继续游玩或稍后重试。"
                 self.busy = False
 
     def status(self, manual=False):

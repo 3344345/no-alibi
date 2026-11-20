@@ -5,7 +5,7 @@ import base64
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 import hashlib
-from http.client import HTTPException
+from http.client import HTTPException, IncompleteRead
 import json
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -17,6 +17,8 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
+from uuid import uuid4
 from zlib import error as CompressionError
 from urllib.error import URLError
 from urllib.parse import urlsplit
@@ -39,7 +41,8 @@ PACKAGES = {
     "windows-x64": ("no-alibi-Windows-x64.zip", "VERSION", "局中事.exe", "runtime/python.exe",
                     "game/main.py", "game/frontend/dist/index.html"),
     "linux-x86_64": ("no-alibi-Linux-x86_64.tar.gz", "局中事/VERSION", "局中事/局中事",
-                     "局中事/runtime/bin/python3.12", "局中事/launcher.py", "局中事/app/frontend/dist/index.html"),
+                     "局中事/runtime/bin/python3", "局中事/runtime/bin/python3.12", "局中事/launcher.py",
+                     "局中事/app/main.py", "局中事/app/frontend/dist/index.html"),
 }
 MAX_MANIFEST = 65536
 MAX_DOWNLOAD = 4 * 1024**3
@@ -115,11 +118,14 @@ class _ReleaseRedirects(HTTPRedirectHandler):
 
 
 @contextmanager
-def _fetch(url):
+def _fetch(url, *, headers=None):
     context = ssl.create_default_context()
     context.load_verify_locations(cafile=certifi.where())
     opener = build_opener(_ReleaseRedirects(), HTTPSHandler(context=context))
-    req = Request(url, headers={"User-Agent": "Juzhongshi-Desktop-Updater", "Accept-Encoding": "identity"})
+    headers = {"User-Agent": "Juzhongshi-Desktop-Updater", "Accept-Encoding": "identity", **(headers or {})}
+    if urlsplit(url).query:
+        headers.update({"Cache-Control": "no-cache", "Pragma": "no-cache"})
+    req = Request(url, headers=headers)
     try:
         with opener.open(req, timeout=25) as response:
             yield response
@@ -127,19 +133,88 @@ def _fetch(url):
         raise OfflineError("暂时连不上游戏的更新服务。") from exc
 
 
+def _response_bounds(response, offset, size):
+    if getattr(response, "status", 200) == 200:
+        return 0, size
+    header = response.headers.get("Content-Range", "")
+    match = re.fullmatch(r"bytes ([0-9]{1,12})-([0-9]{1,12})/([0-9]{1,12})", header)
+    if getattr(response, "status", None) != 206 or match is None:
+        raise OfflineError("更新服务返回了无法续传的内容。")
+    start, end, total = map(int, match.groups())
+    if start != offset or total != size or not start <= end < total:
+        raise OfflineError("更新服务返回的续传位置不正确。")
+    return start, end - start + 1
+
+
+def _receive_part(release, url, offset, piece):
+    # Keep the validated range bounds even when the server closes early. A
+    # partial body may be reused, but never activated until the full SHA matches.
+    start = None
+    try:
+        request = _fetch(url, headers={"Range": f"bytes={offset}-"}) if offset else _fetch(url)
+        with request as src:
+            start, limit = _response_bounds(src, offset, release.asset.size)
+            with piece.open("xb") as dst:
+                written = 0
+                while True:
+                    try:
+                        chunk = src.read(CHUNK)
+                        incomplete = False
+                    except IncompleteRead as exc:
+                        chunk = exc.partial
+                        incomplete = True
+                    if not chunk:
+                        break
+                    written += len(chunk)
+                    if written > limit:
+                        raise UpdateError("下载内容超出了声明的范围。")
+                    dst.write(chunk)
+                    if incomplete:
+                        break
+    except OfflineError:
+        if start is None or not piece.exists():
+            raise
+    return start
+
+
 def _download(release, target):
-    url = RELEASES + "/download/" + release.tag + "/" + release.asset.name
-    count = 0
-    digest = hashlib.sha256()
-    with _fetch(url) as src, target.open("xb") as dst:
-        while chunk := src.read(CHUNK):
-            count += len(chunk)
-            if count > release.asset.size:
-                raise UpdateError("下载包大小与签名清单不符。")
-            digest.update(chunk)
-            dst.write(chunk)
-    if count != release.asset.size or digest.hexdigest() != release.asset.sha256:
-        raise UpdateError("下载包不完整或校验值不符。")
+    base = RELEASES + "/download/" + release.tag + "/" + release.asset.name
+    piece = target.with_suffix(".incoming")
+    received, stalls = 0, 0
+    # Allow slow but advancing transfers. Repeated disconnects with little or
+    # no progress stop promptly, leaving a manual retry available to the player.
+    max_requests = min(512, 8 + release.asset.size // 65536)
+    for attempt in range(max_requests):
+        url = base if not attempt else base + "?jzs_retry=" + uuid4().hex
+        before = received
+        try:
+            offset = _receive_part(release, url, received, piece)
+            count = piece.stat().st_size
+            if offset == 0:
+                # A server may ignore Range. Keep the longer prefix unless
+                # this clean response can replace it without losing progress.
+                if count > received:
+                    piece.replace(target)
+                    received = count
+            elif count:
+                with target.open("ab") as dst, piece.open("rb") as src:
+                    shutil.copyfileobj(src, dst, CHUNK)
+                received += count
+        except OfflineError:
+            pass
+        finally:
+            piece.unlink(missing_ok=True)
+        if received == release.asset.size:
+            with target.open("rb") as stream:
+                if hashlib.file_digest(stream, "sha256").hexdigest() != release.asset.sha256:
+                    raise UpdateError("下载包校验值与发行清单不符。")
+            return
+        stalls = 0 if received > before else stalls + 1
+        if stalls >= 3:
+            break
+        if stalls:
+            time.sleep(0.25 * stalls)
+    raise OfflineError("下载未能完成，请稍后再试。")
 
 
 def _relative(name, platform):
@@ -237,10 +312,15 @@ def _untar(archive, root):
 
 def _layout(root, platform, version):
     _, marker, *files = PACKAGES[platform]
+    executables = {
+        "macos-arm64": ("局中事.app/Contents/MacOS/juzhongshi", "局中事.app/Contents/MacOS/jzs-engine"),
+        "linux-x86_64": ("局中事/局中事", "局中事/runtime/bin/python3"),
+    }
     try:
         return ((root / marker).stat().st_size <= 32
                 and (root / marker).read_text(encoding="ascii").rstrip("\n") == version
-                and all((root / name).is_file() and (root / name).stat().st_size > 0 for name in files))
+                and all((root / name).is_file() and (root / name).stat().st_size > 0 for name in files)
+                and all(os.access(root / name, os.X_OK) for name in executables.get(platform, ())))
     except (OSError, UnicodeError):
         return False
 

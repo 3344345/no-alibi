@@ -142,6 +142,15 @@ internal sealed class Launcher : Form
         catch (UnauthorizedAccessException) { return null; }
     }
 
+    private static bool NonemptyFile(string path)
+    {
+        try {
+            var item = new FileInfo(path);
+            return item.Exists && item.Length > 0;
+        } catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
+    }
+
     private static bool TryUpdatedLaunch(string profile)
     {
         string updates = Path.Combine(profile, "updates");
@@ -150,10 +159,10 @@ internal sealed class Launcher : Form
         if (next == null || current == null || new Version(next) <= new Version(current)) return false;
         string folder = Path.Combine(updates, "versions", next, Platform);
         string exe = Path.Combine(folder, "局中事.exe");
-        if (ReadVersion(Path.Combine(folder, "VERSION")) != next || !File.Exists(exe)
-                || !File.Exists(Path.Combine(folder, "runtime", "python.exe"))
-                || !File.Exists(Path.Combine(folder, "game", "main.py"))
-                || !File.Exists(Path.Combine(folder, "game", "frontend", "dist", "index.html")))
+        if (ReadVersion(Path.Combine(folder, "VERSION")) != next || !NonemptyFile(exe)
+                || !NonemptyFile(Path.Combine(folder, "runtime", "python.exe"))
+                || !NonemptyFile(Path.Combine(folder, "game", "main.py"))
+                || !NonemptyFile(Path.Combine(folder, "game", "frontend", "dist", "index.html")))
             return false;
         try {
             var start = new ProcessStartInfo(exe) {

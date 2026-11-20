@@ -53,7 +53,6 @@
     reduceMotion = false,
     volume = 0,
     lastAudibleVolume = 35,
-    audioPreferenceEdited = false,
     detailed = true,
     hints = true,
     advanceMinutes = 60,
@@ -142,6 +141,7 @@
   $: passageRequest = v?.documents.find((doc) => doc.id === 'D16-r1')
   $: firstBriefing = v?.appointments.find((item) => item.title === '办公室汇总首轮意见')
   const storageKey = (id: string) => 'jzs-pending-' + id
+  const editedPreferences = new Set<string>()
   onMount(() => {
     reduceMotion = window.matchMedia('(prefers-reduced-motion:reduce)').matches
     void api<{
@@ -152,14 +152,14 @@
       show_hints: boolean
     }>('/preferences')
       .then((pref) => {
-        font = pref.font_size
-        if (!audioPreferenceEdited) {
+        if (!editedPreferences.has('font_size')) font = pref.font_size
+        if (!editedPreferences.has('sound_volume')) {
           volume = pref.sound_volume
           if (volume > 0) lastAudibleVolume = volume
         }
-        reduceMotion = pref.reduced_motion ?? reduceMotion
-        detailed = pref.detailed_narration
-        hints = pref.show_hints
+        if (!editedPreferences.has('reduced_motion')) reduceMotion = pref.reduced_motion ?? reduceMotion
+        if (!editedPreferences.has('detailed_narration')) detailed = pref.detailed_narration
+        if (!editedPreferences.has('show_hints')) hints = pref.show_hints
       })
       .catch((e) => (error = message(e)))
     void loadWorlds()
@@ -172,7 +172,6 @@
   $: setSoundVolume(volume)
 
   function chooseVolume(value: number) {
-    audioPreferenceEdited = true
     volume = value
     if (value > 0) lastAudibleVolume = value
     setSoundVolume(value)
@@ -185,6 +184,7 @@
 
   let preferenceQueue = Promise.resolve()
   function preferences(update: Record<string, Value>) {
+    for (const key of Object.keys(update)) editedPreferences.add(key)
     preferenceQueue = preferenceQueue
       .then(() => api('/preferences', update))
       .then(() => {})

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { api, message } from './api'
+  import { api, ApiError, message } from './api'
 
   type Update = {
     supported: boolean
@@ -49,7 +49,11 @@
         nextPoll = setTimeout(() => void refresh(), 1800)
       }
     } catch (error) {
-      if (number === requestNumber && update?.supported) problem = message(error)
+      if (number !== requestNumber) return
+      if (update?.supported) problem = message(error)
+      if (!(error instanceof ApiError) || error.status >= 500) {
+        nextPoll = setTimeout(() => void refresh(), 5000)
+      }
     } finally {
       if (number === requestNumber) sending = false
     }
@@ -89,6 +93,9 @@
       </div>
       {#if update.phase === 'downloading' && update.total_bytes && update.downloaded_bytes !== undefined}
         <progress aria-label="下载进度" max={update.total_bytes} value={update.downloaded_bytes}></progress>
+      {/if}
+      {#if update.phase === 'downloading' && !update.automatic}
+        <p>这次下载会继续。下次打开游戏时，自动检查将保持关闭。</p>
       {/if}
       {#if (update.phase === 'error' || update.phase === 'offline') && update.message && update.message !== statusLine(update)}
         <p>{update.message}</p>

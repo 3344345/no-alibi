@@ -38,9 +38,14 @@ def active_executable(profile, package=ROOT):
     if read_version(folder / "VERSION") != next_version:
         return None
     executable = folder / "局中事"
-    required = (executable, folder / "runtime/bin/python3", folder / "launcher.py",
+    python = folder / "runtime/bin/python3"
+    required = (executable, python, folder / "runtime/bin/python3.12", folder / "launcher.py",
                 folder / "app/main.py", folder / "app/frontend/dist/index.html")
-    return executable if all(item.is_file() for item in required) else None
+    try:
+        complete = all(item.is_file() and item.stat().st_size > 0 for item in required)
+    except OSError:
+        return None
+    return executable if complete and os.access(executable, os.X_OK) and os.access(python, os.X_OK) else None
 
 
 def xdg(variable, default):

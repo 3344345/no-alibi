@@ -329,7 +329,7 @@
         disabled={busy}
         on:click={() => {
           topic = '年代与出处'
-          book = game?.chapter ?? catalogue.chapters[0] ?? null
+          book = previousChapter ?? game?.chapter ?? starting ?? catalogue.chapters[0] ?? null
         }}>年代与出处</button
       >
       {#if game}<button disabled={busy} on:click={() => (topic = '行记')}>行记与存档</button>{/if}

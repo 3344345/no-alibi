@@ -71,10 +71,15 @@ test('desktop updates download in the background and keep both game modes availa
       automatic: true, message: '无法连接发布服务。请稍后重试。',
     }
     let checks = 0
+    let unavailable = true
     const preferenceWrites = []
     await page.route(/\/api\/update(?:\/|$)/, async (route) => {
       const req = route.request()
       const path = new URL(req.url()).pathname
+      if (unavailable && path === '/api/update') {
+        unavailable = false
+        return route.abort('failed')
+      }
       if (path === '/api/update/preferences') {
         preferenceWrites.push(req.postDataJSON())
         state.automatic = req.postDataJSON().automatic
@@ -87,6 +92,7 @@ test('desktop updates download in the background and keep both game modes availa
       await route.fulfill({ json: state })
     })
     await page.goto(session)
+    await page.getByRole('button', { name: '生涯模式', exact: true }).waitFor()
     await page.getByText('暂时连不上更新服务').waitFor()
     await enterCareerMenu(page)
     await page.getByRole('button', { name: '模式选择', exact: true }).click()
@@ -98,6 +104,7 @@ test('desktop updates download in the background and keep both game modes availa
     const progress = page.getByRole('progressbar', { name: '下载进度' })
     await progress.waitFor()
     assert.equal(await progress.getAttribute('value'), '16')
+    await page.getByText(/这次下载会继续/).waitFor()
     await page.getByText('新版 4.3.0 已就绪，下次打开自动更新').waitFor()
     assert.deepEqual(preferenceWrites, [{ automatic: false }])
     assert.equal(checks, 1)
@@ -116,6 +123,51 @@ test('desktop updates download in the background and keep both game modes availa
     ])
     assert.equal(await page.getByRole('contentinfo', { name: '游戏更新' }).count(), 0)
   } finally {
+    await context.close()
+  }
+})
+
+test('late startup preferences preserve edits and load untouched reading settings', async () => {
+  const context = await browser.newContext()
+  const endpoint = address + '/api/preferences'
+  const token = new URLSearchParams(new URL(session).hash.slice(1)).get('session')
+  const headers = { Authorization: 'Bearer ' + token }
+  const prior = await (await context.request.get(endpoint, { headers })).json()
+  let release
+  const gate = new Promise(resolve => { release = resolve })
+  try {
+    await context.request.post(endpoint, {
+      headers, data: { font_size: 16, detailed_narration: true, show_hints: false },
+    })
+    const page = await context.newPage()
+    let captured
+    const initial = new Promise(resolve => { captured = resolve })
+    await page.route(endpoint, async route => {
+      if (route.request().method() !== 'GET') return route.continue()
+      const response = await route.fetch()
+      captured()
+      await gate
+      await route.fulfill({ response })
+    })
+    await openCareer(page, false)
+    await initial
+    await navigate(page, '设置')
+    const font = page.getByLabel('正文字号')
+    const detail = page.getByRole('checkbox', { name: '展开经过正文' })
+    const hint = page.getByRole('checkbox', { name: '显示页面操作提示' })
+    const wrote = () => page.waitForResponse(r => r.url() === endpoint && r.request().method() === 'POST')
+    await Promise.all([wrote(), font.selectOption('22')])
+    await Promise.all([wrote(), detail.uncheck()])
+    assert.equal(await hint.isChecked(), true)
+    release()
+    await hint.and(page.locator('input:not(:checked)')).waitFor()
+    assert.equal(await font.inputValue(), '22')
+    assert.equal(await page.locator('html').evaluate(el => el.style.fontSize), '22px')
+    assert.equal(await detail.isChecked(), false)
+    assert.equal(await hint.isChecked(), false)
+  } finally {
+    release()
+    await context.request.post(endpoint, { headers, data: prior })
     await context.close()
   }
 })

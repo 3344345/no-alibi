@@ -24,12 +24,23 @@ def test_linux_original_shortcut_selects_a_complete_newer_package(tmp_path):
     pointer.write_text("4.10.0\n")
     (stage / "VERSION").write_text("4.10.0\n")
     assert launcher.active_executable(user, base) is None
-    for path in ("局中事", "runtime/bin/python3", "launcher.py", "app/main.py", "app/frontend/dist/index.html"):
+    for path in ("局中事", "runtime/bin/python3.12", "launcher.py", "app/main.py", "app/frontend/dist/index.html"):
         item = stage / path
         item.parent.mkdir(parents=True, exist_ok=True)
-        item.touch()
+        item.write_bytes(b"fixture")
+    python = stage / "runtime/bin/python3.12"
+    python.chmod(0o755)
+    (stage / "runtime/bin/python3").symlink_to(python.name)
+    (stage / "局中事").chmod(0o755)
     assert launcher.active_executable(user, base) == stage / "局中事"
     assert launcher.active_executable(user, stage) is None
+    python.chmod(0o644)
+    assert launcher.active_executable(user, base) is None
+    python.chmod(0o755)
+    index = stage / "app/frontend/dist/index.html"
+    index.write_bytes(b"")
+    assert launcher.active_executable(user, base) is None
+    index.write_bytes(b"fixture")
     (stage / "VERSION").write_text("4.10.1\n")
     assert launcher.active_executable(user, base) is None
     for bad in ("4.9.1", "4.2.0", "04.10.0", "../4.10.0", "4.10.0.5"):

@@ -66,3 +66,24 @@ def test_automatic_preference_survives_restart_and_manual_check_still_works(tmp_
     assert reopened.preference(True)["automatic"]
     assert settled(reopened)["phase"] == "offline"
     assert service.calls == 2
+
+
+def test_manual_check_can_replace_a_prepared_version_and_preserves_it_offline(tmp_path):
+    service = Service()
+    service.ready = "4.2.1"
+    session = UpdateSession(service, tmp_path, current="4.2.0")
+    assert session.status()["phase"] == "ready" and service.calls == 0
+    session.status(manual=True)
+    offline = settled(session)
+    assert service.calls == 1 and offline["phase"] == "ready"
+    assert offline["latest_version"] == "4.2.1"
+    service.online = True
+    service.finish.set()
+    session.status(manual=True)
+    updated = settled(session)
+    assert service.calls == 2 and updated["phase"] == "ready"
+    assert updated["latest_version"] == "4.3.0"
+    service.check = lambda: None
+    session.status(manual=True)
+    unchanged = settled(session)
+    assert unchanged["phase"] == "ready" and unchanged["latest_version"] == "4.3.0"

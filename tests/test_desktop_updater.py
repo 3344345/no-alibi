@@ -31,11 +31,12 @@ def publisher(monkeypatch):
     urls = {}
 
     @contextmanager
-    def get(url):
-        with BytesIO(urls[url]) as response:
+    def get(url, *, headers=None):
+        with BytesIO(urls[url.split("?")[0]]) as response:
             yield response
 
     monkeypatch.setattr(updater, "_fetch", get)
+    monkeypatch.setattr(updater.time, "sleep", lambda _: None)
 
     def publish(version, *, package_version=None):
         data = application(package_version or version)
@@ -162,3 +163,100 @@ def test_preserves_unrelated_folder_with_same_name(publisher, tmp_path):
         engine.install(engine.check())
     assert personal_file.read_text() == "第一章"
     assert engine.ready_version() is None
+
+
+def test_interrupted_full_download_resumes_at_signed_offset(publisher, tmp_path, monkeypatch):
+    publish, urls = publisher
+    engine = updater.DesktopUpdater(tmp_path, PLATFORM, "4.2.0")
+    url = publish("4.2.1")
+    release = engine.check()
+    body = urls[url]
+    calls = []
+
+    @contextmanager
+    def partial(address, *, headers=None):
+        calls.append((address, headers))
+        if len(calls) == 1:
+            response = BytesIO(body[:73])
+            response.status = 200
+        elif len(calls) == 2:
+            response = BytesIO(body[:14])
+            response.status = 206
+            response.headers = {"Content-Range": f"bytes 0-13/{len(body)}"}
+        else:
+            response = BytesIO(body[73:])
+            response.status = 206
+            response.headers = {"Content-Range": f"bytes 73-{len(body)-1}/{len(body)}"}
+        with response:
+            yield response
+
+    monkeypatch.setattr(updater, "_fetch", partial)
+    installed = engine.install(release)
+    assert (installed / "局中事.exe").is_file()
+    assert [item[1] for item in calls] == [None, {"Range": "bytes=73-"}, {"Range": "bytes=73-"}]
+    assert len(set(item[0] for item in calls)) == 3
+    assert not list(engine.root.glob(".stage-*"))
+
+
+def test_nonresuming_server_can_send_a_new_full_copy(publisher, tmp_path, monkeypatch):
+    publish, urls = publisher
+    engine = updater.DesktopUpdater(tmp_path, PLATFORM, "4.2.0")
+    url = publish("4.2.1")
+    release = engine.check()
+    body = urls[url]
+    requests = []
+
+    @contextmanager
+    def restarted(_, *, headers=None):
+        requests.append(headers)
+        with BytesIO(body[:101] if len(requests) == 1 else body) as r:
+            r.status = 200
+            yield r
+
+    monkeypatch.setattr(updater, "_fetch", restarted)
+    assert engine.install(release).is_dir()
+    assert requests == [None, {"Range": "bytes=101-"}]
+
+
+def test_stalled_download_keeps_old_pointer_and_removes_partial_files(publisher, tmp_path, monkeypatch):
+    publish, urls = publisher
+    engine = updater.DesktopUpdater(tmp_path, PLATFORM, "4.2.0")
+    publish("4.2.1")
+    first = engine.install(engine.check())
+    url = publish("4.2.2")
+    release = engine.check()
+    attempts = []
+
+    @contextmanager
+    def short(_, *, headers=None):
+        attempts.append(headers)
+        with BytesIO(urls[url][:83]) as r:
+            r.status = 200
+            yield r
+
+    monkeypatch.setattr(updater, "_fetch", short)
+    with pytest.raises(updater.OfflineError):
+        engine.install(release)
+    assert len(attempts) == 4
+    assert all(h == {"Range": "bytes=83-"} for h in attempts[1:])
+    assert first.is_dir() and engine.ready_version() == "4.2.1"
+    assert not list(engine.root.glob(".stage-*"))
+    assert not engine._destination("4.2.2").exists()
+
+
+def test_linux_native_entry_requires_the_interpreter_alias_and_execute_permissions(tmp_path):
+    platform = "linux-x86_64"
+    _, version, *required = updater.PACKAGES[platform]
+    for name in [version, *required]:
+        entry = tmp_path / name
+        entry.parent.mkdir(parents=True, exist_ok=True)
+        entry.write_text("4.2.1")
+        entry.chmod(0o755)
+    interpreter = tmp_path / "局中事/runtime/bin/python3"
+    interpreter.unlink()
+    assert not updater._layout(tmp_path, platform, "4.2.1")
+    interpreter.symlink_to("python3.12")
+    assert updater._layout(tmp_path, platform, "4.2.1")
+    native = tmp_path / "局中事/局中事"
+    native.chmod(0o644)
+    assert not updater._layout(tmp_path, platform, "4.2.1")
