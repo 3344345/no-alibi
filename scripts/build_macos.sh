@@ -6,8 +6,13 @@ cd "$(dirname "$0")/.."
 python_bin="${PYTHON:-.venv/bin/python}"
 [[ -f frontend/dist/index.html ]] || { echo "请先在 frontend 目录安装依赖并执行 build" >&2; exit 1; }
 "$python_bin" scripts/content_manifest.py --check
+ssl_policy=$("$python_bin" -c 'import pathlib, ssl; print(pathlib.Path(ssl.__file__).with_name("codex-rejected-cas.pem"))')
+set --
+# Some Python distributions load an additional trust policy beside ssl.py.
+if [[ -f "$ssl_policy" ]]; then set -- --add-data "$ssl_policy:."; fi
 "$python_bin" -m PyInstaller --clean --noconfirm --onefile --name jzs-engine \
   --workpath .artifacts/pyi/work --distpath .artifacts/pyi/dist --specpath .artifacts/pyi \
+  "$@" \
   --add-data "$PWD/PARAMETER_REGISTRY.json:." \
   --hidden-import uvicorn.lifespan.on --hidden-import uvicorn.protocols.http.h11_impl \
   --hidden-import uvicorn.loops.asyncio main.py
