@@ -5,6 +5,7 @@ const sharedArt: Record<string, string> = {
 }
 
 const screening = new Set(['night_screen', 'night_eye', 'night_frame','night_reel'])
+const reunions = new Set(['night_patch_bakery', 'night_loss_patch_bakery', 'night_patch_bell', 'night_loss_patch_bell'])
 const garage = new Set(['night_depot','night_punch','night_window','night_platform','night_contract','night_lease','night_empty','night_last','night_coach'])
 const tailorBench = new Set(['air_store', 'air_cut', 'air_monitor', 'air_button', 'air_list', 'air_class', 'air_factory', 'air_fitting'])
 const backstage = new Set(['air_curtain', 'air_mother','air_letter','air_after'])
@@ -30,7 +31,7 @@ export function picture(id: string, scene = '') {
   }
   if (id === 'witness_deng_xiaoping') {
     if (screening.has(scene)) return '/chronicle/night_screen.webp'
-    if (garage.has(scene)) return '/chronicle/night_depot.webp'
+    if (garage.has(scene) || reunions.has(scene)) return '/chronicle/night_depot.webp'
     if (scene.startsWith('night_loss_')) return '/chronicle/witness_deng_xiaoping.webp'
     if (scene.startsWith('night_')) return '/chronicle/night_exchange.webp'
     if (televisionScenes.has(scene)) return '/chronicle/beijing_live.webp'
@@ -39,6 +40,7 @@ export function picture(id: string, scene = '') {
 }
 
 export function pictureCaption(chapter: string, scene: string) {
+  if (chapter === 'witness_deng_xiaoping' && reunions.has(scene)) return '情境插画 · 街坊记得的十七线车库'
   if (chapter === 'witness_gao' && scene === 'bank_serial_table') return '情境插画 · 小莲给孙女当了一回尺'
   // These drawings depict a particular moment even when they accompany a later life.
   if (chapter === 'witness_bian' && scene.startsWith('sky_'))

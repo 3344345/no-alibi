@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass, replace
 
+from .night_bus_dispatch import RUNS, clock
+
 
 @dataclass(frozen=True)
 class Choice:
@@ -949,3 +951,90 @@ ECHOES["inquiry"] = {
     "correct_count": "你把当初划掉的那行指给复核员看。她同意先核车种，乘客无需逐个来为自己作证。",
     "correct_van": "旧红圈虽已划掉，复核员仍能看清。她把涉及小海的指控先放回未证实一栏。",
 }
+
+# Optional hands-on timetable. All choices remain ordinary, replayable county actions.
+SCENES["call"] = replace(
+    SCENES["call"],
+    choices=SCENES["call"].choices + (
+        C("dial_paper", "先接过电话，替伍琴排一趟末班车", "dispatch_rehearsal",
+          "“那咱俩换一换，你当调度，我当乘客。”伍琴让男孩找支笔。听筒里咔哒一响，是圆珠笔弹出来了。"),
+    ),
+)
+SCENES["trial"] = replace(
+    SCENES["trial"],
+    choices=(C("dial_live", "坐上调度席，亲自定时刻和走哪条路", "dispatch_live",
+               "伍琴把小台灯转向你，调度章扣在玻璃板上。车里的工友把窗推开了一条缝，都在听。"),)
+    + SCENES["trial"].choices,
+)
+
+for rehearsal, node in ((True, "dispatch_rehearsal"), (False, "dispatch_live")):
+    choices = []
+    for run in RUNS:
+        key = run.key(rehearsal)
+        route_line = f"{clock(run.delay)}发车，{run.label}，{clock(run.arrival)}到北桥"
+        if rehearsal:
+            reply = f"男孩在纸上写下“{route_line}”。伍琴约你夜里到南门旧牌下，亲眼认认这些人。"
+            target = "curb"
+            ECHOES.setdefault("curb", {})[key] = (
+                f"男孩认出了你的声音，把电话里那张{clock(run.delay)}的时刻表对折塞给你。"
+                + ("“你让车拐的澡堂就是那家。我爷爷每天在门口听戏。”" if run.baths
+                   else "他指了指河堤：“你画的直线得走那儿。站在我们这头，可瞧不见桥。”")
+            )
+        else:
+            reply = f"伍琴接过你签的调度单，上面写着“{route_line}”。她抬手给驾驶位打了个手势。"
+            target = run.target
+            ECHOES.setdefault("fare", {})[key] = (
+                f"窗上贴着你排的第一班，{route_line}。"
+                + ("老葛头一回自己拿着乘车券来，说弯路上的人也该分两张。" if run.baths
+                   else "老葛的孙子替爷爷来问：“不上南门、在澡堂门口等的人，也能领一张吗？”")
+            )
+        choices.append(C(key, route_line, target, reply))
+    SCENES[node] = scene(
+        ONE if rehearsal else FIVE, "电话里的调度席" if rehearsal else "七路 · 调度席",
+        "把表拨给我听" if rehearsal else "末班车，等哪一分钟",
+        ("“先假装是明晚。”伍琴说，“我车上已经坐了三个去北桥换班的。他们的车十一点收门，一分钟也不等。”"
+         if rehearsal else "风把调度单掀起一角。伍琴拿车钥匙压住：“你定，我拿单子给司机。接班车十一点收门，到桥上再喊等一等，人家可听不见。”")
+        + "\n护理院的小陶十点四十六分能到南门，两位师傅要再晚六分钟。她们可以抄近路去澡堂，比到南门多走四分钟。澡堂的老葛腿脚不好，就在门口那块垫脚砖上坐着，只能在那儿上车。",
+        *choices,
+    )
+
+SCENES["dispatch_platform"] = scene(
+    FIVE, "北桥 · 站台上", "还剩七分钟",
+    "接班车停在对面。三名工友过去以后，伍琴没关门。七分钟能做什么？她想了想，指给你看桥上那部公用电话。\n小陶家的号码写在她工牌背面；老葛家的号码得问澡堂。你刚投进一枚硬币，一分钟通话开始倒数了。",
+    C("dispatch_call_ward", "拨给护理院，让师傅给还没到站的人留门", "fare",
+      "值班室的老唐把门钥匙从花盆底下拿回来。他说今晚给三个人留着，让七路下次打他桌上的电话。", exhibit="night_phone"),
+    C("dispatch_call_baths", "打给澡堂，告诉老葛今晚不用再等", "fare",
+      "电话响了十多声。老板娘把话筒递出窗外给老葛。他只说了一句：“知道不开过来，我好收凳子呀。”", exhibit="bath_phone"),
+)
+SCENES["dispatch_doors"] = scene(
+    FIVE, "北桥 · 两辆车之间", "别把这两分钟花了",
+    "北桥司机推开小气窗。最先跳上去的工友回头数到三，拍了两下车门。那边开走，才有人发现最小的那个把饭盒留在七路上了。\n饭盒外头缝着棉套，贴了一张纸条：“给你留了两个，多的分给詹叔。”伍琴认得那姑娘，下回看见她得等一星期。",
+    C("dispatch_return_tin", "托桥头早点铺把饭盒带到厂里", "fare",
+      "卖早点的把棉套搁到一袋面粉顶上，怕馅儿洒了。明早她去厂里送馒头，这盒饺子能赶上夜班人的早饭。", exhibit="tin_return"),
+    C("dispatch_lost_shelf", "在七路上留一格失物架，给饭盒拍张认领照", "fare",
+      "伍琴把一只旧票篮挂到扶杆上。姑娘半夜来电话托她把饺子吃了：“棉套留下啊，那是我爸做的。”", exhibit="shelf"),
+)
+SCENES["dispatch_late"] = scene(
+    FIVE, "北桥 · 熄灯以后", "接班车的尾灯",
+    "三名食品厂工友隔着玻璃看河。没人肯先下来，其中一个人把手机递给伍琴：“你跟我闺女说一声，今天别在楼道口等。”\n早点铺老板听见了，摘下围裙。他的面包车只能空出两个座，第三个得和七路一起回总站。小海把值班室的折叠床撑开时，床腿还一长一短。",
+    C("dispatch_bed", "陪留下的工友回总站，等他家里先把孩子接上楼", "fare",
+      "接通电话，他没说误车，只问闺女青菜洗过没。伍琴往短床腿下面塞了本旧路书。这一宿总算能把背放平。", exhibit="folding_bed"),
+    C("dispatch_sunrise", "问三人愿不愿一起留下，搭早点铺头班回宿舍", "fare",
+      "三个人把两张车座退给送面的人。四点半，他们跟着第一袋馒头到了宿舍区，手上各捏一张早点铺写的下车时刻。", exhibit="bread_slip"),
+)
+EXHIBITS.update({
+    "night_phone": ("留门电话", "护理院值班室", "桌机边多了一条七路来电记录，老唐答应等人回来再锁门。"),
+    "bath_phone": ("澡堂窗口的号码", "澡堂老板娘", "司机可以给没等到车的人报一声，省得人在屋外白等。"),
+    "tin_return": ("饭盒签收条", "北桥早点铺", "饭盒搭送面车回了厂，纸条和棉套一块儿签收。"),
+    "shelf": ("车上的旧票篮", "伍琴", "失物按班次存放，第一件是蓝棉套饭盒。"),
+    "folding_bed": ("总站留宿记录", "七路值班室", "试跑当晚有人错过换乘。折叠床和晚间联络号码留在了值班室。"),
+    "bread_slip": ("凌晨的三张下车条", "北桥早点铺", "三名工友一起搭送面车，于四点半到宿舍区。"),
+})
+ECHOES["turn"].update({
+    "dispatch_call_ward": "老唐来得最早。值班室那部电话的分机号，已经被他用透明胶贴在了新站牌上。",
+    "dispatch_call_baths": "老葛带来一只折凳。他说上回接到不来车的电话，他就能回屋顺顺当当听完一折戏。",
+    "dispatch_return_tin": "食品厂的姑娘提了一只蓝棉套饭盒进门，里头装着她爸新包的饺子。这回她先给詹叔分了两个。",
+    "dispatch_lost_shelf": "工友来认领棉套，顺便带来一双孩子的线手套。她拿给大家看：“这也是在票篮里找回来的。”",
+    "dispatch_bed": "在总站睡过一宿的工友领着女儿来了。她一眼认出那张折叠床，悄悄把垫在下面的旧路书塞正。",
+    "dispatch_sunrise": "早点铺老板送来一袋馒头，还有三张留着面粉印的下车条。他这一个月少送过两天面，问那两晚谁来接人。",
+})

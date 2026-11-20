@@ -486,3 +486,35 @@ test('walking around the half cistern changes its outline and reports a field co
     await fixture.close()
   }
 })
+
+test('the two courtyard drawings return years later and can be traced to the night they were made', async () => {
+  const fixture = await startBrowserFixture()
+  try {
+    const page = await fixture.browser.newPage({ viewport: { width: 390, height: 795 } })
+    await page.goto(fixture.session)
+    await button(page, '粉笔画不圆的月亮').click()
+    let game = await interact(page, 'POST', api, () => page.getByRole('button', { name: /走进王晶垚和孩子们的小院/ }).click())
+    for (const id of ['sky_fact','sky_move','sky_swap']) game = await choose(page, game, id)
+    const bench = page.getByRole('region', { name: '院里的月相桌' })
+    const action = /把两张月样对折/
+    assert.equal(await page.getByRole('button',{name: action}).count(), 0)
+    const slider = bench.getByRole('slider')
+    await slider.focus()
+    await page.keyboard.press('End')
+    await bench.getByRole('img', {name: '从这里看见一轮圆月'}).waitFor()
+    for (const [who, phase] of [['蒋禾','一弯月牙'],['阿砚','鼓起来的月亮']]) {
+      await button(bench, '站到' + who + '的脚印里').focus()
+      await page.keyboard.press('Enter')
+      await bench.getByRole('img', {name: '从这里看见' + phase}).waitFor()
+      await button(bench, '把眼前的月样描在纸上').click()
+    }
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+    game = await interact(page, 'POST', api + '/' + game.id + '/choices', () => bench.getByRole('button', { name: action }).click())
+    for (const id of ['sky_work','sky_pay','sky_private','sky_guest_out']) game = await choose(page, game, id)
+    const callback = page.locator('aside.story-echo').filter({hasText: '扁铁盒'})
+    await callback.locator('summary').click()
+    await callback.getByText('把两张月样对折，鞋尖朝向也画上去', {exact:true}).waitFor()
+    game = await choose(page, game, 'sky_pass_sketch')
+    assert.ok(game.marks.includes('院课 · 后排学生当了一堂老师'))
+  } finally { await fixture.close() }
+})

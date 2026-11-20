@@ -85,9 +85,15 @@ def add_runtime(folder):
         "--python-version", "3.12", "--implementation", "cp", "--abi", "cp312",
         "-r", str(ROOT / "requirements.txt"), "-c", str(ROOT / "requirements-dev.lock"),
     ]
-    subprocess.run([*pip, "download", "--index-url", "https://pypi.org/simple", "-d", wheels, *target], check=True)
+    if os.environ.get("PIP_NO_INDEX", "").lower() not in {"1", "true", "yes", "on"}:
+        subprocess.run([*pip, "download", "--index-url", "https://pypi.org/simple", "-d", wheels, *target], check=True)
     site = runtime / "lib/python3.12/site-packages"
     subprocess.run([*pip, "install", "--no-index", "--find-links", wheels, "--no-compile", "--target", site, *target], check=True)
+
+    # pip generates host-specific command wrappers. The desktop launcher imports
+    # its dependencies directly and never invokes these development commands.
+    if (site / "bin").is_dir():
+        shutil.rmtree(site / "bin")
 
 
 def add_notices(folder):

@@ -380,6 +380,29 @@ def environment(name, seed):
     tape.export(name, 0.055)
 
 
+def switchboard_foley(name):
+    # A caller's location heard through the handset. No voices or field recordings.
+    tape = Tape(2.7, 1989)
+    if name == "line_son":
+        rim = [(760, .11, .7), (1750, .076, 1), (2190, .05, .3)]
+        for at, level in [(0.12, .15), (.39, .12), (.57, .10), (.69, .086), (.77, .067), (.82, .052)]:
+            impact(tape, at, rim, .36, level, -.08)
+        impact(tape, .98, [(230, .09, 1), (386, .16, .6), (1470, .08, .34)], .63, .35, .12)
+    elif name == "line_baker":
+        blade = [(225, .095, 1), (460, .12, .55), (777, .09, .32), (1330, .047, .25)]
+        for at, level in ((.24, .42), (.64, .30)):
+            impact(tape, at, blade, .6, level, .13)
+        time = np.arange(int(.43 * RATE)) / RATE
+        scrape = tape.air(.43, [(0, 0), (460, .18), (1180, .6), (2800, 1), (5500, 0)])
+        tape.lay(1.03, scrape * np.sin(np.pi * time / .43) ** 3 * .013, .11)
+    else:
+        bell = [(689, .36, .55), (1490, .30, 1), (1799, .21, .59), (2960, .17, .19)]
+        impact(tape, .16, [(f, tail * .26, gain) for f, tail, gain in bell], .35, .25, -.08)
+        impact(tape, .56, bell, 1.25, .36, -.08)
+        impact(tape, 1.12, bell, 1.14, .25, -.1)
+    tape.export(name, .048)
+
+
 def kitchen_waltz():
     # A family recording heard on-air in act two. Her left hand misses the bass,
     # twice; the child finds the beat again while the bellows keep moving.
@@ -438,6 +461,9 @@ if __name__ == "__main__":
     selected = parser.parse_args().tracks
     if not selected or "kitchen_waltz" in selected:
         kitchen_waltz()
+    for title in ("line_son", "line_baker", "line_conductor"):
+        if not selected or title in selected:
+            switchboard_foley(title)
     for title in MOVEMENTS:
         if not selected or title in selected:
             movement(title)

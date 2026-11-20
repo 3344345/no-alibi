@@ -1,6 +1,7 @@
 """Optional county serial, progressed by committed choices and the county clock."""
 
 from .catalog import DAY
+from .night_bus_dispatch import ARRIVALS, BOARDS, LIVE_RUNS, slips
 from .night_bus_story import ECHOES, EXHIBITS, SCENES
 from .world_common import action, visible_doc
 
@@ -67,7 +68,7 @@ def project(d):
             "stage": "waiting",
             "act": TITLE,
             "place": "",
-            "title": VISITS[current][3],
+            "title": scene.title if current in ARRIVALS else VISITS[current][3],
             "body": "",
             "reply": last,
             "due": due,
@@ -89,11 +90,12 @@ def project(d):
         "reply": last,
         "due": None,
         "art": _art(current),
+        "dispatch": slips(current, seen),
     }
 
 
 def _art(current):
-    if current in {
+    if current in BOARDS or current in ARRIVALS or current in {
         "curb",
         "cab",
         "shoes",
@@ -134,7 +136,11 @@ def act(d, kind, args, ctx):
             ref=ref,
         )
     target = SCENES[chosen.target]
-    if chosen.target in VISITS:
+    if chosen.key in LIVE_RUNS:
+        travel = LIVE_RUNS[chosen.key].arrival
+        arc["due"] = ctx.minute + travel
+        ctx.schedule("night_bus_visit", {"scene": chosen.target}, travel, title=target.title)
+    elif chosen.target in VISITS:
         delay, hour, minute, caption = VISITS[chosen.target]
         earliest = ctx.minute + delay
         if chosen.target == "turn":
@@ -169,7 +175,12 @@ def complete(d, kind, payload, ctx):
         scene = SCENES[arc["node"]]
         if arc["node"] == "trial":
             arc["trial_at"] = ctx.minute
-        ctx.emit(scene.body.split("\n")[0], title=scene.title)
+        if arc["node"] in ARRIVALS:
+            run = LIVE_RUNS[arc["choices"][-1]]
+            arc["last"] = run.account()
+            ctx.emit(arc["last"], title=scene.title)
+        else:
+            ctx.emit(scene.body.split("\n")[0], title=scene.title)
     return True
 
 
@@ -194,13 +205,15 @@ def validate(d):
     ):
         raise ValueError("七路行记缺少当前场景。")
     if "due" in arc and (
-        current not in VISITS or type(arc["due"]) is not int or arc["due"] < d["now"]
+        current not in VISITS and current not in ARRIVALS
+        or type(arc["due"]) is not int
+        or arc["due"] < d["now"]
     ):
         raise ValueError("七路行记的约定时刻无效。")
     trial_has_begun = (
         current == "trial"
         and "due" not in arc
-        or bool(seen & {"hold", "on_time", "canal_link"})
+        or bool(seen & {"hold", "on_time", "canal_link", "dial_live"})
     )
     if trial_has_begun and (
         type(arc.get("trial_at")) is not int or not 0 <= arc["trial_at"] <= d["now"]

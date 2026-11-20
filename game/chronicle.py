@@ -333,6 +333,7 @@ class Book:
         if sid is not None:
             current = self.scene_maps[i][sid]
             owned = set(state["marks"])
+            callbacks = [echo for echo in current.echoes if echo.mark in owned]
             scene = {
                 "id": sid,
                 **(
@@ -342,7 +343,7 @@ class Book:
                 ),
                 "title": current.title,
                 "body": "\n\n".join(
-                    [current.body, *(e.body for e in current.echoes if e.mark in owned)]
+                    [current.body, *(e.body for e in callbacks)]
                 ),
                 "choices": [
                     {
@@ -354,6 +355,15 @@ class Book:
                     if owned.issuperset(c.requires)
                 ],
             }
+            if callbacks:
+                origins = {
+                    mark: index for index, entry in enumerate(state["journal"])
+                    for mark in entry["marks"]
+                }
+                scene["base_body"] = current.body
+                scene["callbacks"] = [
+                    {"body": echo.body, "origin": origins[echo.mark]} for echo in callbacks
+                ]
         return {
             "id": cid,
             "name": name,

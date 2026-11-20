@@ -9,6 +9,9 @@
   import type { Feature } from './features'
   export let featured: Feature | null = null
   import ExamMixer from './ExamMixer.svelte'
+  import CourtyardMoon from './CourtyardMoon.svelte'
+  import NightSwitchboard from './NightSwitchboard.svelte'
+  import XianTable from './XianTable.svelte'
   import RidgeSurvey from './RidgeSurvey.svelte'
   import Dialog from './Dialog.svelte'
   export let initialCampaign: Campaign
@@ -66,6 +69,8 @@
       id: string
       title: string
       body: string
+      base_body?: string
+      callbacks?: { body: string; origin: number }[]
       choices: Choice[]
       exhibits?: Exhibit[]
     } | null
@@ -84,6 +89,9 @@
   $: setting = game?.scene ? sceneSetting(game.chapter.id, game.scene.id, game.scene.title, game.chapter) : null
   $: handoverSetting = handover ? sceneSetting(handover.chapter_id, handover.scene, handover.title, handover) : null
   $: surveyingRidge = game?.chapter.id === 'witness_gao' && game?.scene?.id === 'bank_map'
+  $: moonTable = game?.chapter.id === 'witness_bian' && game?.scene?.id === 'sky_half'
+  $: switchboard = game?.chapter.id === 'witness_deng_xiaoping' && game?.scene?.id === 'night_switchboard'
+  $: xianTable = game?.chapter.id === 'witness_zhang_xueliang' && /^(xian_wait|xian_second_[nxc]|xian_(nanking|xian|civil)_(first|second))$/.test(game?.scene?.id ?? '')
   $: usingExamMixer = game?.chapter.id === 'witness_entrance_exam' && game?.scene?.id === 'air_monitor'
   $: last = game?.journal.at(-1)
   $: chapterSteps = (game?.journal ?? []).map((entry, index) => ({ ...entry, index }))
@@ -547,10 +555,25 @@
             {game.chapter.intro}
           </p>{/if}
         {#key game.id + '/' + game.revision}<div class="scene-body">
-          {#each game.scene.body.split(/\n+/).filter((paragraph) => paragraph.trim()) as paragraph}
+          {#each (game.scene.base_body ?? game.scene.body).split(/\n+/).filter((paragraph) => paragraph.trim()) as paragraph}
             <p>{#each linesOfSpeech(paragraph) as phrase}{#if phrase.startsWith('“')}<span class="speech">{phrase}</span>{:else}{phrase}{/if}{/each}</p>
           {/each}
         </div>{/key}
+        {#key game.id + '/' + game.revision}
+          {#each game.scene.callbacks ?? [] as callback}
+            {@const source = game.journal[callback.origin]}
+            <aside class="story-echo">
+              <p>{callback.body}</p>
+              {#if source}<details>
+                <summary>回想当时的选择 · {source.title}</summary>
+                <b>{source.label}</b><p>{source.result}</p>
+              </details>{/if}
+            </aside>
+          {/each}
+          {#if moonTable}<CourtyardMoon disabled={busy || (!!pending && pending.choice !== 'sky_keep_sketch')} onChoose={choose}/>{/if}
+          {#if switchboard}<NightSwitchboard choices={game.scene.choices} disabled={busy || !!pending} {volume} onChoose={choose}/>{/if}
+          {#if xianTable}<XianTable sceneId={game.scene.id} choices={game.scene.choices} marks={game.marks} disabled={busy || !!pending} onChoose={choose}/>{/if}
+        {/key}
         {#if usingExamMixer}<ExamMixer choices={game.scene.choices} disabled={busy || !!pending} onChoose={choose}/>{/if}
         {#if surveyingRidge}
           {#key game.id + '/' + game.revision}<RidgeSurvey {busy} pendingChoice={pending?.choice} onChoose={choose} />{/key}
@@ -579,8 +602,8 @@
             <small aria-live="polite">已选 {selected.length} / 2 件</small>
           </svelte:element>
         {/if}
-        {#if !usingExamMixer}<div class="decisions" aria-label="你的选择">
-          {#each game.scene.choices.filter((c) => !c.cites || (selected.length === 2 && canCite(c))) as c}<button
+        {#if !usingExamMixer && !xianTable}<div class="decisions" aria-label="你的选择">
+          {#each game.scene.choices.filter((c) => !(moonTable && c.id === 'sky_keep_sketch') && !(switchboard && c.id.startsWith('patch_')) && (!c.cites || (selected.length === 2 && canCite(c)))) as c}<button
               disabled={busy || (!!pending && pending.choice !== c.id)}
               on:click={() => choose(c.id)}
               ><span>{c.label}</span><b aria-hidden="true">→</b></button
@@ -954,6 +977,10 @@
   .scene-body p + p {
     margin-top: 0.9em;
   }
+  .story-echo { margin: .9rem 0 1.1rem; padding: .15rem .9rem .4rem; border-left: 2px solid #a17e51; }
+  .story-echo p { margin: .25rem 0; line-height: 1.75; }
+  .story-echo summary { color: #6c5231; font-size: .83rem; cursor: pointer; line-height: 1.55; }
+  .story-echo details b, .story-echo details p { font-size: .91rem; }
   .receipt {
     color: #5c4e3e;
     margin: 0.5rem 0;

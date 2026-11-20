@@ -233,6 +233,18 @@ class Parent(PlayerInput):
     revision: NonNegative
 
 
+class DispatchPlan(PlayerInput):
+    key: str
+    route: Literal["bridge", "baths"]
+    label: str
+    leave: str
+    bath_at: str | None
+    arrive: str
+    nurses: NonNegative
+    transfer: bool
+    marked: bool
+
+
 class NightBus(PlayerInput):
     stage: Literal["invitation", "waiting", "playing", "ending"]
     act: str
@@ -242,6 +254,7 @@ class NightBus(PlayerInput):
     reply: str
     due: NonNegative | None
     art: Literal["nightbus", "depot"]
+    dispatch: list[DispatchPlan] = Field(default_factory=list)
 
 
 class PlayerView(PlayerInput):

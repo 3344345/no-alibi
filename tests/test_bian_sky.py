@@ -156,3 +156,20 @@ def test_twenty_year_arc_has_four_acts_on_every_route():
         acts == ("一幕", "二幕", "三幕", "四幕") and turns >= 12
         for turns, acts in endings("sky_day")
     )
+
+
+def test_children_can_give_the_old_drawings_to_a_new_teacher(tmp_path):
+    store = ChronicleStore(GameStore(tmp_path / "drawings"))
+    view = walk(store, store.create("烟盒纸", "witness", "witness_bian"),
+                "sky_long sky_fact sky_move sky_swap")
+    second = store.fork(view["id"], Branch(revision=view["revision"]))
+    later = " sky_work sky_pay sky_private sky_guest_out"
+    v = walk(store, view, "sky_keep_sketch" + later)
+    alternate = walk(store, second, "sky_start_silent" + later)
+    for result, expected in [(v, True), (alternate, False)]:
+        assert ("sky_pass_sketch" in {item["id"] for item in result["scene"]["choices"]}) == expected
+    callback, = [c for c in v["scene"]["callbacks"] if "扁铁盒" in c["body"]]
+    assert v["journal"][callback["origin"]]["choice"] == "sky_keep_sketch"
+    fresh = ChronicleStore(GameStore(tmp_path / "reloaded"))
+    assert fresh.restore(store.export(v["id"])) == v
+    assert "后排学生当了一堂老师" in walk(fresh, v, "sky_pass_sketch")["marks"][-1]

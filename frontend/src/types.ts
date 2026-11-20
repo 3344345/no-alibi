@@ -51,6 +51,17 @@ export interface Entry {
   actor?: string
   refs?: string[]
 }
+export interface DispatchPlan {
+  key: string
+  route: 'bridge' | 'baths'
+  label: string
+  leave: string
+  bath_at: string | null
+  arrive: string
+  nurses: number
+  transfer: boolean
+  marked: boolean
+}
 export interface NightBusScene {
   stage: 'invitation' | 'waiting' | 'playing' | 'ending'
   act: string
@@ -60,6 +71,7 @@ export interface NightBusScene {
   reply: string
   due: number | null
   art: 'nightbus' | 'depot'
+  dispatch?: DispatchPlan[]
 }
 export interface View {
   night_bus?: NightBusScene | null

@@ -31,13 +31,13 @@ export const features: Feature[] = [
   },
   {
     title: '空出来的第三把椅子', setting: '西安，1936年冬',
-    pitch: '回南京、留在西安，还有一条几乎没人记得的去路。张学良要对方给一句承诺。可如果换你坐在对方的位置上，你敢答应吗？',
+    pitch: '你请人作保，他却把茶碗往回推了半寸。换到他的椅子上，听听他敢为哪件事作证。这句话到了南京，还得有人当庭说出口。',
     action: '坐到谈判桌的另一边', image: '/chronicle/xian_chairs.webp',
     chapter: 'witness_zhang_xueliang', opening: 'third_chair', campaign: 'witness',
   },
   {
     title: '粉笔画不圆的月亮', setting: '北京的小院，1966—1986',
-    pitch: '放不下一块黑板的小院，倒放得下整个月亮。二十年过去，那些来地上画过圆的孩子还认不认这间教室？',
+    pitch: '蒋禾说是一牙月亮，站在对面的阿砚偏说是圆的。你站进他们的鞋印，各画一张。这两张纸要是留得住，许多年后，还能拿来考考已经当老师的蒋禾。',
     action: '走进王晶垚和孩子们的小院', image: '/chronicle/sky_yard.webp',
     chapter: 'witness_bian', opening: 'sky_long', campaign: 'witness',
   },

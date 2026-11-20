@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy } from 'svelte'
   import { setSoundscape } from './sound'
+  import NightBusDispatch from './NightBusDispatch.svelte'
   import { stamp } from './game'
   import type { Action, NightBusScene, View } from './types'
 
@@ -42,6 +43,8 @@
       <button class="choice" disabled={busy} on:click={actionsPage}>先处理已经到场的听证</button>
     {:else if waiting && scene.due !== null}
       <button class="choice" disabled={busy} on:click={() => advance(Math.max(1, (scene.due ?? view.minute) - view.minute))}>赴约 · {stamp(scene.due)}</button>
+    {:else if choices.length && scene.dispatch?.length}
+      {#key scene.title}<NightBusDispatch plans={scene.dispatch} {choices} {busy} {choose} />{/key}
     {:else if choices.length}
       <div class="choices">{#each choices as choice}
         <button class="choice" disabled={busy} on:click={() => choose(choice)}>{choice.label}<span aria-hidden="true">→</span></button>

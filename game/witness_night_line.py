@@ -1,5 +1,7 @@
 """《夜班来电》, an optional five-act alternative history inside the Beijing chapter."""
 
+from game.witness_switchboard import with_switchboard
+
 
 def action(key, label, result, dest, mark=None, *, requires=None, cites=(), tone=None):
     return {
@@ -50,7 +52,7 @@ def add_night_line(chapter):
         "唐家父女、所有街坊和对白均属虚构。片中的1968年个人遭遇是创作，不能作为某一具体案件的史料。"
         "其中一些分支沿用戒严与六月的镇压这一历史后果，其他分支假想改用协商。节目来电和后来几年的故事在两条路线中都属于创作。"
     )
-    chapter["scenes"].extend(SCENES)
+    chapter["scenes"].extend(with_switchboard(SCENES))
 
 
 SCENES = [

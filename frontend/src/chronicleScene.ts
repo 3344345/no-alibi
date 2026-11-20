@@ -20,13 +20,15 @@ const stops = new Set([
   'night_punch',
   'night_window',
   'night_platform',
+  'night_patch_bell',
+  'night_loss_patch_bell',
   'night_contract',
   'night_lease',
   'night_empty',
   'night_last',
   'night_coach',
 ])
-const streets = new Set(['night_address', 'night_return', 'night_supper', 'night_harmonica'])
+const streets = new Set(['night_patch_bakery', 'night_loss_patch_bakery', 'night_address', 'night_return', 'night_supper', 'night_harmonica'])
 const mourning = new Set(['loss', 'night_clock', 'night_silence', 'night_mother', 'night_address'])
 const homecoming = new Set([
   'night_harmonica',
