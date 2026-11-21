@@ -33,3 +33,9 @@
 - `scripts/score_scene_reel.py` 生成影戏双声部和旧礼堂钢琴配乐、茶盖、竹杆、琴弦、雨点及低音退场声。
 - `scripts/score_seven_seconds.py` 合成十二秒双话筒素材，台口、后门和两路合听可离线切换；波形取自相同音轨。
 - `scripts/score_shadow_window.py` 和 `scripts/score_aftershow.py` 分别制作皮影锣点和旧影院声效。玩家能在静音时根据文字和画面操作全部新场面。
+
+## 4.6.0 人物演出与剧情短片
+
+人物现场使用独立的眼、眉、唇形、头颈和手臂动作。25 张历史肖像的原始来源、作者、许可及改动载于 `frontend/src/historicalCast.json` 和游戏首页「人物与出处」。档案照片用于确认人物形貌，游戏中的动作、台词及衣着为戏剧演出。相同方式共享的照片及其裁切、动画素材遵循相应原许可。12 张历史角色戏剧定妆另列于 `frontend/src/originalCast.json`。普通演员定妆、场景、服装和手势素材为本项目创作。
+
+49 段原创剧情短片均附本地中文字幕与立体声拟音。家庭、历史与澄川县城的制作脚本见 `scripts/film_family.py`、`scripts/render_witness_films.py` 及 `scripts/render_county_motion.py`。《倒带七秒》将夜间电台、双盘录音机、折椅合拢与琴键剪成 21 秒短片。历史馆藏新闻片保留在原「年代放映室」。

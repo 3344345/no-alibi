@@ -1,6 +1,9 @@
 <script lang="ts">
   import { onDestroy, tick } from 'svelte'
   import Dialog from './Dialog.svelte'
+  import ActingStage from './ActingStage.svelte'
+  import {countyStage,filmOpen} from './performance'
+  export let reduced=false
   import { stamp } from './game'
   import type { Action, Aftershow, View } from './types'
 
@@ -14,6 +17,7 @@
   export let advance: (minutes: number) => void
   export let actionsPage: () => void
   export let toggleAudio: () => void
+  let editArea:HTMLElement
   const poster = '/scenes/county-aftershow.webp'
   const booth = '/scenes/county-reel.webp'
   const frames = [
@@ -34,7 +38,7 @@
     second = 0
     if (open) void tick().then(() => heading?.focus())
   }
-  $: syncSound(open && volume > 0 && !isWaiting ? scene.sound : '', volume)
+  $: syncSound(open && !$filmOpen && volume > 0 && !isWaiting ? scene.sound : '', volume)
   function stopFilm() { clearInterval(timer); timer = undefined; running = false }
   function scrub(to: number) { stopFilm(); second = to }
   function playFilm() {
@@ -71,6 +75,9 @@
 {#if open}
   <Dialog title="散场以后" onclose={close}>
     <section class="cinema" aria-label="回声影院">
+      <ActingStage controlsArea={editArea} embeddedControls={scene.node==='spool'} scene={countyStage(view,'aftershow')} {busy} {reduced} {volume} {toggleAudio}
+        choices={scene.node==='spool'||isWaiting||view.ending||view.actions.some(a=>a.kind==='hearing')?[]:actions.map((a,i)=>({id:String(i),label:a.label,disabled:a.enabled===false}))}
+        decide={id=>{const a=actions[Number(id)];if(a)choose(a)}} seeControls={()=>heading?.scrollIntoView({block:'start'})}/>
       <div class="screen" class:editing={scene.node === 'spool'}>
         {#if scene.node === 'spool'}
           <img src={'/scenes/county-film-' + current.img + '.webp'} alt={current.name + '的旧录像情境插画'}/>
@@ -94,7 +101,7 @@
           <p>赴约时，县里的其他日程也会往前走。</p>
           <button class="action" disabled={busy} on:click={() => advance(Math.max(1, (scene.due ?? view.minute) - view.minute))}>赴约 · {stamp(scene.due)}</button>
         {:else if scene.node === 'spool' && actions.length}
-          <div class="editbench" aria-label="原带放映台" role="group">
+          <div class="editbench" bind:this={editArea} aria-label="原带放映台" role="group">
             <div class="deck"><span>现场原带</span><output>00:{String(second).padStart(2,'0')} / 00:40</output></div>
             <label>拖动磁带，选择公映片段<input type="range" min="0" max="40" step="1" value={second} on:input={e => scrub(+e.currentTarget.value)} aria-valuetext={second+'秒，'+current.name}/></label>
             <div class="stops">

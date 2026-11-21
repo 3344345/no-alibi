@@ -7,6 +7,7 @@
 
   export let scene: NightBusScene
   export let quiet = false
+  export let visit:()=>void
   export let view: View
   export let busy: boolean
   export let choose: (action: Action) => void
@@ -33,6 +34,7 @@
     </div>
   </header>
   <div class="story">
+    <button class="station-link" on:click={visit}>去七路站台看现场 ↗</button>
     {#if scene.reply}<p class="response">{scene.reply}</p>{/if}
     {#each scene.body.split('\n').filter(Boolean) as paragraph}<p>{paragraph}</p>{/each}
     {#if waiting && scene.due !== null}
@@ -59,6 +61,7 @@
 </section>
 
 <style>
+  .station-link{background:transparent;border:0;border-bottom:1px solid;color:#715c34;padding:.3rem 0;cursor:pointer}
   .night-bus { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
   header { position: relative; min-height: clamp(9rem, 15vw, 12rem); isolation: isolate; display: flex; align-items: flex-end; background: #26332f; }
   header.small { min-height: 7.8rem; }

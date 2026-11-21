@@ -2,7 +2,14 @@
   import GameUpdate from './GameUpdate.svelte'
   import ArchiveCinema from './ArchiveCinema.svelte'
   import Dialog from './Dialog.svelte'
-  let cinema = false
+  import StoryCinema from './StoryCinema.svelte'
+  import CastGallery from './CastGallery.svelte'
+  type Library = 'archive' | 'stories' | 'cast'
+  let library: Library | null = null
+  function openLibrary(next: Library, event: MouseEvent) {
+    if (event.currentTarget instanceof HTMLButtonElement) event.currentTarget.focus()
+    library = next
+  }
   import FeaturedStories from './FeaturedStories.svelte'
   import type { Feature } from './features'
   export let play: (story: Feature) => void
@@ -15,7 +22,11 @@
     <header>
       <img src="/seal.svg" alt="" />
       <h1>局中事</h1>
-      <button class="cinema-link" on:click={() => (cinema = true)}>年代放映室</button>
+      <nav class="libraries" aria-label="影像与人物">
+        <button on:click={(event) => openLibrary('stories', event)}>剧情放映厅</button>
+        <button on:click={(event) => openLibrary('archive', event)}>年代放映室</button>
+        <button on:click={(event) => openLibrary('cast', event)}>人物与出处</button>
+      </nav>
     </header>
     <FeaturedStories {play} />
     <div class="modes" role="group" aria-label="模式选择">
@@ -38,13 +49,19 @@
   <GameUpdate />
 </div>
 
-{#if cinema}
-  <Dialog title="年代放映室" onclose={() => (cinema = false)}><ArchiveCinema /></Dialog>
+{#if library === 'archive'}
+  <Dialog title="年代放映室" onclose={() => (library = null)}><ArchiveCinema /></Dialog>
+{:else if library === 'stories'}
+  <Dialog title="剧情放映厅" onclose={() => (library = null)}><StoryCinema /></Dialog>
+{:else if library === 'cast'}
+  <Dialog title="人物与出处" onclose={() => (library = null)}><CastGallery /></Dialog>
 {/if}
 
 <style>
-  .cinema-link {margin-left:auto; padding:.6rem .9rem; min-height:44px; background:transparent; color:#e5d9c1; border:1px solid #857a63;}
-  .cinema-link:hover {background:#353a32;}
+  .libraries {display:flex;justify-content:flex-end;gap:6px;margin-left:auto;}
+  .libraries button {padding:.55rem .85rem;min-height:44px;color:#e5d9c1;background:transparent;border:1px solid #857a63;}
+  .libraries button:hover,.libraries button:focus-visible {background:#353a32;border-color:#e0b573;}
+  @media(max-width:600px){header{flex-wrap:wrap;row-gap:10px;}.libraries{width:100%;justify-content:flex-start;flex-wrap:wrap;}.libraries button{font-size:.86rem;padding:.36rem .65rem;min-height:38px;}}
   .mode-page {
     background: #1c201e;
     color: #f3e9d4;

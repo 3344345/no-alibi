@@ -15,6 +15,9 @@
   import FaceBooth from './FaceBooth.svelte'
   import TapeRoom from './TapeRoom.svelte'
   import ScenePlayback from './ScenePlayback.svelte'
+  import ActingStage from './ActingStage.svelte'
+  import {historyStage, startTurn, clearPerformance, filmOpen, inTheatre, presenting, playback} from './performance'
+  export let reduced=false
   import { directedShot } from './sceneReel'
   import RidgeSurvey from './RidgeSurvey.svelte'
   import Dialog from './Dialog.svelte'
@@ -92,6 +95,11 @@
     handover: Entry | null = null
   $: setting = game?.scene ? sceneSetting(game.chapter.id, game.scene.id, game.scene.title, game.chapter) : null
   $: handoverSetting = handover ? sceneSetting(handover.chapter_id, handover.scene, handover.title, handover) : null
+  $: stageScene = game?.scene ? historyStage(game.chapter,game.scene,setting?.place) : null
+  $: displayedStage=stageScene ?? ($presenting?$playback.scene:undefined)
+  let interactiveStage:ActingStage
+  $: specialControls = !!game?.scene?.exhibits?.length || usingPuppets || usingTape || moonTable || switchboard || xianTable || usingExamMixer || surveyingRidge
+  $: theatreChoices = specialControls ? [] : (game?.scene?.choices ?? []).filter(c=>!c.cites || (selected.length===2 && canCite(c)))
   let reelPreference: boolean | null = null
   let decisionArea: HTMLElement
   let reelTop: HTMLElement
@@ -124,7 +132,7 @@
   $: last = game?.journal.at(-1)
   $: chapterSteps = (game?.journal ?? []).map((entry, index) => ({ ...entry, index }))
     .filter((entry) => entry.chapter_id === (handover?.chapter_id ?? game?.chapter.id))
-  $: setSoundscape(game?.scene && game.scene.id !== 'reel_mix' && !game.finished && !handover && !topic
+  $: setSoundscape(game?.scene && game.scene.id !== 'reel_mix' && !game.finished && !handover && !topic && !$filmOpen
     ? sceneMix(game.chapter.id, game.scene.id, last?.chapter_id === game.chapter.id ? last.tone : undefined)
     : undefined)
   let pending: { revision: number; choice: string; command_id: string } | null = null
@@ -252,6 +260,7 @@
   async function enter(view: View) {
     stopScore()
     if (mode !== view.campaign) await refresh(view.campaign)
+    clearPerformance()
     game = view
     book = null
     handover = null
@@ -264,7 +273,7 @@
     await tick()
     selected = []
     opened = []
-    if (alive) {
+    if (alive && !$inTheatre) {
       const focus = game?.scene && reels && !handover && !topic && reelTop ? reelTop : heading
       focus?.focus({ preventScroll: true })
       window.scrollTo(0, 0)
@@ -296,6 +305,7 @@
     void perform(async () => {
       await refresh()
       stopScore()
+      clearPerformance()
       game = null
       handover = null
       pending = null
@@ -310,7 +320,16 @@
     pending ??= { revision: previous.revision, choice: id, command_id: crypto.randomUUID() }
     const command = pending
     void perform(async () => {
-      const next = await api<View>(endpoint(previous.id) + '/choices', command)
+      const action = previous.scene?.choices.find(c => c.id === id)
+      const stageTurn = stageScene && action ? startTurn(stageScene, action.label) : null
+      let next: View
+      try {
+        next = await api<View>(endpoint(previous.id) + '/choices', command)
+        const outcome = next.journal[command.revision]
+        const after=next.scene && next.chapter.id===previous.chapter.id ? historyStage(next.chapter,next.scene) : undefined
+        const reaction=after?.other && action?.label.includes(after.other.name.replace(/^聂桂枝$/,'桂枝')) ? after : undefined
+        void stageTurn?.resolve(outcome?.result ?? '',outcome?.tone,reaction)
+      } catch (e) {stageTurn?.cancel(); throw e}
       if (!alive) return
       pending = null
       game = next
@@ -380,6 +399,7 @@
   })
   onDestroy(() => {
     alive = false
+    clearPerformance()
     setSoundscape(undefined)
     stopScore()
   })
@@ -422,6 +442,9 @@
       >
     </div>{/if}
   {#if info}<p class="signal" role="status">{info}</p>{/if}
+  {#if game && displayedStage && ((!handover && !game.finished) || $presenting)}
+    <ActingStage bind:this={interactiveStage} embeddedControls={specialControls} controlsArea={decisionArea} scene={displayedStage} choices={theatreChoices} decide={choose} seeControls={reachDecision} {volume} {toggleAudio} {busy} {reduced}/>
+  {/if}
   {#if !game}
     <div class="lobby">
       <div class="lobby-art">

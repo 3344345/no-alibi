@@ -1,0 +1,202 @@
+{
+  "毛泽东": {
+    "file": "mao_zedong",
+    "source": "https://commons.wikimedia.org/wiki/File:Mao_Zedong_Anefo.jpg",
+    "author": "荷兰国家档案馆，Anefo 摄影集，摄影者未署名，馆藏号 915-6705",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "邓小平": {
+    "file": "deng_xiaoping",
+    "source": "https://commons.wikimedia.org/wiki/File:Deng_Xiaoping.jpg",
+    "author": "美国白宫摄影部门，摄影者未署名，美国国家档案馆 183165",
+    "license": "美国联邦政府作品，公有领域",
+    "licenseUrl": "https://www.govinfo.gov/link/uscode/17/105",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "周恩来": {
+    "file": "zhou_enlai",
+    "source": "https://commons.wikimedia.org/wiki/File:Premier_Chou_En-Lai_in_the_Great_Hall_of_the_People%27s_Banquet_Hall_-_DPLA_-_a40021a8100507bc7a244420481bf488.jpg",
+    "author": "美国白宫摄影办公室，尼克松总统图书馆及美国国家档案馆",
+    "license": "美国联邦政府作品，公有领域",
+    "licenseUrl": "https://www.govinfo.gov/link/uscode/17/105",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "蒋介石": {
+    "file": "chiang_kai_shek",
+    "source": "https://commons.wikimedia.org/wiki/File:%E8%94%A3%E4%B8%AD%E6%AD%A3%E7%B8%BD%E7%B5%B1%E7%8E%89%E7%85%A7.png",
+    "author": "中华民国总统府，国史馆典藏 002-050101-00003-209，摄影者未署名",
+    "license": "政府网站资料开放宣告",
+    "licenseUrl": "https://english.president.gov.tw/Page/18",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "蒋经国": {
+    "file": "chiang_ching_kuo",
+    "source": "https://commons.wikimedia.org/wiki/File:%E8%94%A3%E7%B6%93%E5%9C%8B%E7%B8%BD%E7%B5%B1_1.jpg",
+    "author": "中华民国总统府",
+    "license": "政府网站资料开放宣告",
+    "licenseUrl": "https://english.president.gov.tw/Page/18",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "谭嗣同": {
+    "file": "tan_sitong",
+    "source": "https://commons.wikimedia.org/wiki/File:Tansitong.jpg",
+    "author": "摄影者未署名",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "孙中山": {
+    "file": "sun_yatsen",
+    "source": "https://commons.wikimedia.org/wiki/File:%E5%AD%99%E4%B8%AD%E5%B1%B1%E8%82%96%E5%83%8F.jpg",
+    "author": "上海波尔照相馆",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "陈独秀": {
+    "file": "chen_duxiu",
+    "source": "https://commons.wikimedia.org/wiki/File:Chen_Duxiu4.jpg",
+    "author": "摄影者未署名，1927 年",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "张学良": {
+    "file": "zhang_xueliang",
+    "source": "https://commons.wikimedia.org/wiki/File:Chang_Shueliang.jpg",
+    "author": "来源署名 Central Archive Press，1928 年",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "张治中": {
+    "file": "zhang_zhizhong",
+    "source": "https://commons.wikimedia.org/wiki/File:Zhang_Zhizhong2.jpg",
+    "author": "《中国名人录》第四版增补（1933 年）第一页，摄影者未署名，Internet Archive 扫描",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "詹天佑": {
+    "file": "zhan_tianyou",
+    "source": "https://commons.wikimedia.org/wiki/File:1918%E5%B9%B4%E8%A9%B9%E5%A4%A9%E4%BD%91.jpg",
+    "author": "摄影者未署名，1918 年，Yulurenyi 提供扫描",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "魏特琳": {
+    "file": "minnie_vautrin",
+    "source": "https://commons.wikimedia.org/wiki/File:Minnie_Vautrin.jpg",
+    "author": "Emma Lyon，1912 年",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "许志永": {
+    "file": "xu_zhiyong",
+    "source": "https://commons.wikimedia.org/wiki/File:Xu_Zhiyong.JPG",
+    "author": "Shizhao",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "顾正红": {
+    "file": "gu_zhenghong",
+    "source": "https://commons.wikimedia.org/wiki/File:%E8%A2%AB%E4%B8%8A%E6%B5%B7%E2%BD%87%E6%9C%AC%E7%BA%B1%E2%BC%9A%E8%B5%84%E6%9C%AC%E5%AE%B6%E6%9E%AA%E6%9D%80%E7%9A%84%E5%85%B1%E4%BA%A7%E5%85%9A%E5%91%98%E9%A1%BE%E6%AD%A3%E7%BA%A2%E7%83%88%E2%BC%A0%E8%82%96%E5%83%8F%E7%85%A7%E2%BD%9A.jpg",
+    "author": "摄影者未署名，约 1925 年，来源为旧照片实物",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "沈钧儒": {
+    "file": "shen_junru",
+    "source": "https://commons.wikimedia.org/wiki/File:%E6%B2%88%E9%88%9E%E5%84%922.jpg",
+    "author": "摄影者未署名，《甲辰同年相谱》，1919 年",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "彭德怀": {
+    "file": "peng_dehuai",
+    "source": "https://commons.wikimedia.org/wiki/File:Peng_3.jpg",
+    "author": "摄影者未署名，约 1934 至 1935 年，来源为中国军网历史图片",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "游戏版本对图片进行了缩放、WebP 转码或裁切；舞台演出包含基于该照片的动画处理。"
+  },
+  "赵紫阳": {
+    "file": "zhao_ziyang",
+    "source": "https://commons.wikimedia.org/wiki/File:Bezoek_Chinese_premier_Zhao_Ziyang_,_met_premier_Lubbers_tijdens_regeringsdiner,_Bestanddeelnr_933-3563_(cropped).jpg",
+    "author": "Rob Bogaerts / Anefo，荷兰国家档案馆 933-3563",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "《局中事》将照片裁切、缩放并转为 WebP，舞台包含基于该肖像的动画演绎。"
+  },
+  "李鹏": {
+    "file": "li_peng",
+    "source": "https://commons.wikimedia.org/wiki/File:Lipeng.jpg",
+    "author": "World Economic Forum，Shizhao 裁切",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+    "changes": "《局中事》将照片裁切、缩放并转为 WebP，舞台包含基于该肖像的动画演绎。 游戏所附本肖像的适配和相应动画肖像素材沿用 CC BY-SA 2.0 许可。"
+  },
+  "胡耀邦": {
+    "file": "hu_yaobang",
+    "source": "https://commons.wikimedia.org/wiki/File:Hu_Yaobang_and_Nilde_Iotti_(7)_(4to3).jpg",
+    "author": "意大利众议院历史档案，摄影者未署名",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "changes": "《局中事》将照片裁切、缩放并转为 WebP，舞台包含基于该肖像的动画演绎。 游戏所附本肖像的适配和相应动画肖像素材沿用 CC BY-SA 4.0 许可。"
+  },
+  "章乃器": {
+    "file": "zhang_naiqi",
+    "source": "https://commons.wikimedia.org/wiki/File:Zhang_Naiqi.jpg",
+    "author": "摄影者未署名，《最新支那要人传》，1941 年或以前；天竺鼠扫描",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "《局中事》将照片裁切、缩放并转为 WebP，舞台包含基于该肖像的动画演绎。"
+  },
+  "王造时": {
+    "file": "wang_zaoshi",
+    "source": "https://commons.wikimedia.org/wiki/File:Wang_Zaoshi.jpg",
+    "author": "摄影者未署名，《最新支那要人传》，1941 年或以前；天竺鼠扫描",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "《局中事》将照片裁切、缩放并转为 WebP，舞台包含基于该肖像的动画演绎。"
+  },
+  "邹韬奋": {
+    "file": "zou_taofen",
+    "source": "https://commons.wikimedia.org/wiki/File:%E9%82%B9%E9%9F%AC%E5%A5%8B_%E9%9D%92%E5%B9%B4%E6%97%B6%E6%9C%9F.JPG",
+    "author": "摄影者未署名，青年时期照片",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "《局中事》将照片裁切、缩放并转为 WebP，舞台包含基于该肖像的动画演绎。"
+  },
+  "沙千里": {
+    "file": "sha_qianli",
+    "source": "https://commons.wikimedia.org/wiki/File:%E6%B2%99%E5%8D%83%E9%87%8C.jpg",
+    "author": "《新中华》，1937 年 12 月 31 日",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "《局中事》将照片裁切、缩放并转为 WebP，舞台包含基于该肖像的动画演绎。"
+  },
+  "史良": {
+    "file": "shi_liang",
+    "source": "https://commons.wikimedia.org/wiki/File:Qijunzi.jpg",
+    "author": "摄影者未署名，1937 年七君子获释前合影，史良位于左起第二位",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "《局中事》将照片裁切、缩放并转为 WebP，舞台包含基于该肖像的动画演绎。"
+  },
+  "李公朴": {
+    "file": "li_gongpu",
+    "source": "https://commons.wikimedia.org/wiki/File:Li_Gongpu.jpg",
+    "author": "摄影者未署名，1946 年以前",
+    "license": "公有领域",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "changes": "《局中事》将照片裁切、缩放并转为 WebP，舞台包含基于该肖像的动画演绎。"
+  }
+}

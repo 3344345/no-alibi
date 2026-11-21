@@ -18,10 +18,13 @@
   import WorkingNote from './WorkingNote.svelte'
   import Sites from './Sites.svelte'
   import CurrentScene from './CurrentScene.svelte'
+  import ActingStage from './ActingStage.svelte'
+  import {countyStage, startTurn, clearPerformance, filmOpen} from './performance'
   import PassageRequest from './PassageRequest.svelte'
   import NightBus from './NightBus.svelte'
   import Aftershow from './Aftershow.svelte'
   let aftershowOpen = false
+  let countyLens=''
   import { committedSound, cue, enableSound, setSoundVolume, silence } from './sound'
   import Records from './Records.svelte'
   import Timeline from './Timeline.svelte'
@@ -258,6 +261,7 @@
     peopleTab = '人物名录'
   }
   async function goto(p: Page) {
+    countyLens=''
     page = p
     lastAttempts = []
     picked = null
@@ -273,6 +277,8 @@
     window.scrollTo(0, 0)
   }
   function enter(view: View) {
+    countyLens=''
+    clearPerformance()
     clearUI()
     v = view
     worldName = view.world_id
@@ -335,6 +341,7 @@
   }
   function quit() {
     if (busy) return
+    clearPerformance()
     stopWatch?.()
     v = null
     clearUI()
@@ -380,6 +387,8 @@
   }
   function selectAction(a: Action, extra: Record<string, Value> = {}) {
     if (busy || pending || a.enabled === false || !v) return
+    if(a.kind==='night_bus')countyLens='night_bus'
+    else if(a.kind!=='aftershow')countyLens=''
     const values = {
       ...a.args,
       ...Object.fromEntries(
@@ -418,6 +427,14 @@
     sessionStorage.setItem(storageKey(v.world_id), JSON.stringify(cmd))
     await deliver(cmd)
   }
+  function stageOptions(view:View,kind='') {
+    const eligible=view.actions.filter(a=>a.enabled!==false && (kind ? a.kind===kind : !['set_balance','batch','advance','aftershow','night_bus'].includes(a.kind)))
+    const rank=(a:Action)=>['consult','reply','speak','report','compare','meet','mentor'].includes(a.kind)?0:a.kind==='travel'?2:1
+    return eligible.sort((a,b)=>rank(a)-rank(b))
+  }
+  function toCountyControls(){void goto('行动').then(()=>{const node=document.querySelector<HTMLElement>('.workspace-main .actions-page, .workspace-main h1');node?.scrollIntoView({block:'start'})})}
+  $: deskOptions=v?stageOptions(v,countyLens):[]
+  async function visitBus(){countyLens='night_bus';await tick();document.querySelector('.workspace-main .perform')?.scrollIntoView({block:'center'})}
   async function deliver(cmd: Command) {
     if (!v || busy) return
     const old = v,
@@ -429,9 +446,14 @@
     picked = null
     options = []
     parseNote = ''
+    const selectedAction=old.actions.find(a=>a.kind===cmd.kind && Object.entries(a.args??{}).every(([k,val])=>cmd.args[k]===val))
+    const caption=selectedAction?.label??({advance:'前往下一个时刻',batch:'依次办理选中的事项',set_balance:'调整取向',travel:'动身前往下一处'} as Record<string,string>)[cmd.kind]??'办理这件事'
+    const stageTurn=startTurn(countyStage(old,aftershowOpen?'aftershow':cmd.kind,caption),caption,cmd.kind)
     try {
       const next = await api<View>(endpoint + '/commands', cmd)
+      const consequence=next.timeline.filter(e=>!old.timeline.some(previous=>previous.id===e.id)).at(-1)
       v = next
+      void stageTurn.resolve(consequence?.text??consequence?.title??'这一动作已记入生涯。')
       cue(committedSound(old, next))
       const previous = new Set(old.timeline.map((e) => e.id))
       const newEvents = (next.timeline ?? []).filter((e) => !previous.has(e.id))
@@ -449,6 +471,7 @@
       sessionStorage.removeItem(storageKey(old.world_id))
       if (!categories.includes(category)) category = '全部'
     } catch (e) {
+      stageTurn.cancel()
       error = message(e)
       if (
         e instanceof ApiError &&
@@ -577,7 +600,7 @@
   </aside>
 {/if}
 {#if chronicle}
-  <Chronicle initialCampaign={chronicle} {featured} {volume} toggleAudio={() => chooseVolume(volume > 0 ? 0 : lastAudibleVolume)}
+  <Chronicle reduced={reduceMotion} initialCampaign={chronicle} {featured} {volume} toggleAudio={() => chooseVolume(volume > 0 ? 0 : lastAudibleVolume)}
     leave={(campaign) => {countyMenu = campaign === 'family'; featured = null; chronicle = null}} />
 {:else if !v && !countyMenu}
   <ModeSelection play={(story) => { featured = story; chronicle = story.campaign }} county={() => (countyMenu = true)} witness={() => (chronicle = 'witness')} />
@@ -642,7 +665,7 @@
           <b>{date.time}</b>
         </div>
       </header>
-      <main class="workspace-main" id="main">
+      <main class="workspace-main" class:action-layout={page==='行动'} id="main">
         <div class="page-heading">
           <div>
             {#if !showScene}<p class="kicker">{str(v.location, 'name') || '澄川县'} · {v.name}</p>{/if}
@@ -682,16 +705,19 @@
               }}>回看已知经过 →</button
             >
           </section>{/if}
+        {#if !aftershowOpen}
+          <ActingStage scene={countyStage(v,countyLens)} choices={deskOptions.map((a,i)=>({id:String(i),label:a.label,group:a.category??'行动'}))} decide={id=>{const a=deskOptions[Number(id)];if(a)selectAction(a)}} seeControls={toCountyControls} {busy} reduced={reduceMotion} {volume} toggleAudio={()=>chooseVolume(volume?0:lastAudibleVolume)}/>
+        {/if}
         {#if showScene}<CurrentScene place={v.location} />{/if}
         {#if page === '办公桌'}
           <div class="desk-grid">
             <div class="column">
               {#if v.night_bus}
-                <NightBus quiet={aftershowOpen} scene={v.night_bus} view={v} busy={busy || !!pending} choose={selectAction}
+                <NightBus visit={visitBus} quiet={aftershowOpen||$filmOpen} scene={v.night_bus} view={v} busy={busy || !!pending} choose={selectAction}
                   advance={(minutes) => send('advance', { minutes })} actionsPage={() => goto('行动')} />
               {/if}
               {#if v.aftershow}
-                <Aftershow scene={v.aftershow} view={v} {volume} {error} busy={busy || !!pending} bind:open={aftershowOpen}
+                <Aftershow reduced={reduceMotion} scene={v.aftershow} view={v} {volume} {error} busy={busy || !!pending} bind:open={aftershowOpen}
                   choose={selectAction} advance={(minutes) => send('advance', { minutes })} actionsPage={() => goto('行动')}
                   toggleAudio={() => chooseVolume(volume > 0 ? 0 : lastAudibleVolume)} />
               {/if}

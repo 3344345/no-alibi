@@ -1332,3 +1332,11 @@ dialog::backdrop {
   margin: -8px 0 20px;
   font-size: 0.85rem;
 }
+
+@media(max-width:620px){
+  .action-layout .perform:not(.theatre):not(.postcard){margin:.25rem 0 .4rem}
+  .action-layout .perform:not(.theatre):not(.postcard) .frame:not(.film){height:80px}
+  .action-layout .perform:not(.theatre):not(.postcard) header,.action-layout .perform:not(.theatre):not(.postcard) footer{min-height:0;padding:.15rem .4rem}
+  .action-layout .perform:not(.theatre):not(.postcard) header button,.action-layout .perform:not(.theatre):not(.postcard) footer button{min-height:28px}
+  .action-layout figure.scene{display:none}
+}
