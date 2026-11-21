@@ -4,6 +4,7 @@
   import { enableSound, playScore, stopScore } from './sound'
   import ReadingView from './ReadingView.svelte'
   import type { ReadingCamera } from './readingView'
+  export let onRead: () => void
   export let camera: ReadingCamera
   export let shot: Shot | undefined
   export let date: string
@@ -29,6 +30,7 @@
   function seek(i: number) {
     if (i < 0 || i >= beats.length) return
     if (looking) stopScore()
+    onRead()
     looking = false
     index = i
     try { sessionStorage.setItem(pageKey + gameId, JSON.stringify({revision,index})) } catch {}

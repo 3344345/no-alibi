@@ -18,7 +18,7 @@
   import TapeRoom from './TapeRoom.svelte'
   import ScenePlayback from './ScenePlayback.svelte'
   import ActingStage from './ActingStage.svelte'
-  import {historyStage, startTurn, clearPerformance, filmOpen, inTheatre, presenting, playback} from './performance'
+  import {historyStage, decisionStage, startTurn, clearPerformance, filmOpen, inTheatre, presenting, playback} from './performance'
   export let reduced=false
   import { directedShot } from './sceneReel'
   import RidgeSurvey from './RidgeSurvey.svelte'
@@ -98,9 +98,20 @@
   $: setting = game?.scene ? sceneSetting(game.chapter.id, game.scene.id, game.scene.title, game.chapter) : null
   $: handoverSetting = handover ? sceneSetting(handover.chapter_id, handover.scene, handover.title, handover) : null
   $: stageScene = game?.scene ? historyStage(game.chapter,game.scene,setting?.place) : null
+  let deskAtRevision=''
+  $: revisionKey=game ? game.id+'/'+game.revision : ''
+  $: seat=stageScene ? decisionStage(stageScene) : null
   $: readerShot=game?.scene ? directedShot(game.scene.id) : undefined
-  $: readerCamera=stageScene ? readingCamera(stageScene,readerShot) : null
-  $: displayedStage=stageScene ?? ($presenting?$playback.scene:undefined)
+  $: playingSeat=$presenting && $playback.scene?.transmission ? $playback.scene : null
+  $: readingSeat=playingSeat ?? (seat?.transmission && deskAtRevision===revisionKey ? seat : null)
+  $: readerCamera=readingSeat ? readingCamera(readingSeat) : stageScene ? readingCamera(stageScene,readerShot) : null
+  $: cameraCredit=readingSeat ? readingSeat.player.name+' · 北京办公席' : stageScene ?
+    (seat?.transmission ? seat.transmission+' · ' : '')+stageScene.player.name+'所见' : ''
+  $: displayedStage=seat ?? ($presenting?$playback.scene:undefined)
+  function atDecisionDesk() {
+    if(seat?.transmission) deskAtRevision=revisionKey
+  }
+  function backToSource() { deskAtRevision='' }
   let interactiveStage:ActingStage
   $: specialControls = !!game?.scene?.exhibits?.length || usingPuppets || usingTape || moonTable || switchboard || xianTable || usingExamMixer || surveyingRidge
   $: theatreChoices = specialControls ? [] : (game?.scene?.choices ?? []).filter(c=>!c.cites || (selected.length===2 && canCite(c)))
@@ -118,6 +129,7 @@
   }
   function reachDecision() {
     if (!decisionArea) return
+    atDecisionDesk()
     const control = decisionArea.querySelector<HTMLElement>('button:not(:disabled),input:not(:disabled),summary')
     decisionArea.scrollIntoView({block:'start'})
     const target = control ?? decisionArea
@@ -325,13 +337,14 @@
     const command = pending
     void perform(async () => {
       const action = previous.scene?.choices.find(c => c.id === id)
-      const stageTurn = stageScene && action ? startTurn(stageScene, action.label) : null
+      const actingSeat = seat
+      const stageTurn = actingSeat && action ? startTurn(actingSeat, action.label) : null
       let next: View
       try {
         next = await api<View>(endpoint(previous.id) + '/choices', command)
         const outcome = next.journal[command.revision]
-        const after=next.scene && next.chapter.id===previous.chapter.id ? historyStage(next.chapter,next.scene) : undefined
-        const reaction=after?.other && action?.label.includes(after.other.name.replace(/^聂桂枝$/,'桂枝')) ? after : undefined
+        const after=next.scene && next.chapter.id===previous.chapter.id ? decisionStage(historyStage(next.chapter,next.scene)) : undefined
+        const reaction=!actingSeat?.transmission && !after?.transmission && after?.player.name===actingSeat?.player.name && after?.other && action?.label.includes(after.other.name.replace(/^聂桂枝$/,'桂枝')) ? after : undefined
         void stageTurn?.resolve(outcome?.result ?? '',outcome?.tone,reaction)
       } catch (e) {stageTurn?.cancel(); throw e}
       if (!alive) return
@@ -597,9 +610,9 @@
       {#if reels}
         <div tabindex="-1" class="reel-top" bind:this={reelTop}>
         {#key game.id + '/' + game.revision}
-          <ScenePlayback camera={readerCamera} shot={readerShot}
+          <ScenePlayback camera={readerCamera} shot={readingSeat ? undefined : readerShot} onRead={backToSource}
             date={setting?.year ?? game.chapter.year}
-            place={setting?.place ?? game.chapter.place} role={readerCamera.person} body={game.scene.base_body ?? game.scene.body}
+            place={setting?.place ?? game.chapter.place} role={cameraCredit} body={game.scene.base_body ?? game.scene.body}
             previous={last?.chapter_id === game.chapter.id && !['borrow_a_face','seven_seconds'].includes(last.choice ?? '') ? last.result : ''} revision={game.revision} gameId={game.id} decide={reachDecision} {volume} {toggleAudio}/>
         {/key}
         </div>
@@ -607,12 +620,13 @@
         <ReadingView camera={readerCamera}/>
         <div class="art-caption">
           <span>{setting?.year}</span><strong>{setting?.place}</strong>
-          <p>{readerCamera.person}所见</p>
+          <p>{cameraCredit}</p>
+          {#if seat?.transmission && deskAtRevision===revisionKey && !$presenting}<button class="back-source" on:click={backToSource}>回看{seat.transmission}</button>{/if}
         </div>
       </aside>{/if}
       <article class="story">
         <p class="date-line">
-          {mode === 'witness' ? '历史推演 · ' : ''}{currentWork}　／　{game.chapter.role.includes(readerCamera.person) ? game.chapter.role : readerCamera.person}
+          {mode === 'witness' ? '历史推演 · ' : ''}{currentWork}　／　{game.chapter.role}
         </p>
         <h1 tabindex="-1" bind:this={heading}>{game.scene.title}</h1>
         {#if !game.journal.length || game.journal.at(-1)?.chapter_id !== game.chapter.id}<p
@@ -638,7 +652,8 @@
             </aside>
           {/each}
         {/key}
-        <div class="play-area" aria-label="本幕行动" role="group" tabindex="-1" bind:this={decisionArea}>
+        <div class="play-area" aria-label="本幕行动" role="group" tabindex="-1" bind:this={decisionArea} on:focusin={atDecisionDesk} data-decision-player={seat?.player.name}>
+        {#if seat?.transmission}<p class="decision-seat">{seat.player.name} · 北京办公席</p>{/if}
         {#key game.id + '/' + game.revision}
           {#if usingPuppets}<FaceBooth choices={game.scene.choices} disabled={busy || !!pending} {volume} onChoose={choose}/>{/if}
           {#if usingTape}<TapeRoom choices={game.scene.choices} disabled={busy || !!pending} {volume} onChoose={choose}/>{/if}
@@ -962,8 +977,8 @@
   .scene-art::after {
     content: '';
     position: absolute;
-    inset: 38% 0 0;
-    background: linear-gradient(transparent, rgba(15, 17, 15, 0.84));
+    inset: 0;
+    background: linear-gradient(155deg, rgba(15,17,15,.58), transparent 43%);
     pointer-events: none;
   }
   .art-caption {
@@ -975,6 +990,9 @@
     color: #fff6e3;
     text-shadow: 0 1px 8px #302d25;
   }
+  .scene-art .art-caption {top:clamp(18px,4vh,44px);bottom:auto}
+  .back-source{background:#262a22ca;color:#fff4da;padding:.3rem .55rem;border:1px solid #ac9b75;cursor:pointer}
+  .decision-seat{color:#765c3c;font-weight:600}
   .art-caption span,
   .art-caption strong {
     display: block;

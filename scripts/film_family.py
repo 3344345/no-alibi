@@ -394,8 +394,6 @@ def scene(id, d, im, p):
             xx=(k*337+18*t)%960; yy=(k*161+t*266)%530
             ink(d,[(xx,yy),(xx-3,yy+10)],'#928d77',1)
     elif id=='shadow-play':
-        for x in (84,871):
-            ink(d,[(x,30),(x+(3 if x<100 else -4),465)],'#5b3924',10)
         puppet(d,363+30*slide,226,1,0,t)
         puppet(d,598-18*slide,236,-1,2.8,t)
         # The light is behind the player. Peer through the skin and cloth;
@@ -560,12 +558,10 @@ def render(id):
         blend=np.clip((horizon+5-yy)/11,0,1)
         table=Image.composite(room,table,Image.fromarray(np.uint8(blend*255)))
     else:
-        # Fabric seam and the two tied loops are visible on the working side.
-        backstage=ImageDraw.Draw(table)
-        for x in (76,878):
-            ink(backstage,[(x,3),(x+1,163),(x-2,320),(x,539)],'#816441',3)
-            for y in (74,364):
-                backstage.ellipse((x-7,y-4,x+8,y+4),outline='#9e8053',width=2)
+        # The light and workbench are on our side of the cloth. Using the
+        # actual eye-line plate keeps the film, reading view and stage joined.
+        canvas=Image.open(ROOT/'frontend/public/reading/shadow-backstage.webp').convert('RGB')
+        table=ImageOps.fit(canvas,SIZE,method=RESAMPLE)
     light,grain=photographic_light(id)
     table_d=ImageDraw.Draw(table)
     if id not in ('shadow-play','school_ground','river_grain'):

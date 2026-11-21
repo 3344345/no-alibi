@@ -49,7 +49,7 @@ export function propImage(prop: ReadingProp): string {
 export function readingCamera(scene: ActingScene, shot?: Shot): ReadingCamera {
   const position=shot?.position ?? (scene.object==='radio'?'61% 50%':'50% 49%')
   return {room:scene.picture,person:scene.player.name,position,hands:viewpointHands(scene),
-    prop:objectAtScene(scene,shot),focus:shot?.prop ? inspectProps[shot.prop.cue] : undefined}
+    prop:scene.transmission ? (scene.object==='radio'?'radio':'paper') : objectAtScene(scene,shot),focus:shot?.prop ? inspectProps[shot.prop.cue] : undefined}
 }
 
 export function countyCamera(id: string, person='你'): ReadingCamera {

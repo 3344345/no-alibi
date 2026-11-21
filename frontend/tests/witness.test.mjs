@@ -80,11 +80,12 @@ async function resume(page, record) {
 }
 
 async function sceneArt(page, person, prop) {
-  const scene = page.locator('.scene-art .eyes')
+  const scene = page.locator('.scene-art .eyes').filter({has:page.getByRole('img',{name:person+'眼前的场景',exact:true})})
+  await scene.waitFor()
   assert.equal(await scene.getAttribute('data-viewer'), person)
   if (prop) assert.equal(await scene.getAttribute('data-prop'), prop)
   const img = scene.locator('.reading-space')
-  assert.match(await img.getAttribute('src'), /^\/sets\/[^/]+\.webp$/)
+  assert.match(await img.getAttribute('src'), /^\/(?:sets|reading)\/[^/]+\.webp$/)
   assert.equal(await scene.locator('.own').count(), 2)
   assert.ok(await img.evaluate(async (node) => {
     await node.decode()
@@ -139,7 +140,22 @@ test('Beijing leaves the office for a live studio and reaches the alternate 1992
     await sceneArt(page, '邓小平')
     for (const id of ['go_live', 'phones', 'second_night', 'local_air']) {
       view = await choose(page, view, id)
-      await sceneArt(page, ['studio','cutting_room'].includes(view.scene.id) ? '梁桂兰' : view.scene.id==='switchboard' ? '梁桂兰' : '邓小平','radio')
+      const viewer={studio:'梁桂兰',switchboard:'梁桂兰',summer_broadcast:'邓小平',city_frequency:'外地女工'}[view.scene.id]
+      await sceneArt(page,viewer,'radio')
+      if (viewer!=='邓小平') {
+        const storyArt=page.locator('.scene-art')
+        assert.match(await storyArt.locator('.art-caption p').innerText(),/ · .+所见/)
+        const stage=page.getByRole('region',{name:'人物现场'})
+        assert.equal(await stage.locator('.own-name').innerText(),'你 · 邓小平')
+        assert.equal(await stage.locator('.other-name').count(),0)
+        assert.match(await stage.locator('.set').getAttribute('style'),/office\.webp/)
+        const choices=page.getByRole('group',{name:'本幕行动'})
+        assert.equal(await choices.getAttribute('data-decision-player'),'邓小平')
+        await choices.locator('.decisions button').first().focus()
+        await storyArt.locator('.eyes[data-viewer="邓小平"]').waitFor()
+        await storyArt.getByRole('button',{name:/^回看/}).click()
+        await storyArt.locator('.eyes[data-viewer="'+viewer+'"]').waitFor()
+      }
     }
     await page.locator('.art-caption').getByText('架空的1992年', {exact:true}).waitFor()
     const next = await choose(page, view, 'listeners_veto')

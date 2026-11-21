@@ -54,7 +54,7 @@
       paintActor(g,scene.other,face,0,-1,time,turn,true,scene.object,reduced)
       g.restore()
     }
-    const outdoors=/\/(field|rail|yard|depot|canal)\.webp$/.test(scene.picture)
+    const outdoors=/\/(field|rail|yard|depot|canal|tongzhou-wharf)\.webp$/.test(scene.picture)
     if(!outdoors){
       g.save();g.scale(space/1000,1);paintTable(g);g.restore()
     }

@@ -8,7 +8,7 @@ import {sceneSetting} from './chronicleScene'
 export type Gesture = 'pass'|'hold'|'speak'|'listen'|'sign'|'refuse'|'inspect'|'depart'|'tune'
 export type Phase = 'idle'|'action'|'reply'
 export type CastMember = {name:string; face:string; coat:string; collar:'stand'|'work'|'open'; costume:string}
-export type ActingScene = {id:string; place:string; title:string; picture:string; film:string; player:CastMember; other:CastMember|null; opening:string; excerpt:string; object:'paper'|'tea'|'radio'|'film'|'lamp'|'cloth'; crop?:string}
+export type ActingScene = {id:string; place:string; title:string; picture:string; film:string; player:CastMember; other:CastMember|null; opening:string; excerpt:string; object:'paper'|'tea'|'radio'|'film'|'lamp'|'cloth'; crop?:string; transmission?:string}
 export type ActingChoice = {id:string; label:string; disabled?:boolean; group?:string}
 export type Turn = {phase:Phase; label:string; reply:string; gesture:Gesture; mood:'open'|'guarded'|'listen'; start:number; scene?:ActingScene}
 export const quietTurn = ():Turn=>({phase:'idle',label:'',reply:'',gesture:'listen',mood:'listen',start:0})
@@ -98,10 +98,17 @@ function sceneObject(id:string,body:string):ActingScene['object']{
 function setPicture(chapter:string,scene:string,title:string,year:string){
   const key=chapter+'/'+scene, words=scene+' '+title
   let room=parseInt(year)<1949?'inn':'office'
+  if(scene.startsWith('face_')){
+    if(scene==='face_letter')return '/sets/press.webp'
+    if(scene==='face_bench')return '/sets/yard.webp'
+    if(scene==='face_quay')return '/reading/tongzhou-wharf.webp'
+    if(scene==='face_platform')return '/sets/rail.webp'
+    return '/reading/shadow-backstage.webp'
+  }
   if(/reel_(lobby|mix|keys|booth|sale|open|ticket|hinge)|night_(switchboard|exchange|listen|clock|answer)|studio|broadcast/.test(key))room='studio'
   else if(/reel_(morning|kitchen|landing)|birthday_|school_album|sky_(half|yard|home|last)|household_field|小院|厨房|家里|堂屋/.test(key+words))room='house'
-  else if(/face_(quay|platform)|zhan_tianyou|站台|火车/.test(key+words))room='rail'
-  else if(/face_(box|screen|laugh|bird|door|seat|settle)|reel_(yard|truck|shop)|剧场|礼堂|戏棚/.test(key+words))room='theatre'
+  else if(/zhan_tianyou|站台|火车/.test(key+words))room='rail'
+  else if(/reel_(yard|truck|shop)|剧场|礼堂|戏棚/.test(key+words))room='theatre'
   else if(/night_(depot|punch|window|last|garage)|tram_|车库|电车/.test(key+words))room='depot'
   else if(/bank_(ridge|map|up|measure|trace)|工地|跑道|水池|稻田|地头/.test(key+words))room='field'
   else if(/医院|病房|医生|急诊|witness_jiang_yanyong/.test(key+words))room='clinic'
@@ -120,6 +127,30 @@ export function historyStage(ch:{id:string;year:string;place:string;role:string}
   return {id:ch.id+'/'+s.id,place:set.year+' · '+(displayPlace||set.place),title:s.title,picture:setPicture(ch.id,s.id,s.title,ch.year),film:libraryFilm(ch.id,s.id),
     player,other,
     opening:firstLine(body),excerpt:excerpt(body),object:sceneObject(s.id,body)}
+}
+// Certain chapters show the person who wrote a letter or spoke on air. The
+// subsequent decision is made by its recipient, from the recipient's own seat.
+const remoteDecisions:Record<string,{player:string;channels:Record<string,string>}> = {
+  witness_entrance_exam:{
+    player:'邓小平',channels:{calendar:'考期汇报',access:'报考意见',form:'报名条件草案',later:'考期方案',winter:'录取与补报名材料',
+      bench:'县里寄来的实作经过',loose_wire:'县里来信',swap_stools:'试场记录',workshop_college:'试办学分方案',night_course:'夜校经费方案',
+      air_list:'县里呈交的名册',air_factory:'试办款记录',air_fitting:'县里递交的试办经费申请'}
+  },
+  witness_deng_xiaoping:{
+    player:'邓小平',
+    channels:{label:'续信',forum:'签到簿',may:'会前消息',law:'来信',heard:'接访记录',rent:'食堂账单',
+      studio:'电视台内线',switchboard:'直播电话',cutting_room:'采访录音',workers_budget:'桂兰来信',
+      city_frequency:'地方台播出记录',civil:'会议记录'}
+  }
+}
+export function decisionStage(scene:ActingScene):ActingScene{
+  const [chapter,id]=scene.id.split('/')
+  const desk=remoteDecisions[chapter],channel=desk?.channels[id]
+  if(!channel)return scene
+  const year=scene.place.split(' · ')[0]
+  const radio=/内线|电话|录音|播出/.test(channel)
+  return {...scene,place:year+' · 北京',player:cast(desk.player,'man-elder',year),other:null,
+    picture:'/sets/office.webp',object:radio?'radio':'paper',transmission:channel}
 }
 const countyArt:Record<string,string>={L01:'/scenes/office.webp',L02:'/scenes/canal.webp',L03:'/sets/court.webp',L04:'/sets/inn.webp',L05:'/sets/office.webp',L06:'/sets/field.webp',L07:'/scenes/home.webp',L08:'/sets/house.webp',L09:'/sets/house.webp'}
 export function countyStage(v:View,context='',actionLabel=''):ActingScene{

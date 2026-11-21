@@ -34,7 +34,7 @@
     if(performing||movie)return
     endSample()
     const watching=!!active.other,listener=active.player.name
-    sample={phase:'action',label:watching?'你停下来，等对面的人。':'你停下来，仔细看了一眼。',reply:'',gesture:'listen',mood:'listen',start:performance.now()}
+    sample={phase:'action',label:active.transmission?'你停下来，重新留意手边的'+active.transmission+'。':watching?'你停下来，等对面的人。':'你停下来，仔细看了一眼。',reply:'',gesture:'listen',mood:'listen',start:performance.now()}
     duration=setTimeout(()=>{
       sample={phase:'reply',label:listener,reply:active.excerpt||active.opening,gesture:'speak',mood:'listen',start:performance.now()}
       duration=setTimeout(endSample,4200)
@@ -100,12 +100,12 @@
     <div class="shade"></div>
     <LiveCast scene={active} {turn} {reduced} paused={movie}/>
     {#if !movie}
-      <div class="names" aria-label="在场人物"><span class="own-name">你 · {active.player.name}</span>{#if active.other}<span class="other-name">{active.other.name}</span>{/if}</div>
+      <div class="names" aria-label="在场人物"><span class="own-name">你 · {active.player.name}{#if active.transmission} ／ {active.transmission}{/if}</span>{#if active.other}<span class="other-name">{active.other.name}</span>{/if}</div>
       {#if turn.phase==='action'}
         <div class="bubble from-player" role="status" data-speaker="player"><small>{active.player.name}</small><span>{turn.label}</span></div>
       {:else if turn.phase==='reply'}
-        {#if sample&&!active.excerpt.startsWith('“')}
-          <div class="narration" role="status" data-speaker="narrator">{turn.reply}</div>
+        {#if active.transmission || (sample&&!active.excerpt.startsWith('“'))}
+          <div class="narration" role="status" data-speaker="narrator">{#if active.transmission}<small>{active.transmission}</small>{/if}{turn.reply}</div>
         {:else}
           <div class="bubble" class:from-other={!!active.other} class:from-player={!active.other} role="status" data-speaker="reply"><small>{sample?'场内对白':active.other?'现场回应':'此刻'}</small><span>{turn.reply}</span></div>
         {/if}
@@ -161,7 +161,7 @@
   .names{position:absolute;inset:auto 20% .46rem;display:flex;justify-content:space-between;color:#f4e9d1;pointer-events:none;font:500 .92rem var(--serif);text-shadow:0 2px 4px #171a15,0 0 10px #151811}
   .bubble,.narration{position:absolute;z-index:1;color:#272920;background:#f2ecdbf5;box-shadow:0 3px 14px #1117;padding:.48rem .75rem;max-width:min(46%,28em);font:500 clamp(.85rem,1.4vw,1.06rem)/1.48 var(--serif)}
   .bubble{top:4%;border-radius:6px 6px 5px 2px}.from-player{left:6%}.from-other{right:6%}.bubble:after{content:'';position:absolute;bottom:-8px;left:15%;border-top:10px solid #f2ecdbf5;border-right:11px solid transparent}.from-other:after{left:auto;right:15%;transform:scaleX(-1)}
-  .bubble small{display:block;color:#6c624d;font:600 .70rem/1.45 sans-serif}.bubble span{display:block}.narration{left:50%;transform:translateX(-50%);bottom:4%;max-width:80%;width:max-content;background:#161d1ce8;color:#f4eada}
+  .narration small{display:block;color:#ddc797;font:.7rem/1.4 var(--sans)}.bubble small{display:block;color:#6c624d;font:600 .70rem/1.45 sans-serif}.bubble span{display:block}.narration{left:50%;transform:translateX(-50%);bottom:4%;max-width:80%;width:max-content;background:#161d1ce8;color:#f4eada}
   footer{justify-content:space-between;background:#222b26}.moving{font:inherit;font-size:.83rem;color:#e2cba1}i{font-style:normal;font-size:.7em;color:#e9c681}
   .theatre{position:fixed;inset:0;z-index:1000;max-width:none;margin:0;border:0;display:flex;flex-direction:column;overflow-y:auto;background:#131a17;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
   .theatre .frame{height:auto;flex:1 1 40vh;min-height:180px;max-height:72vh}.theatre header,.theatre footer,.decisions{padding-left:clamp(1rem,5vw,5rem);padding-right:clamp(1rem,5vw,5rem)}

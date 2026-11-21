@@ -90,7 +90,7 @@ function prop(g:G,x:number,y:number,type:ActingScene['object'],angle=0){
 const wardrobe=new Map<string,HTMLImageElement>()
 function clothing(id:string){
   let img=wardrobe.get(id)
-  if(!img){img=new Image();img.src='/wardrobe/'+id+'.webp';wardrobe.set(id,img)}
+  if(!img){img=new Image();img.src=id.startsWith('/')?id:'/wardrobe/'+id+'.webp';wardrobe.set(id,img)}
   return img.complete&&img.naturalWidth?img:null
 }
 function mouthAmount(t:number){return Math.max(0,Math.sin(t*12.7)*.58+Math.sin(t*20.2)*.38+.14)}
@@ -173,6 +173,11 @@ export function paintActor(g:G,actor:CastMember,face:FaceImage|null,x:number,fac
 }
 export function paintTable(g:G){
   fill(g,'M0 361 Q500 345 1000 361 L1000 400 L0 400Z',gradient(g,['#665843','#504635','#342f29'],0,346,0,400))
+  const wood=clothing('/reading/work-surface.webp')
+  if(wood){
+    g.save();g.clip(new Path2D('M0 361 Q500 345 1000 361 L1000 400 L0 400Z'))
+    g.drawImage(wood,0,345,1000,55);g.restore()
+  }
   stroke(g,'M0 362 Q500 346 1000 362','#af967268',1.5)
   for(let i=0;i<9;i++){const x=i*127;stroke(g,`M${x-50} ${371+i%3*5} q40 -3 101 -1`,'#b29b7b25',1)}
 }
@@ -183,13 +188,13 @@ const prepared=new Map<string,Promise<void>>()
 export type HandSet='pov'|'pov-elder'|'pov-young'
 export function viewpointHands(scene:ActingScene):HandSet{
   const {face,name}=scene.player
-  if(/elder|granny|puppet-master|shang_aiyun/.test(face)||name==='邓小平'&&/1989|1992/.test(scene.place))return 'pov-elder'
+  if(/elder|granny|puppet-master|shang_aiyun/.test(face)||name==='邓小平'&&/(197[7-9]|198[0-9]|199[0-9])/.test(scene.place))return 'pov-elder'
   if(/woman|girl|boy|seamstress|fish-counter|lin_zhao|vautrin|zhongyun/.test(face))return 'pov-young'
   return 'pov'
 }
 export function prepareWardrobe(handSet:HandSet,costume?:string){
   const ids=handPoses.flatMap(pose=>['left','right'].map(side=>handSet+'-'+pose+'-'+side))
-  ids.push(...['paper','tea','radio','film','lamp','cloth'].map(kind=>'prop-'+kind))
+  ids.push('/reading/work-surface.webp',...['paper','tea','radio','film','lamp','cloth'].map(kind=>'prop-'+kind))
   if(costume)ids.push(costume,...['rest','offer','take','write','pinch','halt'].map(pose=>'arm-'+pose))
   return Promise.all(ids.map(id=>{
     if(!prepared.has(id)){
