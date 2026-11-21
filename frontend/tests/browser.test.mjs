@@ -319,7 +319,7 @@ test(
       await page.getByRole('button', { name: /选择「听完整项目汇报」/ }).waitFor()
       assert.equal((await current(page)).revision, first.revision)
       await page.getByRole('button', { name: /选择「暂缓答复」/ }).click()
-      await page.getByRole('status').filter({ hasText: /答复/ }).waitFor()
+      await page.getByRole('status').filter({ hasText: '答复已登记' }).waitFor()
       await navigate(page, '记事本')
       await page.getByRole('button', { name: /写入实体记事本/ }).click()
       await page.getByLabel('记录原文').fill('先查统计范围与日期。')
