@@ -44,6 +44,5 @@
 {#if open}
   <Dialog title="近期经过" onclose={() => (open = false)}>
     <Timeline entries={segments} {detailed} />
-    <div class="dialog-foot"><button class="button" on:click={() => (open = false)}>返回</button></div>
   </Dialog>
 {/if}

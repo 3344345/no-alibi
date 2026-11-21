@@ -140,6 +140,9 @@ test('Beijing leaves the office for a live studio and reaches the alternate 1992
     await sceneArt(page, '邓小平')
     for (const id of ['go_live', 'phones', 'second_night', 'local_air']) {
       view = await choose(page, view, id)
+      // The save advances before the outgoing actor has finished responding.
+      const sceneId=view.chapter.id+'/'+view.scene.id
+      await page.locator('.perform[data-scene="'+sceneId+'"]').waitFor()
       const viewer={studio:'梁桂兰',switchboard:'梁桂兰',summer_broadcast:'邓小平',city_frequency:'外地女工'}[view.scene.id]
       await sceneArt(page,viewer,'radio')
       if (viewer!=='邓小平') {
@@ -369,6 +372,14 @@ test('event directory covers the published catalogue, filters by era and launche
   try {
     const page=await fixture.browser.newPage({viewport:{width:390,height:844}})
     const {chapters}=await openLobby(page,fixture)
+    await page.setViewportSize({width:320,height:710})
+    const events=page.getByLabel('选择亲历者与起始事件')
+    const initial=await events.inputValue()
+    const longest=await events.evaluate(select=>Array.from(select.options).sort((a,b)=>b.text.length-a.text.length)[0].value)
+    await events.selectOption(longest)
+    assert.ok(await events.evaluate(select=>select.getBoundingClientRect().right<=innerWidth && document.documentElement.scrollWidth===innerWidth))
+    await events.selectOption(initial)
+    await page.setViewportSize({width:390,height:844})
     await page.getByRole('button',{name:'浏览全部 '+chapters.length+' 个历史事件 ↓'}).click()
     const directory=page.getByRole('region',{name:'可选历史事件'})
     const cards=directory.locator('.event-grid>button')

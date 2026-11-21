@@ -1481,7 +1481,7 @@
   .lobby-text {padding:clamp(22px,3.2vw,46px);min-width:0}
   .lobby-text form {margin-top:1.2rem}
   .lobby h1 {font-size:clamp(2.1rem,4vw,3.7rem);margin:.14em 0 .3em}
-  .lobby-text select {max-width:100%;min-width:0;margin-bottom:.3rem}
+  .lobby-text select {max-width:100%;min-width:0;margin-bottom:.3rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .chapter-layout {--spread-gap:clamp(10px,1.3vw,20px);display:grid;grid-template-columns:minmax(0,.87fr) minmax(0,1.18fr);
     grid-template-areas:"live story" "source story";grid-template-rows:auto 1fr;gap:var(--spread-gap);align-items:start;
     width:min(1440px,calc(100% - clamp(24px,4.5vw,76px)));margin:clamp(12px,2vw,28px) auto 0}
