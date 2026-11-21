@@ -4,6 +4,7 @@
   import { watchWorld } from './live'
   import { balanceString, dateAt, saveFile, stamp, starts, str, title } from './game'
   import type { Action, Attempt, AttemptResult, Choice, Command, Page, Row, Value, View, World } from './types'
+  import BackButton from './BackButton.svelte'
   import Menu from './Menu.svelte'
   import Chronicle from './Chronicle.svelte'
   import type { Feature } from './features'
@@ -19,12 +20,14 @@
   import Sites from './Sites.svelte'
   import CurrentScene from './CurrentScene.svelte'
   import ActingStage from './ActingStage.svelte'
-  import {countyStage, startTurn, clearPerformance, filmOpen} from './performance'
+  import {countyStage, startTurn, clearPerformance, filmOpen, presenting} from './performance'
   import PassageRequest from './PassageRequest.svelte'
   import NightBus from './NightBus.svelte'
   import Aftershow from './Aftershow.svelte'
   let aftershowOpen = false
   let countyLens=''
+  let countyStageView:ActingStage|undefined
+  let visitedPages:Page[]=[]
   import { committedSound, cue, enableSound, setSoundVolume, silence } from './sound'
   import Records from './Records.svelte'
   import Timeline from './Timeline.svelte'
@@ -260,7 +263,8 @@
     archiveTab = '来文材料'
     peopleTab = '人物名录'
   }
-  async function goto(p: Page) {
+  async function goto(p: Page, remember=true) {
+    if(remember && p!==page)visitedPages=[...visitedPages,page]
     countyLens=''
     page = p
     lastAttempts = []
@@ -276,7 +280,15 @@
     heading?.focus({ preventScroll: true })
     window.scrollTo(0, 0)
   }
+  function backCounty() {
+    if(countyStageView?.backLayer())return
+    if(countyLens){countyLens='';void tick().then(()=>document.querySelector<HTMLButtonElement>('.station-link')?.focus());return}
+    const previous=visitedPages.at(-1)
+    if(previous){visitedPages=visitedPages.slice(0,-1);void goto(previous,false)}
+    else quit()
+  }
   function enter(view: View) {
+    visitedPages=[]
     countyLens=''
     clearPerformance()
     clearUI()
@@ -344,6 +356,8 @@
     clearPerformance()
     stopWatch?.()
     v = null
+    visitedPages=[]
+    window.scrollTo(0,0)
     clearUI()
     void loadWorlds()
   }
@@ -432,7 +446,13 @@
     const rank=(a:Action)=>['consult','reply','speak','report','compare','meet','mentor'].includes(a.kind)?0:a.kind==='travel'?2:1
     return eligible.sort((a,b)=>rank(a)-rank(b))
   }
-  function toCountyControls(){void goto('行动').then(()=>{const node=document.querySelector<HTMLElement>('.workspace-main .actions-page, .workspace-main h1');node?.scrollIntoView({block:'start'})})}
+  async function toCountyControls() {
+    if (page !== '行动') await goto('行动')
+    await tick()
+    const actions=document.getElementById('county-actions')
+    actions?.focus({preventScroll:true})
+    actions?.scrollIntoView({block:'start'})
+  }
   $: deskOptions=v?stageOptions(v,countyLens):[]
   async function visitBus(){countyLens='night_bus';await tick();document.querySelector('.workspace-main .perform')?.scrollIntoView({block:'center'})}
   async function deliver(cmd: Command) {
@@ -601,7 +621,7 @@
 {/if}
 {#if chronicle}
   <Chronicle reduced={reduceMotion} initialCampaign={chronicle} {featured} {volume} toggleAudio={() => chooseVolume(volume > 0 ? 0 : lastAudibleVolume)}
-    leave={(campaign) => {countyMenu = campaign === 'family'; featured = null; chronicle = null}} />
+    leave={(campaign) => {countyMenu = !featured && campaign === 'family'; featured = null; chronicle = null; window.scrollTo(0,0)}} />
 {:else if !v && !countyMenu}
   <ModeSelection play={(story) => { featured = story; chronicle = story.campaign }} county={() => (countyMenu = true)} witness={() => (chronicle = 'witness')} />
 {:else if !v}
@@ -656,6 +676,7 @@
     </aside>
     <div class="workspace">
       <header class="desk-bar">
+        <BackButton back={backCounty} destination={$filmOpen?'现场':countyLens?'办公桌':visitedPages.at(-1)??'生涯主菜单'} disabled={busy} pageShortcut/>
         <div class="crumb">生涯档案 <span>/</span> {page}</div>
         <div class="clock">
           <button type="button" class="audio-switch" role="switch" aria-checked={volume > 0}
@@ -671,7 +692,9 @@
             {#if !showScene}<p class="kicker">{str(v.location, 'name') || '澄川县'} · {v.name}</p>{/if}
             <h1 tabindex="-1" bind:this={heading}>{page === '办公桌' ? '我的办公桌' : page}</h1>
           </div>
-          {#if hints}<span class="page-hint">{tabHints[page]}</span>{/if}
+          {#if page === '办公桌' && v.actions?.length}
+            <button type="button" class="button primary desk-action" on:click={toCountyControls}>选择办理方式 <span aria-hidden="true">→</span></button>
+          {:else if hints}<span class="page-hint">{tabHints[page]}</span>{/if}
         </div>
         {#if pending}<div class="feedback pending" role="status">
             <span
@@ -705,22 +728,26 @@
               }}>回看已知经过 →</button
             >
           </section>{/if}
-        {#if !aftershowOpen}
-          <ActingStage scene={countyStage(v,countyLens)} choices={deskOptions.map((a,i)=>({id:String(i),label:a.label,group:a.category??'行动'}))} decide={id=>{const a=deskOptions[Number(id)];if(a)selectAction(a)}} seeControls={toCountyControls} {busy} reduced={reduceMotion} {volume} toggleAudio={()=>chooseVolume(volume?0:lastAudibleVolume)}/>
-        {/if}
-        {#if showScene}<CurrentScene place={v.location} />{/if}
+        <div class:county-board={showScene}>
+          {#if showScene || $presenting}
+            <aside class="county-camera" class:brief-reaction={!showScene} aria-label="所在地点与人物">
+              {#if !aftershowOpen}
+                <ActingStage
+                  bind:this={countyStageView}
+                  scene={countyStage(v,countyLens)}
+                  choices={deskOptions.map((action,index)=>({id:String(index),label:action.label,group:action.category??'行动'}))}
+                  decide={id=>{const action=deskOptions[Number(id)];if(action)selectAction(action)}}
+                  seeControls={toCountyControls}
+                  {busy} reduced={reduceMotion} {volume}
+                  toggleAudio={()=>chooseVolume(volume?0:lastAudibleVolume)}
+                />
+              {/if}
+              {#if showScene}<CurrentScene place={v.location} />{/if}
+            </aside>
+          {/if}
         {#if page === '办公桌'}
           <div class="desk-grid">
             <div class="column">
-              {#if v.night_bus}
-                <NightBus visit={visitBus} quiet={aftershowOpen||$filmOpen} scene={v.night_bus} view={v} busy={busy || !!pending} choose={selectAction}
-                  advance={(minutes) => send('advance', { minutes })} actionsPage={() => goto('行动')} />
-              {/if}
-              {#if v.aftershow}
-                <Aftershow reduced={reduceMotion} scene={v.aftershow} view={v} {volume} {error} busy={busy || !!pending} bind:open={aftershowOpen}
-                  choose={selectAction} advance={(minutes) => send('advance', { minutes })} actionsPage={() => goto('行动')}
-                  toggleAudio={() => chooseVolume(volume > 0 ? 0 : lastAudibleVolume)} />
-              {/if}
               <section class="paper lead-paper">
                 {#if passageRequest && firstBriefing && v.location.id === 'L01' && !v.ending}
                   <PassageRequest view={v} request={passageRequest} deadline={firstBriefing.due}
@@ -755,12 +782,17 @@
                   </article>
                 {:else}<p class="empty">目前没有可查阅的来文。</p>{/if}
                 {/if}
-                {#if v.actions?.length}<div class="button-row">
-                    <button class="button primary" on:click={() => goto('行动')}
-                      >选择办理方式 <span aria-hidden="true">→</span></button
-                    >
-                  </div>{/if}
+
               </section>
+              {#if v.night_bus}
+                <NightBus visit={visitBus} quiet={aftershowOpen||$filmOpen} scene={v.night_bus} view={v} busy={busy || !!pending} choose={selectAction}
+                  advance={(minutes) => send('advance', { minutes })} actionsPage={() => goto('行动')} />
+              {/if}
+              {#if v.aftershow}
+                <Aftershow reduced={reduceMotion} scene={v.aftershow} view={v} {volume} {error} busy={busy || !!pending} bind:open={aftershowOpen}
+                  choose={selectAction} advance={(minutes) => send('advance', { minutes })} actionsPage={() => goto('行动')}
+                  toggleAudio={() => chooseVolume(volume > 0 ? 0 : lastAudibleVolume)} />
+              {/if}
               <section class="paper">
                 <div class="section-title">
                   <h2>近期经过</h2>
@@ -817,7 +849,7 @@
           </div>
         {:else if page === '行动'}
           <div class="desk-grid">
-            <section class="paper">
+            <section class="paper" id="county-actions" tabindex="-1" aria-label="可办理事项">
               <div class="section-title">
                 <h2>可办理事项</h2>
                 <small>{v.actions?.length ?? 0} 项</small>
@@ -1161,6 +1193,7 @@
             </section>
           </div>
         {/if}
+        </div>
       </main>
     </div>
   </div>
@@ -1222,5 +1255,35 @@
   .audio-switch:hover, .audio-switch[aria-checked="true"] { color: var(--green); }
   @media (max-width: 600px) {
     .audio-switch { margin-right: 1px; padding-right: 4px; }
+  }
+
+  .desk-action {align-self:center;flex-shrink:0}
+  #county-actions {scroll-margin-top:1rem}
+  .county-camera {min-width:0}
+  .county-camera.brief-reaction {position:fixed;bottom:.8rem;right:.8rem;z-index:65;width:min(380px,calc(100vw - 1.6rem));box-shadow:0 3px 20px #171c1640}
+  .county-camera.brief-reaction :global(.perform:not(.theatre) header button){display:none}
+  .county-camera.brief-reaction :global(.perform:not(.theatre) .frame:not(.film)){height:135px}
+  .county-camera :global(.perform:not(.theatre):not(.postcard)){margin:0;width:100%;min-width:0}
+  .county-camera :global(.perform:not(.theatre) header),.county-camera :global(.perform:not(.theatre) footer){flex-wrap:wrap;gap:.4rem;padding:.45rem .55rem}
+  .county-camera :global(.perform:not(.theatre):not(.postcard) .frame:not(.film)){height:clamp(150px,24vh,240px)}
+  .county-camera :global(figure.scene){margin:.55rem 0 0;min-height:3.8rem}
+  @media(min-width:940px){
+    .county-board {display:grid;grid-template-columns:minmax(0,1.55fr) minmax(290px,.95fr);grid-template-rows:auto 1fr;gap:16px;align-items:start}
+    .county-board>.desk-grid {display:contents}
+    .county-board>.desk-grid>:first-child {grid-column:1;grid-row:1 / span 2}
+    .county-board>.desk-grid>:nth-child(2) {grid-column:2;grid-row:2}
+    .county-camera {grid-column:2;grid-row:1}
+    .county-camera :global(.perform:not(.theatre):not(.postcard) header strong){font-size:1rem}
+    .county-camera :global(figure.scene .image){flex-basis:28%}
+    .workspace-main:has(.county-board) {padding-top:clamp(18px,2vw,34px)}
+    .workspace-main:has(.county-board) .page-heading {margin-bottom:1rem}
+  }
+  @media(max-width:939px){
+    .county-camera {margin-bottom:.65rem}
+    .county-camera :global(.perform:not(.theatre):not(.postcard) .frame:not(.film)){height:clamp(92px,26vw,150px)}
+    .county-camera :global(figure.scene){min-height:0}
+    .county-camera :global(figure.scene figcaption){padding:.34rem .6rem}
+    .county-camera :global(figure.scene figcaption p){margin-top:.15rem}
+    .county-camera :global(figure.scene .image){flex-basis:20%}
   }
 </style>

@@ -173,7 +173,7 @@ async function readSource(page, chapter) {
   const anchor = dialog.getByRole('link', { name: source.url, exact: true })
   assert.equal(await anchor.getAttribute('href'), source.url)
   await overflow(page)
-  await button(dialog, '关闭').click()
+  await button(dialog, '返回').click()
 }
 
 test(
@@ -249,7 +249,7 @@ test(
       await button(path, '上一场').click()
       await path.getByText(view.journal[0].result, { exact: true }).waitFor()
       assert.equal(await path.locator('option').count(), 2)
-      await button(path, '关闭').click()
+      await button(path, '返回').click()
       const originalAfterTwo = view
       await button(page, '行记与存档').click()
       const journal = page.getByRole('dialog', { name: '行记' })
@@ -269,7 +269,7 @@ test(
           .count(),
         0,
       )
-      await button(page, '长篇目录').click()
+      await button(page, '返回').click()
       const savedCareer = page.locator('.saves button').filter({ has: page.getByText(name, { exact: true }) })
       view = await submit(page, endpoint + '/' + original, 'GET', () => savedCareer.click())
       assert.deepEqual(view, originalAfterTwo)
@@ -374,9 +374,9 @@ test(
         await materials.getByText(exhibit.detail, { exact: true }).waitFor()
       }
       assert.equal(await materials.locator('dt').count(), 2)
-      await button(recoveredJournal, '关闭').click()
-      await button(page, '长篇目录').click()
-      await button(page, '生涯模式').click()
+      await button(recoveredJournal, '返回').click()
+      await button(page, '返回').click()
+      await button(page, '返回').click()
       await button(page, '建立生涯').click()
       await page.getByRole('radio', { name: /专业技术转任/ }).check()
       await page.getByLabel('角色称谓').fill('林舟')

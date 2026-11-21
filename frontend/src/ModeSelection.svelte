@@ -28,23 +28,25 @@
         <button on:click={(event) => openLibrary('cast', event)}>人物与出处</button>
       </nav>
     </header>
-    <FeaturedStories {play} />
+    <h2 class="group-title">选择玩法</h2>
     <div class="modes" role="group" aria-label="模式选择">
       <button aria-label="生涯模式" on:click={county}>
-        <img alt="" src="/scenes/county-nightbus.webp" />
+        <img alt="" src="/county-office.jpg" />
         <span class="copy"
           ><small>澄川县</small><strong>生涯模式</strong>
-          <span>有人愿意付三千块，请你在县城旧影院的镜头里站一会儿。从办公桌进入《散场以后》，看看他们拿这段影像做了什么。</span>
+          <span>在澄川县从一份工作起步，过自己的人生。也可以翻开《市井家书》，走进普通人的故事。</span>
         </span><b aria-hidden="true">→</b>
       </button>
       <button aria-label="历史主角模式" on:click={witness}>
-        <img alt="" src="/chronicle/night_screen.webp" />
+        <img alt="" src="/chronicle/witness_chongqing_talks.webp" />
         <span class="copy"
           ><small>从戊戌变法到新世纪</small><strong>历史主角模式</strong>
-          <span>选一件真实发生的事，成为亲历者。你作的决定，可以让人走向另一种命运。</span>
+          <span>选一桩真实的历史事件，以张学良、邓小平等亲历者的身份作决定。</span>
         </span><b aria-hidden="true">→</b>
       </button>
     </div>
+    <h2 class="group-title features-title">精选故事</h2>
+    <FeaturedStories {play} />
   </main>
   <GameUpdate />
 </div>
@@ -69,6 +71,7 @@
     padding: 0 clamp(16px, 5vw, 80px) clamp(24px, 5vw, 72px);
   }
   header,
+  .group-title,
   .modes {
     max-width: 1400px;
     margin: auto;
@@ -87,6 +90,12 @@
     font: 600 clamp(1.8rem, 2.7vw, 3rem) / 1.2 var(--serif);
     letter-spacing: 0.12em;
   }
+  .group-title {
+    margin: 0 auto .65rem;
+    font: 600 1.12rem/1.35 var(--serif);
+    color: #efe3ce;
+  }
+  .features-title { margin-top: clamp(1.3rem, 3vh, 2.1rem); }
   .modes {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -98,8 +107,8 @@
     align-items: flex-end;
     isolation: isolate;
     overflow: hidden;
-    min-height: clamp(165px, 23vh, 280px);
-    padding: clamp(20px, 3.5vw, 58px);
+    min-height: clamp(160px, 21vh, 218px);
+    padding: clamp(18px, 2.4vw, 34px);
     gap: 14px;
     color: #fff3dc;
     border: 1px solid #635f52;
@@ -160,10 +169,16 @@
       grid-template-columns: 1fr;
     }
     .modes button {
-      min-height: 155px;
+      min-height: 112px;
+      padding: 12px 16px;
     }
+    .modes { gap: 8px; }
+    .copy { gap: .16rem; }
+    .copy strong { font-size: 1.55rem; }
+    .copy small { font-size: .76rem; }
+    .copy > span { font-size: .86rem; line-height: 1.4; }
     header {
-      padding: 22px 0;
+      padding: 13px 0;
     }
     .modes button::after {
       background: linear-gradient(

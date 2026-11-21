@@ -56,8 +56,10 @@ test('with reduced motion a county choice remains readable, normal actions and q
     await stage.getByRole('button',{name:'观看本场动画'}).click()
     await page.waitForFunction(()=>document.querySelector('.perform video')?.readyState>=2)
     assert.ok(await stage.locator('video').evaluate(v=>v.muted&&v.textTracks[0].mode==='showing'))
-    await stage.getByRole('button',{name:'跳过短片'}).click()
-    await stage.getByRole('button',{name:'退出现场'}).click()
+    await stage.getByRole('button',{name:'返回',exact:true}).click()
+    assert.equal(await stage.locator('video').count(),0)
+    assert.ok(await stage.getByRole('button',{name:'观看本场动画'}).isVisible())
+    await stage.getByRole('button',{name:'返回',exact:true}).click()
     assert.ok(await page.getByRole('region',{name:'人物现场'}).isVisible())
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
   } finally {await fixture.close()}

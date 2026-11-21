@@ -1,5 +1,6 @@
 <script lang="ts">
   import {onMount,onDestroy,tick} from 'svelte'
+  import BackButton from './BackButton.svelte'
   import LiveCast from './LiveCast.svelte'
   import { playback,presenting,quietTurn,skipPerformance,inTheatre,filmOpen,type Turn,type ActingScene,type ActingChoice } from './performance'
   export let scene:ActingScene
@@ -25,7 +26,7 @@
   export let toggleAudio:()=>void=()=>{}
   export let reduced=false
   export let busy=false
-  let theatre=false,movie=false,video:HTMLVideoElement,element:HTMLElement,launch:HTMLButtonElement,exitButton:HTMLButtonElement
+  let theatre=false,movie=false,video:HTMLVideoElement,element:HTMLElement,launch:HTMLButtonElement,exitButton:HTMLButtonElement|undefined
   let failed=false,denied=false,postcard=false
   let version='',prevFilm='',sample:Turn|null=null
   let duration:ReturnType<typeof setTimeout>|undefined
@@ -63,6 +64,11 @@
     closeFilm();theatre=false;inTheatre.set(false);await tick();launch?.focus({preventScroll:true})
   }
   function closeFilm(){if(movie){video?.pause();movie=false;filmOpen.set(false)}failed=false;denied=false}
+  export function backLayer() {
+    if(movie){closeFilm();return true}
+    if(theatre){void leave();return true}
+    return false
+  }
   async function playFilm(){
     movie=true;failed=false;denied=false;filmOpen.set(true);await tick()
     if(!video)return
@@ -76,7 +82,7 @@
     if(topDialog && !topDialog.contains(element))return
     if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)return
     if(!theatre||e.ctrlKey||e.altKey||e.metaKey||e.isComposing)return
-    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();if(movie)closeFilm();else void leave();return}
+    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();backLayer();return}
     if(e.key==='Tab'){
       const nodes=Array.from(element.querySelectorAll<HTMLElement>('button:not(:disabled),video[controls],[tabindex="0"]')).filter(n=>n.offsetParent!==null)
       if(nodes.length&&e.shiftKey&&document.activeElement===nodes[0]){nodes.at(-1)?.focus();e.preventDefault()}
@@ -92,8 +98,10 @@
   onDestroy(()=>{endSample();if(theatre)inTheatre.set(false);closeFilm()})
 </script>
 <section class="perform" class:theatre class:postcard={postcard&&!theatre} bind:this={element} aria-label="人物现场" role={theatre?'dialog':'region'} aria-modal={theatre?true:undefined} data-viewpoint="first-person" data-phase={turn.phase} data-gesture={turn.gesture} data-scene={active.id}>
-  <header><span>{active.place}</span><strong>{active.title}</strong>
-    {#if theatre}<button bind:this={exitButton} on:click={leave}>退出现场</button>{:else}<button bind:this={launch} on:click={immerse}>进入现场 <b aria-hidden="true">↗</b></button>{/if}
+  <header>
+    {#if theatre}<BackButton bind:element={exitButton} back={backLayer} destination={movie?'现场':'本场故事'}/>{/if}
+    <span>{active.place}</span><strong>{active.title}</strong>
+    {#if !theatre}<button bind:this={launch} on:click={immerse}>进入现场 <b aria-hidden="true">↗</b></button>{/if}
   </header>
   <div class="frame" class:film={movie}>
     <div class="set" style:background-image={'url("'+active.picture+'")'} style:background-size={active.crop?'300% 300%':'cover'} style:background-position={active.crop??'50% 45%'}></div>
@@ -164,6 +172,7 @@
   .narration small{display:block;color:#ddc797;font:.7rem/1.4 var(--sans)}.bubble small{display:block;color:#6c624d;font:600 .70rem/1.45 sans-serif}.bubble span{display:block}.narration{left:50%;transform:translateX(-50%);bottom:4%;max-width:80%;width:max-content;background:#161d1ce8;color:#f4eada}
   footer{justify-content:space-between;background:#222b26}.moving{font:inherit;font-size:.83rem;color:#e2cba1}i{font-style:normal;font-size:.7em;color:#e9c681}
   .theatre{position:fixed;inset:0;z-index:1000;max-width:none;margin:0;border:0;display:flex;flex-direction:column;overflow-y:auto;background:#131a17;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+  .theatre header{position:sticky;top:0;z-index:3;background:#19221c}
   .theatre .frame{height:auto;flex:1 1 40vh;min-height:180px;max-height:72vh}.theatre header,.theatre footer,.decisions{padding-left:clamp(1rem,5vw,5rem);padding-right:clamp(1rem,5vw,5rem)}
   .exchange{display:flex;align-items:start;gap:1rem;background:#30372f;color:#ede4cf;padding:.65rem 1rem;border-top:1px solid #5d6656;font:.86rem/1.5 var(--serif)}
   .exchange div{flex:1;min-width:0}.exchange small{display:block;font:.68rem/1.45 sans-serif;color:#d3bd92;letter-spacing:.07em}.exchange button{align-self:center}

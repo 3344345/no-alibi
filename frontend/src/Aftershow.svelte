@@ -19,6 +19,7 @@
   export let advance: (minutes: number) => void
   export let actionsPage: () => void
   export let toggleAudio: () => void
+  let stage:ActingStage|undefined
   let editArea:HTMLElement
   $: room = countyCamera('cinema',view.name || '你')
   const frames = [
@@ -74,9 +75,9 @@
 </button>
 
 {#if open}
-  <Dialog title="散场以后" onclose={close}>
+  <Dialog title="散场以后" destination={$filmOpen?'影院现场':'办公桌'} onclose={()=>{if(!stage?.backLayer())close()}}>
     <section class="cinema" aria-label="回声影院">
-      <ActingStage controlsArea={editArea} embeddedControls={scene.node==='spool'} scene={countyStage(view,'aftershow')} {busy} {reduced} {volume} {toggleAudio}
+      <ActingStage bind:this={stage} controlsArea={editArea} embeddedControls={scene.node==='spool'} scene={countyStage(view,'aftershow')} {busy} {reduced} {volume} {toggleAudio}
         choices={scene.node==='spool'||isWaiting||view.ending||view.actions.some(a=>a.kind==='hearing')?[]:actions.map((a,i)=>({id:String(i),label:a.label,disabled:a.enabled===false}))}
         decide={id=>{const a=actions[Number(id)];if(a)choose(a)}} seeControls={()=>heading?.scrollIntoView({block:'start'})}/>
       <div class="screen" class:editing={scene.node === 'spool'}>

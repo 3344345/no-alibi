@@ -22,6 +22,7 @@
   export let reduced=false
   import { directedShot } from './sceneReel'
   import RidgeSurvey from './RidgeSurvey.svelte'
+  import BackButton from './BackButton.svelte'
   import Dialog from './Dialog.svelte'
   export let initialCampaign: Campaign
   export let leave: (campaign: Campaign) => void
@@ -317,12 +318,21 @@
       await enter(await api<View>(endpoint(id)))
     })
   }
+  // A featured story starts directly on the title page. Once its catalogue is
+  // opened, subsequent stories start from that catalogue like any other save.
+  let directEntry=!!featured
+  function backStory() {
+    if(interactiveStage?.backLayer())return
+    if(game&&!directEntry){home();return}
+    leave(mode)
+  }
   function home() {
     void perform(async () => {
       await refresh()
       stopScore()
       clearPerformance()
       game = null
+      directEntry=false
       handover = null
       pending = null
       topic = ''
@@ -424,6 +434,7 @@
 
 <main id="main" class="chronicle">
   <header class="mast">
+    <BackButton back={backStory} destination={$filmOpen?'现场':game&&!directEntry?'长篇目录':featured||mode==='witness'?'模式选择':'生涯主菜单'} disabled={busy} pageShortcut/>
     <button class="wordmark" disabled={busy} on:click={game ? home : () => leave(mode)}
       >局中事</button
     >
@@ -444,9 +455,7 @@
         aria-label="历史长篇音效"
         on:click={toggleAudio}>音效{volume ? '开' : '关'}</button
       >
-      <button disabled={busy} on:click={game ? home : () => leave(mode)}
-        >{game ? '长篇目录' : mode === 'family' ? '生涯模式' : '模式选择'}</button
-      >
+      {#if game && directEntry}<button disabled={busy} on:click={home}>长篇目录</button>{/if}
     </div>
   </header>
   {#if error}<div class="signal" role="alert">
@@ -459,6 +468,7 @@
       >
     </div>{/if}
   {#if info}<p class="signal" role="status">{info}</p>{/if}
+  <div class:chapter-layout={game?.scene && !game.finished && !handover} class:reel-layout={reels} class:source-layout={!!seat?.transmission}>
   {#if game && displayedStage && ((!handover && !game.finished) || $presenting)}
     <ActingStage bind:this={interactiveStage} embeddedControls={specialControls} controlsArea={decisionArea} scene={displayedStage} choices={theatreChoices} decide={choose} seeControls={reachDecision} {volume} {toggleAudio} {busy} {reduced}/>
   {/if}
@@ -490,7 +500,9 @@
                 >{ch.year} · {ch.role} ／ {eventName(ch)}</option
               >{/each}
           </select>
-          {#if starting}<p class="lede">{starting.intro}</p>{/if}
+          {#if starting}<details class="chapter-brief">
+              <summary>章节背景</summary><p class="lede">{starting.intro}</p>
+            </details>{/if}
           {#if myOutcomes.length}<details class="my-outcomes">
               <summary>对照我走过的结局</summary>
               {#each myOutcomes as e}<div>
@@ -625,15 +637,12 @@
         </div>
       </aside>{/if}
       <article class="story">
-        <p class="date-line">
-          {mode === 'witness' ? '历史推演 · ' : ''}{currentWork}　／　{game.chapter.role}
-        </p>
+        <div class="story-topline">
+          <p class="date-line">{currentWork}　／　{game.chapter.role}</p>
+          <button type="button" on:click={reachDecision}>本幕行动 ↓</button>
+        </div>
         <h1 tabindex="-1" bind:this={heading}>{game.scene.title}</h1>
-        {#if !game.journal.length || game.journal.at(-1)?.chapter_id !== game.chapter.id}<p
-            class="intro"
-          >
-            {game.chapter.intro}
-          </p>{/if}
+        {#if !game.journal.length || game.journal.at(-1)?.chapter_id !== game.chapter.id}<details class="chapter-brief in-story"><summary>本章背景</summary><p class="intro">{game.chapter.intro}</p></details>{/if}
         {#key game.id + '/' + game.revision}<svelte:element this={reels ? 'details' : 'div'} class="scene-body" class:transcript={reels}>
           {#if reels}<summary>翻阅本幕全文</summary>{/if}
           {#each (game.scene.base_body ?? game.scene.body).split(/\n+/).filter((paragraph) => paragraph.trim()) as paragraph}
@@ -720,6 +729,7 @@
       </article>
     </div>
   {/if}
+  </div>
   <input
     hidden
     type="file"
@@ -801,7 +811,10 @@
     color: #f2e9d8;
     padding-bottom: clamp(1rem, 4vw, 4rem);
   }
+  .chronicle :global(.play-area),.chronicle :global(.event-grid),.chronicle :global(.perform),.chronicle :global([tabindex="-1"]){scroll-margin-top:84px}
+  @media(max-width:760px){.chronicle :global(.play-area),.chronicle :global(.event-grid),.chronicle :global(.perform),.chronicle :global([tabindex="-1"]){scroll-margin-top:126px}}
   .mast {
+    position:sticky;top:0;z-index:12;background:#191c1b;
     min-height: 74px;
     max-width: 1472px;
     margin: auto;
@@ -1458,5 +1471,55 @@
   }
   .my-outcomes p {
     font-size: 0.91rem;
+  }
+
+  .chapter-brief {margin:.3rem 0 1rem;color:#e7d8bc}
+  .chapter-brief summary {cursor:pointer;font-size:.9rem;line-height:1.65}
+  .chapter-brief.in-story {color:#65533d;border-bottom:1px solid #c8bca4;padding-bottom:.6rem;margin:0 0 .75rem}
+  .chapter-brief.in-story .intro {border:0;margin:.5rem 0 0;padding:0}
+  .lobby {grid-template-columns:minmax(0,.72fr) minmax(0,1fr);width:min(1260px,calc(100% - clamp(28px,6vw,80px)));margin-top:clamp(12px,2vw,28px)}
+  .lobby-text {padding:clamp(22px,3.2vw,46px);min-width:0}
+  .lobby-text form {margin-top:1.2rem}
+  .lobby h1 {font-size:clamp(2.1rem,4vw,3.7rem);margin:.14em 0 .3em}
+  .lobby-text select {max-width:100%;min-width:0;margin-bottom:.3rem}
+  .chapter-layout {--spread-gap:clamp(10px,1.3vw,20px);display:grid;grid-template-columns:minmax(0,.87fr) minmax(0,1.18fr);
+    grid-template-areas:"live story" "source story";grid-template-rows:auto 1fr;gap:var(--spread-gap);align-items:start;
+    width:min(1440px,calc(100% - clamp(24px,4.5vw,76px)));margin:clamp(12px,2vw,28px) auto 0}
+  .chapter-layout .stage {display:contents}
+  .chapter-layout .story {grid-area:story;align-self:start;padding:clamp(18px,2.7vw,44px);border:1px solid #c4b89d}
+  .chapter-layout .story h1 {line-height:1.25;margin:.42em 0 .5em;font-size:clamp(1.65rem,2.65vw,2.75rem);text-wrap:balance}
+  .story-topline {display:flex;align-items:center;justify-content:space-between;gap:.5rem;color:#776449}
+  .story-topline .date-line {margin:0;line-height:1.45;letter-spacing:.035em}
+  .story-topline button {min-height:36px;flex-shrink:0;border:1px solid #ab9675;background:#fbf8ee;color:#493c26;padding:.25rem .6rem;font-size:.84rem;font-weight:650}
+  .chapter-layout .scene-body {font-size:clamp(1rem,1.3vw,1.15rem);line-height:1.85}
+  .chapter-layout :global(.perform:not(.theatre):not(.postcard)) {grid-area:live;width:100%;margin:0;min-width:0}
+  .chapter-layout :global(.perform:not(.theatre):not(.postcard) .frame:not(.film)) {height:clamp(210px,36vh,410px)}
+  .chapter-layout :global(.perform:not(.theatre) header),.chapter-layout :global(.perform:not(.theatre) footer){flex-wrap:wrap;gap:.45rem;padding:.45rem .65rem}
+  .chapter-layout .scene-art {grid-area:source;position:relative;top:auto;min-height:112px;height:auto;max-height:none;background:#272d28;border:1px solid #4d5347;display:grid;grid-template-columns:minmax(100px,.48fr) 1fr;align-items:center;overflow:hidden}
+  .chapter-layout .scene-art::after {display:none}
+  .chapter-layout .scene-art :global(.eyes) {position:absolute;inset:0 auto 0 0;width:32%}
+  .chapter-layout .scene-art .art-caption {position:static;grid-column:2;padding:.75rem 1rem;color:#f3ead6;text-shadow:none}
+  .chapter-layout .scene-art .art-caption span {font-size:1.23rem}
+  .chapter-layout .scene-art .art-caption strong {font-size:1rem}
+  .chapter-layout .scene-art .art-caption p {margin:.25rem 0 0}
+  .chapter-layout .reel-top {min-width:0;grid-area:source}
+  .chapter-layout.reel-layout {grid-template-areas:"source story" "live story"}
+  .chapter-layout.reel-layout :global(.perform[data-phase="idle"]:not(.theatre):not(.postcard) .frame:not(.film)) {display:none}
+  .play-area {scroll-margin-top:1rem}
+  @media(max-width:800px) {
+    .chapter-layout,.chapter-layout.reel-layout {width:calc(100% - 20px);grid-template-columns:minmax(0,1fr);grid-template-rows:auto;
+      grid-template-areas:"live" "story" "source";gap:10px;margin-top:10px}
+    .chapter-layout.source-layout,.chapter-layout.reel-layout {grid-template-areas:"source" "live" "story"}
+    .chapter-layout.source-layout :global(.perform[data-phase="idle"]:not(.theatre):not(.postcard) .frame:not(.film)){display:none}
+    .chapter-layout :global(.perform:not(.theatre):not(.postcard) .frame:not(.film)){height:clamp(142px,31vw,216px)}
+    .chapter-layout .story {padding:18px 16px}
+    .chapter-layout .story h1 {font-size:1.65rem}
+    .lobby {grid-template-columns:minmax(0,1fr)}
+    .lobby-art {height:clamp(92px,24vw,145px)}
+    .lobby-text {padding:18px}
+    .lobby .art-caption {bottom:8px;left:14px}
+    .lobby .art-caption span {font-size:1.25rem}
+    .lobby .art-caption strong {font-size:.98rem}
+    .lobby .art-caption p {display:none}
   }
 </style>

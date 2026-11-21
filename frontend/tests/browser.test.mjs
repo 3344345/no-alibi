@@ -95,7 +95,7 @@ test('desktop updates download in the background and keep both game modes availa
     await page.getByRole('button', { name: '生涯模式', exact: true }).waitFor()
     await page.getByText('暂时连不上更新服务').waitFor()
     await enterCareerMenu(page)
-    await page.getByRole('button', { name: '模式选择', exact: true }).click()
+    await page.getByRole('button', { name: '返回', exact: true }).click()
     await page.getByText('更新设置').click()
     const automatic = page.getByRole('checkbox', { name: '自动检查并下载更新' })
     assert.ok(await automatic.isChecked())
@@ -111,7 +111,7 @@ test('desktop updates download in the background and keep both game modes availa
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     await page.getByRole('button', { name: '历史主角模式' }).click()
     await page.getByRole('button', { name: '开始长篇' }).waitFor()
-    await page.getByRole('button', { name: '模式选择', exact: true }).click()
+    await page.getByRole('button', { name: '返回', exact: true }).click()
     await page.getByText('新版 4.3.0 已就绪，下次打开自动更新').waitFor()
     await page.getByText('更新设置').click()
     assert.equal(await automatic.isChecked(), false)
@@ -823,7 +823,7 @@ test('report choices, social and family visits, notebook custody and a twelve-qu
       if (view.busy) await wait('8 小时')
       if (choice !== 'yes') {
         await page.getByRole('button', {name:'局中事 主菜单'}).click()
-        await page.getByRole('button', {name:'模式选择', exact: true}).click()
+        await page.getByRole('button', {name:'返回', exact: true}).click()
       }
     }
     await act('appointment', {place:'L05'})
@@ -925,5 +925,45 @@ test('a county night shift keeps its appointment and remembers whether you staye
     await noOverflow(page)
   } finally {
     await context.close()
+  }
+})
+
+test('career back follows visited workspaces and returns to the same saved desk', {timeout:45000}, async () => {
+  for (const viewport of [{width:1280,height:800},{width:390,height:844}]) {
+    const page = await browser.newPage({viewport})
+    try {
+      await openCareer(page,false)
+      const before = await current(page)
+      const back = page.getByRole('button',{name:'返回',exact:true})
+      const actionShortcut = page.getByRole('button',{name:'选择办理方式',exact:true})
+      assert.ok(await actionShortcut.evaluate(node => {
+        const r=node.getBoundingClientRect()
+        return r.top>=0 && r.bottom<=innerHeight
+          && node.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2))
+      }), 'the desk should offer its action shortcut before the user scrolls')
+      await actionShortcut.click()
+      await page.getByRole('region',{name:'可办理事项'}).waitFor()
+      assert.ok(await page.getByRole('region',{name:'可办理事项'}).evaluate(node=>node.contains(document.activeElement)))
+      await navigate(page,'日程')
+      await navigate(page,'档案')
+      await noOverflow(page)
+      await back.click()
+      await page.getByRole('heading',{name:'日程',exact:true}).waitFor()
+      await back.click()
+      await page.getByRole('heading',{name:'行动',exact:true}).waitFor()
+      await back.click()
+      await page.getByRole('heading',{name:'我的办公桌',exact:true}).waitFor()
+      await back.click()
+      await page.getByRole('heading',{name:'生涯档案',exact:true}).waitFor()
+      await back.click()
+      await page.getByRole('group',{name:'模式选择'}).waitFor()
+      await enterCareerMenu(page)
+      await page.getByRole('button',{name:'继续生涯',exact:true}).click()
+      await page.getByRole('heading',{name:'我的办公桌',exact:true}).waitFor()
+      const restored = await current(page)
+      assert.equal(restored.world_id,before.world_id)
+      assert.equal(restored.revision,before.revision)
+      assert.deepEqual(restored.timeline,before.timeline)
+    } finally {await page.close()}
   }
 })

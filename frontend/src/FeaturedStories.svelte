@@ -32,7 +32,7 @@
       <button class="enter" on:click={() => play(story)}>{story.action} <b aria-hidden="true">→</b></button>
     </div>
   </div>
-  <div class="rail">
+  <div class="story-rail">
     <div class="strip" bind:this={strip} aria-label="挑选长篇">
     {#each features as item, i}
       <button type="button" aria-pressed={current === i} on:click={() => select(i)} on:keydown={(e) => move(e,i)}>
@@ -60,7 +60,7 @@
   .enter b{margin-left:.5em;} .strip{display:flex;overflow-x:auto; border-bottom:1px solid #534f43;}
   .strip button{background:transparent;color:#bfbab0;white-space:nowrap;min-height:44px;padding:.7rem clamp(.65rem,1.75vw,1.6rem);border:0;border-bottom:2px solid transparent;}
   .strip button[aria-pressed=true]{color:#f1d7a7;border-bottom-color:#cda66e;}
-  .rail{display:flex;align-items:stretch;gap:8px;padding-top:8px}.strip{position:relative;flex:1;gap:6px;scrollbar-width:thin;scrollbar-color:#766e5e #1d2420;border:0}
+  .story-rail{display:flex;align-items:stretch;gap:8px;padding-top:8px;min-width:0}.strip{position:relative;flex:1;gap:6px;scrollbar-width:thin;scrollbar-color:#766e5e #1d2420;border:0}
   .strip button{position:relative;flex:0 0 clamp(108px,12vw,174px);height:clamp(62px,7.4vw,96px);isolation:isolate;overflow:hidden;text-align:left;padding:.4rem .62rem;display:flex;align-items:flex-end;line-height:1.3;border:1px solid #595c51;color:#f9f4e6}
   .strip button img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;z-index:-2;filter:saturate(.64)}
   .strip button::after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,#111711ec,transparent 92%)}

@@ -1340,3 +1340,10 @@ dialog::backdrop {
   .action-layout .perform:not(.theatre):not(.postcard) header button,.action-layout .perform:not(.theatre):not(.postcard) footer button{min-height:28px}
   .action-layout figure.scene{display:none}
 }
+
+.menu-nav,.desk-bar{position:sticky;top:0;z-index:12}
+.menu-nav{background:var(--base)}
+.workspace-main :is(h1,.actions-page,.perform){scroll-margin-top:76px}
+.desk-bar .crumb{margin-right:auto;margin-left:clamp(.6rem,2vw,1.4rem)}
+.dialog-head{position:sticky;top:0;z-index:3;justify-content:flex-start;align-items:center;background:var(--paper);padding-block:.35rem}
+@media(max-width:600px){.desk-bar{flex-wrap:wrap;column-gap:.35rem}.desk-bar .return-button,.menu-nav .return-button{min-height:36px;padding-inline:.48rem}}

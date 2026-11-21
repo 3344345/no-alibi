@@ -1,6 +1,8 @@
 <script lang="ts">
+  import BackButton from './BackButton.svelte'
   import { onMount } from 'svelte'
   export let title: string
+  export let destination = '上一层'
   export let onclose: () => void
   let dialog: HTMLDialogElement
   onMount(() => {
@@ -21,8 +23,8 @@
   }}
 >
   <div class="dialog-head">
+    <BackButton back={onclose} {destination}/>
     <h2>{title}</h2>
-    <button class="plain close" aria-label="关闭" on:click={onclose}>×</button>
   </div>
   <slot />
 </dialog>

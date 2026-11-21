@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BackButton from './BackButton.svelte'
   import { starts, stamp, balanceString } from './game'
   import Balance from './Balance.svelte'
   import type { World } from './types'
@@ -19,6 +20,11 @@
     balance = '0.500000',
     seed = ''
   $: selectedStart = profiles.find((s) => s.id === selected)!
+  function back() {
+    if (creating) creating = false
+    else selectMode()
+    window.scrollTo(0,0)
+  }
   function submit() {
     const value = balanceString(balance)
     if (!value || !name.trim()) return
@@ -33,11 +39,11 @@
 
 <div class="menu-shell">
   <header class="menu-nav">
+    <BackButton {back} destination={creating ? '生涯主菜单' : '模式选择'} disabled={busy} pageShortcut/>
     <button class="brand" aria-label="局中事 主菜单" on:click={() => (creating = false)}
       ><img alt="" src="./seal.svg" />局中事</button
     >
     <div class="place">江岚省<span>／</span>临江市<span>／</span>澄川县</div>
-    <button class="plain" disabled={busy} on:click={selectMode}>模式选择</button>
     <button class="link-button" disabled={busy} on:click={importFile}
       >导入存档 <span aria-hidden="true">↗</span></button
     >
@@ -47,9 +53,9 @@
       <div class="cover">
         <img src="./county-office.jpg" alt="阳光落在澄川县办公室桌上的一摞档案上" />
         <div class="cover-copy">
-          <p class="cover-label">澄川县 · 县域生涯模拟</p>
-          <h1>局中事</h1>
-          <p>一份材料，几方说法。<br />在澄川县，接手你的第一件事。</p>
+          <p class="cover-label">生涯模式</p>
+          <h1>澄川生涯</h1>
+          <p>南渠的简报放在桌上。联络员还在门口，等你定今天的安排。</p>
           <div class="button-row">
             {#if worlds.length}<button
                 class="button gold"
@@ -91,7 +97,6 @@
         {:else}<p class="empty">尚无本机档案。建立生涯后，每次已确认的行动都会自动保存。</p>{/if}
       </section>
     {:else}
-      <button class="back" on:click={() => (creating = false)}>← 返回主菜单</button>
       <div class="page-heading">
         <div>
           <p class="kicker">澄川县 · 人事档案</p>
@@ -156,3 +161,22 @@
     {/if}
   </main>
 </div>
+
+<style>
+  .cover {
+    height: auto;
+    min-height: clamp(245px, 35vh, 355px);
+    display: flex;
+    align-items: center;
+  }
+  .cover-copy { height: auto; max-width: 44rem; padding: clamp(22px, 3.5vw, 46px); }
+  .cover h1 { font-size: clamp(2.5rem, 5vw, 4.8rem); letter-spacing: .06em; }
+  .cover-copy > p:not(.cover-label) { max-width: 29em; }
+  .cover .button-row { margin-top: 16px; }
+  @media (max-width: 680px) {
+    .cover { min-height: 218px; }
+    .cover-copy { padding: 20px; }
+    .cover .button-row { gap: 7px; }
+    .cover .button-row .button { padding-inline: 12px; gap: 8px; }
+  }
+</style>

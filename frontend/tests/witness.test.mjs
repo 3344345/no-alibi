@@ -65,7 +65,7 @@ async function compareOutcome(page, before, id, fates) {
   await button(page, '年代与出处').click()
   const sources = page.getByRole('dialog', { name: '年代与出处' })
   assert.equal(await sources.getByLabel('查阅年代').inputValue(), before.chapter.id)
-  await button(sources, '关闭').click()
+  await button(sources, '返回').click()
   assert.match(before.chapter.history, /蒋捷连.{0,15}遇难/)
   assert.match(before.chapter.history, /赵紫阳.{0,15}被撤职/)
   await turnPage(page, next)
@@ -123,7 +123,7 @@ test('Shanghai tram passengers remember the chosen kitchen on reload and vote si
       const result = view.journal.at(-1)
       assert.match(result.result, ending === 'hospital' ? /医院门前有了末班车/ : /保住一站的人/)
       await handover(page).getByText('史实对照', {exact:true}).waitFor()
-      await interact(page, 'GET', api, () => button(page, '长篇目录').click())
+      await interact(page, 'GET', api, () => button(page, '返回').click())
     }
   } finally {
     await fixture.close()
@@ -196,7 +196,7 @@ test('1989 witness, two named outcomes, their historical comparison, and both sa
     assert.ok(testimony)
     await sources.locator('summary').getByText(testimony.name, { exact: true }).click()
     assert.equal(await sources.getByRole('link', { name: testimony.url, exact: true }).getAttribute('href'), testimony.url)
-    await button(sources, '关闭').click()
+    await button(sources, '返回').click()
     for (const id of ['endorse', 'private', 'martial', 'stand']) view = await choose(page, view, id)
     assert.equal(view.scene.id, 'deadline')
     const junction = view
@@ -252,8 +252,8 @@ test('1989 witness, two named outcomes, their historical comparison, and both sa
       const end = record.journal.findLast((e) => e.chapter_id === chapterId)
       await log.locator('summary').filter({ hasText: end.title }).click()
       await log.getByText(end.result, { exact: true }).waitFor()
-      await button(log, '关闭').click()
-      await interact(page, 'GET', api, () => button(page, '长篇目录').click())
+      await button(log, '返回').click()
+      await interact(page, 'GET', api, () => button(page, '返回').click())
     }
     assert.deepEqual(errors, [])
   } finally {
@@ -296,7 +296,7 @@ test('two home modes keep same-named county, family and witness records independ
     return result
   }
   async function toArchiveLobby(page) {
-    await interact(page, 'GET', api, () => button(page, '长篇目录').click())
+    await interact(page, 'GET', api, () => button(page, '返回').click())
   }
   async function createArchive(page, campaign) {
     if (campaign === 'witness') await page.getByLabel('选择亲历者与起始事件').selectOption(chapterId)
@@ -322,15 +322,15 @@ test('two home modes keep same-named county, family and witness records independ
     assert.deepEqual((await archiveLobby(page, 'family')).careers, [])
     const family = await createArchive(page, 'family')
     await toArchiveLobby(page)
-    await button(page, '生涯模式').click()
+    await button(page, '返回').click()
     await button(page, '继续生涯').waitFor()
-    await button(page, '模式选择').click()
+    await button(page, '返回').click()
     await rootVisible(page)
     assert.deepEqual((await archiveLobby(page, 'witness')).careers, [])
     const witness = await createArchive(page, 'witness')
     assert.equal(new Set([witness.id, family.id, county.world_id]).size, 3)
     await toArchiveLobby(page)
-    await button(page, '模式选择').click()
+    await button(page, '返回').click()
     await rootVisible(page)
     await context.close()
     context = null
@@ -344,7 +344,7 @@ test('two home modes keep same-named county, family and witness records independ
     assert.deepEqual(remembered.careers.map(c => c.id), [witness.id])
     await resume(page, witness)
     await toArchiveLobby(page)
-    await button(page, '模式选择').click()
+    await button(page, '返回').click()
     await rootVisible(page)
     await careerLobby(page)
     const restoredCounty = await interact(page, 'GET', '/api/worlds/' + county.world_id, () => button(page, '继续生涯').click())
@@ -389,7 +389,7 @@ test('event directory covers the published catalogue, filters by era and launche
     await button(page, '年代与出处').click()
     const sources = page.getByRole('dialog', { name: '年代与出处' })
     assert.equal(await sources.getByLabel('查阅年代').inputValue(), 'witness_bian')
-    await button(sources, '关闭').click()
+    await button(sources, '返回').click()
     assert.equal(await page.getByLabel('为这段长篇命名').inputValue(),'')
     const view=await interact(page,'POST',api,()=>button(page,'开始长篇').click())
     assert.equal(view.start_chapter,'witness_bian')
@@ -442,6 +442,8 @@ test('the cover can resume the same five-part serial while the two mode entrance
     assert.equal(first.edition,'serial_v1')
     assert.equal(first.scene.id,'xian_wait')
     const next = await choose(p,first,first.scene.choices[0].id)
+    await button(p,'返回').click()
+    await p.getByRole('group',{name:'模式选择'}).waitFor()
     await p.reload()
     const resumed = await interact(p,'GET',api+'/'+first.id,open)
     assert.equal(resumed.id,first.id)
@@ -538,4 +540,62 @@ test('the two courtyard drawings return years later and can be traced to the nig
     game = await choose(page, game, 'sky_pass_sketch')
     assert.ok(game.marks.includes('院课 · 后排学生当了一堂老师'))
   } finally { await fixture.close() }
+})
+
+test('both mode entrances fit the opening screen and accept a click without scrolling', {timeout:30000}, async () => {
+  const fixture = await startBrowserFixture()
+  try {
+    for (const [width,height] of [[1280,800],[1024,720],[390,844],[320,568]]) {
+      const page = await fixture.browser.newPage({viewport:{width,height}})
+      await page.goto(fixture.session)
+      const modes = page.getByRole('group',{name:'模式选择'})
+      await modes.waitFor()
+      await page.evaluate(() => document.fonts.ready)
+      assert.equal(await modes.getByRole('button').count(),2)
+      for (const name of ['生涯模式','历史主角模式']) {
+        const accessible = await button(modes,name).evaluate(node => {
+          const r = node.getBoundingClientRect()
+          const center = document.elementFromPoint(r.left + r.width / 2,r.top + r.height / 2)
+          return scrollY === 0 && r.left >= 0 && r.right <= innerWidth
+            && r.top >= 0 && r.bottom <= innerHeight && node.contains(center)
+        })
+        assert.ok(accessible,`${name} should be visible and uncovered on a fresh ${width}×${height} screen`)
+      }
+      await page.close()
+    }
+  } finally {await fixture.close()}
+})
+
+test('the chapter title and route to the decision stay in reach on desktop and phone', {timeout:30000}, async () => {
+  const fixture = await startBrowserFixture()
+  try {
+    for (const viewport of [{width:1280,height:800},{width:390,height:844}]) {
+      const page = await fixture.browser.newPage({viewport})
+      await openLobby(page,fixture)
+      await page.getByLabel('选择亲历者与起始事件').selectOption(chapterId)
+      await page.getByLabel('为这段长篇命名').fill('开篇阅读 '+viewport.width)
+      const opening = await interact(page,'POST',api,() => button(page,'开始长篇').click())
+      const chapter = story(page)
+      const title = chapter.getByRole('heading',{name:opening.scene.title,exact:true})
+      const jump = chapter.getByRole('button',{name:/^本幕行动/})
+      for (const el of [title,jump]) {
+        await el.waitFor()
+        assert.ok(await el.evaluate(node => {
+          const r=node.getBoundingClientRect()
+          return r.top >= 0 && r.bottom <= innerHeight
+            && node.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))
+        }), 'the scene title and first shortcut to choices should be in sight on entry')
+      }
+      await jump.click()
+      const choices = page.getByRole('group',{name:'本幕行动'})
+      assert.ok(await choices.evaluate(node => node.contains(document.activeElement)))
+      await button(page,'镜头阅读').click()
+      const reel = page.getByRole('region',{name:'镜头阅读'})
+      await button(reel,'直接作决定').click()
+      assert.ok(await choices.evaluate(node => node.contains(document.activeElement)))
+      await button(page,'返回').click()
+      await resume(page,opening)
+      await page.close()
+    }
+  } finally {await fixture.close()}
 })
