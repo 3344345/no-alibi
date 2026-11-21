@@ -77,7 +77,8 @@ class Pen:
         self.d.text(self.xy((x,y)),value,font=font(size),fill=color,anchor="lt")
 
 
-BACKGROUND = {"L01":"office", "L02":"canal", "L07":"home", "L09":"home", "bus":"county-nightbus", "cinema":"county-reel"}
+COUNTY_ROOMS = {"L03", "L04", "L05", "L06", "L08"}
+BACKGROUND = {"L01":"office", "L02":"canal", "L07":"home", "L09":"home", "bus":"county-nightbus"}
 TABLE = {"L01":(86,64,42), "L03":(72,68,53), "L04":(84,56,43), "L05":(61,65,64),
          "L07":(109,77,48), "L08":(78,59,39), "L09":(95,58,49)}
 HORIZON = {"L01":276,"L03":253,"L04":303,"L05":311,"L07":286,"L08":309,"L09":276}
@@ -85,20 +86,17 @@ HORIZON = {"L01":276,"L03":253,"L04":303,"L05":311,"L07":286,"L08":309,"L09":276
 
 @lru_cache
 def plate(scene):
-    if scene in BACKGROUND:
-        raw=Image.open(PUBLIC/"scenes"/(BACKGROUND[scene]+".webp")).convert("RGB")
+    if scene in COUNTY_ROOMS:
+        path = PUBLIC / "sets" / ("county-room-" + scene + ".webp")
+    elif scene == "cinema":
+        path = PUBLIC / "sets" / "county-projection-booth.webp"
     else:
-        raw=Image.open(PUBLIC/"county-locations.jpg").convert("RGB")
-        i=int(scene[1:])-1; x=i%3; y=i//3
-        raw=raw.crop((round(raw.width*x/3),round(raw.height*y/3),round(raw.width*(x+1)/3),round(raw.height*(y+1)/3)))
+        path = PUBLIC / "scenes" / (BACKGROUND[scene] + ".webp")
+    raw = Image.open(path).convert("RGB")
     if scene=="L09":
         # Sit on the open side of the family table. The earlier gathering is
         # visible inside the print, never as a head placed in front of our eyes.
         raw=raw.crop((round(raw.width*.42),0,raw.width,round(raw.height*.89)))
-    if scene=="L06":
-        # The wide establishing plate includes a golfer seen from behind. The
-        # playable viewpoint looks down the lane from the grip instead.
-        raw=raw.crop((round(raw.width*.31),round(raw.height*.20),round(raw.width*.61),round(raw.height*.72)))
     frame=ImageOps.fit(raw,SIZE,centering=(.49,.44)).filter(ImageFilter.GaussianBlur(1.3*SCALE))
     if scene in TABLE:
         frame=Image.blend(frame,Image.new("RGB",SIZE,(41,36,31)),.12)
@@ -339,11 +337,7 @@ def reception(im,t):
 
 
 def golf(im,t):
-    p=Pen(im);p.poly([(0,368),(187,348),(405,367),(659,325),(960,335),(960,540),(0,540)],(101,119,75))
-    rng=random.Random(46)
-    for _ in range(180):
-        x=rng.uniform(0,960);y=rng.uniform(373,540)
-        p.line([(x,y),(x+3,y-rng.uniform(1,4))],(112+rng.randrange(15),130,83))
+    p=Pen(im)
     x,y=698,403;p.oval(x+10,y+2,29,6,(89,96,61));p.oval(x,y,17,5,(54,64,43))
     p.line([(x,y-3),(x-2,118)],(196,194,153),3)
     lift=math.sin(t*2.0);flap=[(x-1,118),(x+22,122),(x+45,116+lift*4),(x+70,118+lift*6),(x+56,136+lift*3),(x+26,141),(x-1,142)]
@@ -436,7 +430,7 @@ def bus(im,t):
     q=Pen(im,xx,yy,-7+3*slip)
     q.rect(-3,3,222,100,(58,61,52));q.rect(0,0,220,96,(203,178,129))
     for i in range(15):q.oval(1,4+i*6.2,2.6,2.1,(71,73,62));q.oval(220,4+i*6.2,2.6,2.1,(71,73,62))
-    q.text(17,15,"县 城 客 运",16,(124,66,47));q.text(20,46,"夜班",13,INK);q.text(82,43,"19 : 40",20,INK)
+    q.text(17,15,"澄 川 客 运",16,(124,66,47));q.text(20,46,"南门",13,INK);q.text(82,43,"七路夜班",16,INK)
     q.line([(12,37),(209,37)],(151,112,77))
     for j in range(14):q.rect(153+j*3.2,60,1+j%2,18,(92,79,56))
     # Our ticket stays between our thumb and forefinger; the conductor reaches
@@ -454,17 +448,24 @@ def bus(im,t):
         p.line([(x,y),(x-2,y+9)],(128,136,124),1)
 
 
+# Inner edge of the photographed silver screen on the 960 x 540 booth plate.
+SCREEN = (138, 158, 290, 160)
+
+
 @lru_cache
 def film_frame(stem):
-    im=Image.open(PUBLIC/"scenes"/("county-film-"+stem+".webp")).convert("RGB")
-    return ImageOps.fit(im,(round(340*SCALE),round(190*SCALE)))
+    im = Image.open(PUBLIC / "scenes" / ("county-film-" + stem + ".webp")).convert("RGB")
+    width, height = (round(n*SCALE) for n in SCREEN[2:])
+    frame = Image.new("RGB", (width, height), (32,31,27))
+    picture = ImageOps.contain(im, frame.size, Image.Resampling.LANCZOS)
+    frame.paste(picture, ((width-picture.width)//2, (height-picture.height)//2))
+    return frame
 
 
 def cinema(im,t):
-    p=Pen(im);p.poly([(46,99),(419,92),(422,316),(44,326)],(39,41,35))
+    p=Pen(im)
     still=film_frame("chair" if t<3.80 else "girl")
-    im.paste(still,(round(61*SCALE),round(111*SCALE)))
-    p.line([(52,312),(415,309)],(144,122,87),4)
+    im.paste(still,(round(SCREEN[0]*SCALE),round(SCREEN[1]*SCALE)))
     p.poly([(638,151),(748,154),(792,383),(627,404)],(48,48,41));p.poly([(604,270),(801,246),(876,526),(591,540)],(61,62,54))
     p.line([(616,405),(820,372)],(119,115,91),4)
     for cx,cy,r,a0 in [(675,113,96,.1),(862,185,117,-1.4)]:
@@ -484,7 +485,7 @@ def cinema(im,t):
     p.line([(692,419),(684+17*notch,387)],(157,146,109),5)
     p.oval(684+17*notch,386,8,8,(109,111,91))
     hand(im,684+17*notch+104*(1-cue(t,1.63,1.52)),387+40*(1-cue(t,1.63,1.52)),39,.84,pose="offer")
-    if 3.77<t<3.85:p.rect(61,111,340,191,(196,184,146))
+    if 3.77<t<3.85:p.rect(*SCREEN,(196,184,146))
 
 
 ART = {"L01":office,"L02":construction,"L03":coordination,"L04":dinner,"L05":reception,
@@ -500,7 +501,7 @@ CLOSEUPS = {
     "L05": (1.60, 2.63, 346, 224, 473), "L06": (3.02, 5.2, 460, 283, 492),
     "L07": (2.10, 4.82, 307, 236, 510), "L08": (3.31, 5.47, 383, 244, 441),
     "L09": (3.48, 5.34, 358, 228, 539), "bus": (2.68, 4.37, 331, 193, 508),
-    "cinema": (3.65, 5.7, 14, 47, 513),
+    "cinema": (3.65, 5.7, 68, 117, 433),
 }
 
 

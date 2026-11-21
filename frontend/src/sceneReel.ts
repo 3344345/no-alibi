@@ -1,7 +1,7 @@
 export type Beat = { text: string; kind: 'story' | 'consequence' }
 export type PropCue = 'cup_rim' | 'paper_rods' | 'piano_wire' | 'rain_tin'
 export type Prop = { name: string; detail: string; cue: PropCue }
-export type Shot = { image: string; position: string; caption: string; prop?: Prop }
+export type Shot = { image: string; position: string; caption: string; prop?: Prop; firstPerson?: boolean }
 
 export function sceneBeats(text: string, lastResult = ''): Beat[] {
   const beats: Beat[] = []
@@ -28,6 +28,7 @@ export function sceneBeats(text: string, lastResult = ''): Beat[] {
 const cup: Prop = { name: '听茶盖', cue: 'cup_rim', detail: '盖沿在碗口碰了两下。对面的人松开手，等你把话问完。' }
 const paper: Prop = { name: '听影杆', cue: 'paper_rods', detail: '两根细杆擦过布面。坐在前排的人听得见，后排只看见影子点了一下头。' }
 const piano: Prop = { name: '听琴弦', cue: 'piano_wire', detail: '松开指头以后，那根弦还在响。靠在琴边才能听见最后一点余音。' }
+const bowls: Prop = { name: '听碗沿', cue: 'cup_rim', detail: '杏儿把两只饭碗翻过来。指腹叩在碗沿，她抢先敲了第三下，抬眼看看她妈。' }
 const rain: Prop = { name: '听檐下的雨', cue: 'rain_tin', detail: '雨点打在铁皮边，先是东头响了两声，接着落到你身边。' }
 
 export function directedShot(scene: string): Shot | undefined {
@@ -40,8 +41,12 @@ export function directedShot(scene: string): Shot | undefined {
     return { image: audience ? 'still_audience' : 'still_shadow', position: audience ? '64% 40%' : '57% 47%', caption: audience ? '情境插画 · 喜棚的前排' : '情境插画 · 白布后面的两个人', ...(audience ? {} : {prop: paper}) }
   }
   if (scene.startsWith('reel_')) {
-    if (['reel_kitchen','reel_morning','reel_shop','reel_yard','reel_landing'].includes(scene))
-      return {image:'still_lastkeys',position:'58% 46%',caption:'架空场景 · 那架琴的后来',prop:piano}
+    if (scene === 'reel_kitchen')
+      return {image:'still_bowls',position:'59% 63%',caption:'架空场景 · 杏儿的两只饭碗',prop:bowls,firstPerson:true}
+    if (scene === 'reel_morning')
+      return {image:'still_lastkeys',position:'49% 48%',caption:'架空场景 · 桂枝开弹前的片刻',firstPerson:true,prop:piano}
+    if (scene === 'reel_yard')
+      return {image:'still_piano',position:'48% 54%',caption:'架空场景 · 等着天亮搬走的钢琴'}
     const inStudio = ['reel_lobby','reel_mix','reel_open','reel_sale','reel_booth','reel_ticket'].includes(scene)
     return { image: inStudio ? 'still_radio' : 'still_piano', position: inStudio ? '65% 40%' : '63% 47%', caption: inStudio ? '架空场景 · 夜班放音间' : '架空场景 · 散场后的旧钢琴', ...(inStudio ? {} : {prop: piano}) }
   }

@@ -54,3 +54,45 @@ test('the pianist’s tape plays separate local microphones and a long cut chang
     assert.equal(new Set(samples).size,2)
   } finally { await f.close() }
 })
+
+test('the kitchen and concert endings show the object in their own scene above the dialogue', {timeout:65000}, async () => {
+  for (const [steps, plate, sound] of [
+    ['follow_mother keep_key let_listen use_silence teacher_key one_student', 'still_bowls', '听碗沿'],
+    ['follow_chair carry_chair cut_full take_blame yard chair_ticket', 'still_lastkeys', '听琴弦'],
+  ]) {
+    const fixture = await startBrowserFixture()
+    try {
+      const page = await fixture.browser.newPage({viewport:{width:390,height:780}})
+      await page.goto(fixture.session)
+      const headers = {Authorization:'Bearer '+new URLSearchParams(new URL(fixture.session).hash.slice(1)).get('session')}
+      const created = await page.request.post(fixture.address+'/api/chronicle', {headers, data:{
+        name:'倒带七秒', campaign:'witness', start_chapter:'witness_deng_xiaoping', opening_choice:'seven_seconds',
+      }})
+      assert.ok(created.ok())
+      let game = await created.json()
+      for (const choice of steps.split(' ')) {
+        const selected = await page.request.post(fixture.address+'/api/chronicle/'+game.id+'/choices', {headers, data:{
+          choice, revision:game.revision, command_id:'ending-image-'+game.revision,
+        }})
+        assert.ok(selected.ok())
+        game = await selected.json()
+      }
+      await page.getByRole('button',{name:'倒带七秒',exact:true}).click()
+      await page.getByRole('button',{name:'戴上耳机，听那七秒'}).click()
+      const camera = page.getByRole('button',{name:'镜头阅读',exact:true})
+      if (await camera.getAttribute('aria-pressed') !== 'true') await camera.click()
+      const reel = page.getByRole('region',{name:'镜头阅读'})
+      const image = reel.locator('.eyes.baked .reading-space')
+      await image.waitFor()
+      await image.evaluate(el => el.decode())
+      assert.equal(await image.getAttribute('src'), '/chronicle/'+plate+'.webp')
+      await reel.getByRole('button',{name:sound,exact:true}).click()
+      const picture = await reel.locator('.image').boundingBox()
+      const text = await reel.locator('.script').boundingBox()
+      assert.ok(picture && text && picture.y+picture.height <= text.y+1)
+      assert.equal(await reel.locator('.own, .near-object').count(),0)
+    } finally {
+      await fixture.close()
+    }
+  }
+})

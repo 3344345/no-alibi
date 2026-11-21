@@ -31,7 +31,8 @@ function sleeve(g:G,from:P,to:P,thick:number,coat:string){
   for(const [a,b] of [[.14,.76],[.51,.52],[.86,.79]])stroke(g,`M${l*a} ${-thick*.7} q${thick*.55} ${thick*b} ${thick*.65} ${thick*1.25}`,'#c0b6a039',1.4)
   g.restore()
 }
-function arm(g:G,shoulder:P,end:P,coat:string,amount:number,pose:string,t:number,far:boolean,delicate=false,costume='jacket'){
+const gripPoints:Record<string,P>={pinch:[449,126],write:[405,96],rest:[446,106],offer:[430,142],take:[438,147],halt:[399,40]}
+function arm(g:G,shoulder:P,end:P,coat:string,amount:number,pose:string,t:number,far:boolean,delicate=false,costume='jacket',held?:(grip:P)=>void){
   const dx=end[0]-shoulder[0],dy=end[1]-shoulder[1],length=Math.max(1,Math.hypot(dx,dy))
   const extension=Math.min(1,Math.max(0,(end[0]-shoulder[0])/77))
   const elbow:P=[shoulder[0]+20+extension*15,shoulder[1]+Math.min(74,Math.max(33,(dy+106)*.40))-extension*9]
@@ -48,12 +49,21 @@ function arm(g:G,shoulder:P,end:P,coat:string,amount:number,pose:string,t:number
     const fore=Math.hypot(wx,wy),angle=Math.atan2(wy,wx)
     // A single photographed forearm, cuff, wrist and hand turns at the elbow.
     // Its sleeve starts inside the upper sleeve so the joint stays covered.
-    g.save();g.translate(...elbow);g.rotate(angle)
     const length=Math.max(65,Math.min(115,fore+37)),height=length*.402
+    if(held){
+      const [u,v]=gripPoints[grasp]
+      const gx=-14+(length+14)*u/photographed.width,gy=height*(v/photographed.height-.51)
+      held([elbow[0]+gx*Math.cos(angle)-gy*Math.sin(angle),elbow[1]+gx*Math.sin(angle)+gy*Math.cos(angle)])
+    }
+    g.save();g.translate(...elbow);g.rotate(angle)
     g.beginPath();g.roundRect(-12,-height*.50,length+12,height,Math.min(12,height*.38));g.clip()
-    g.drawImage(photographed,-14,-height*.51,length+14,height)
+    // The write frame has a sliver of the preceding atlas row above the hand.
+    const top=grasp==='write'?8:0
+    const visible=1-top/photographed.height
+    g.drawImage(photographed,0,top,photographed.width,photographed.height-top,-14,height*(.49-visible),length+14,height*visible)
     g.restore();return
   }
+  held?.([end[0]+24,end[1]+1])
   sleeve(g,shoulder,elbow,far?16:21,coat)
   sleeve(g,elbow,end,far?12:16,coat)
   g.save();g.translate(...end);g.rotate(Math.atan2(end[1]-elbow[1],end[0]-elbow[0])*.46)
@@ -92,6 +102,16 @@ function clothing(id:string){
   let img=wardrobe.get(id)
   if(!img){img=new Image();img.src=id.startsWith('/')?id:'/wardrobe/'+id+'.webp';wardrobe.set(id,img)}
   return img.complete&&img.naturalWidth?img:null
+}
+// Interior edges of the six collars, measured after placing the garment on stage.
+// The shirt is open lower than a standing tunic and the openings are off-centre.
+const throatOpenings:Record<string,string>={
+  tunic:'M-18 -44 Q-13 -34 -19 -24 Q-16 -15 3 -5 Q17 -12 21 -23 Q15 -34 18 -44Z',
+  jacket:'M-20 -44 Q-17 -33 -27 -23 Q-25 -12 -10 -3 Q-6 3 -5 10 Q0 0 6 -6 Q14 -16 13 -24 Q10 -35 14 -44Z',
+  gown:'M-17 -44 Q-13 -34 -19 -23 Q-16 -17 -3 -11 Q2 -8 3 -5 Q6 -11 12 -14 Q20 -18 20 -22 Q14 -34 17 -44Z',
+  indigo:'M-17 -44 Q-13 -34 -22 -22 Q-18 -15 -3 -11 Q0 -8 0 -5 Q4 -11 12 -14 Q18 -16 18 -22 Q13 -34 17 -44Z',
+  rust:'M-20 -44 Q-17 -32 -29 -22 Q-25 -4 -8 5 Q-5 8 -2 7 Q13 -3 16 -22 Q11 -34 15 -44Z',
+  cotton:'M-17 -44 Q-11 -34 -23 -24 Q-22 -18 -9 -13 Q-3 -10 -3 -6 Q0 -11 10 -15 Q17 -18 16 -23 Q12 -35 16 -44Z',
 }
 function mouthAmount(t:number){return Math.max(0,Math.sin(t*12.7)*.58+Math.sin(t*20.2)*.38+.14)}
 function blinkAt(t:number,seed:number){const p=(t+seed)%4.9;return p<.16?Math.sin(p/.16*Math.PI):0}
@@ -137,9 +157,12 @@ export function paintActor(g:G,actor:CastMember,face:FaceImage|null,x:number,fac
     g.clip(silhouette);g.drawImage(garment,-128,-31,250,247);g.restore()
     // The exposed neck joins the actual collar opening, tucked behind the chin.
     g.save()
-    const neckShape=new Path2D('M-21 -45 Q-15 -31 -19 -24 Q-10 -18 0 -14 Q14 -21 20 -26 Q14 -34 19 -45Z')
-    g.clip(neckShape);g.fillStyle=skin;g.fillRect(-22,-48,44,43)
-    if(face)g.drawImage(face.neck,-22,-40,44,27)
+    g.clip(new Path2D(throatOpenings[actor.costume]??throatOpenings.tunic))
+    g.fillStyle=skin;g.fillRect(-30,-45,55,57)
+    if(face)g.drawImage(face.neck,-30,-45,55,57)
+    const contact=g.createLinearGradient(0,-20,0,11)
+    contact.addColorStop(0,'rgba(30,21,17,0)');contact.addColorStop(1,'rgba(30,21,17,.42)')
+    g.fillStyle=contact;g.fillRect(-30,-45,55,57)
     g.restore()
 
   }
@@ -148,8 +171,10 @@ export function paintActor(g:G,actor:CastMember,face:FaceImage|null,x:number,fac
   if(face){
     // Faces preserve the source's handedness even when the body faces left.
     g.scale(facing,1)
-    const h=108,w=h*face.base.width/face.base.height
-    const rect:[number,number,number,number]=[-w/2,-h+7,w,h]
+    // A long beard falls over the collar. Its tip is below the anatomical jaw.
+    const jaw=actor.face==='li_gongpu'?.77:1
+    const h=108/jaw,w=h*face.base.width/face.base.height
+    const rect:[number,number,number,number]=[-w/2,-108+7,w,h]
     g.drawImage(face.base,...rect)
     const blend=(v:number,img:HTMLCanvasElement)=>{if(v<.015)return;g.globalAlpha=Math.min(1,v);g.drawImage(img,...rect)}
     if(!still)blend((Math.sin(t*.69+seed)*.22+.65),face.glance)
@@ -165,10 +190,10 @@ export function paintActor(g:G,actor:CastMember,face:FaceImage|null,x:number,fac
   }else if(moving&&other){target=[87+3*pulse,107-9*pulse]}
   if(other&&event.phase==='reply'&&gesture==='pass')target=[87-38*exert,107-28*exert]
   if(gesture==='sign'&&own&&!still)target[0]+=Math.sin(elapsed*20)*2.3*pulse
-  arm(g,[68,12],target,coat,reach,gesture,t,false,/woman|girl|vautrin|aiyun|lin_zhao/.test(actor.face),actor.costume)
-  if(own&&['pass','hold','inspect','tune'].includes(gesture)&&exert>.14)
-    prop(g,target[0]+24,target[1]+1,item,-.13*exert)
-  if(own&&gesture==='sign')stroke(g,`M${target[0]+24} ${target[1]-10} l-7 24`,'#d1b084',2.5)
+  const holding=own&&['pass','hold','inspect','tune'].includes(gesture)&&exert>.14
+  const signing=own&&gesture==='sign'&&exert>.15
+  arm(g,[68,12],target,coat,reach,gesture,t,false,/woman|girl|vautrin|aiyun|lin_zhao/.test(actor.face),actor.costume,
+    holding?([x,y])=>prop(g,x,y,item,-.13*exert):signing?([x,y])=>stroke(g,`M${x+4} ${y-12} l-10 31`,'#d1b084',2.5):undefined)
   g.restore()
 }
 export function paintTable(g:G){
@@ -188,7 +213,8 @@ const prepared=new Map<string,Promise<void>>()
 export type HandSet='pov'|'pov-elder'|'pov-young'
 export function viewpointHands(scene:ActingScene):HandSet{
   const {face,name}=scene.player
-  if(/elder|granny|puppet-master|shang_aiyun/.test(face)||name==='邓小平'&&/(197[7-9]|198[0-9]|199[0-9])/.test(scene.place))return 'pov-elder'
+  if(name==='张学良'&&scene.id.endsWith('/long_years'))return 'pov-elder'
+  if(/elder|granny|puppet-master|shang_aiyun|jiang_yanyong/.test(face)||name==='邓小平'&&/(197[7-9]|198[0-9]|199[0-9])/.test(scene.place))return 'pov-elder'
   if(/woman|girl|boy|seamstress|fish-counter|lin_zhao|vautrin|zhongyun/.test(face))return 'pov-young'
   return 'pov'
 }
@@ -206,6 +232,8 @@ export function prepareWardrobe(handSet:HandSet,costume?:string){
   }))
 }
 
+// Position of the thumb/index contact on each photographed writing hand.
+const penGrips:Record<HandSet,P>={pov:[.215,.455],'pov-elder':[.135,.398],'pov-young':[.145,.433]}
 export function paintOwnHands(g:G,width:number,item:ActingScene['object'],turn:Turn,time:number,still:boolean,handSet:HandSet){
   const elapsed=Math.max(0,(performance.now()-turn.start)/1000)
   const action=turn.phase==='action',reply=turn.phase==='reply'
@@ -229,21 +257,38 @@ export function paintOwnHands(g:G,width:number,item:ActingScene['object'],turn:T
   const leftBottom=451-leftReach*44+sway
   const rightBottom=451-rightReach*(gesture==='refuse'?55:73)-sway
   function wrist(side:'left'|'right',x:number,bottom:number,amount:number){
-    const activePose=reach>.40?pose:'rest'
+    const targetPose=side==='left'&&pose==='write'?'rest':pose
+    const switching=targetPose!=='rest'
+    const activePose=switching&&reach>=.32?targetPose:'rest'
     const img=clothing(handSet+'-'+activePose+'-'+side)
     if(!img)return
     const w=spriteWidth*(1-amount*.08),h=w*img.height/img.width
-    g.save();g.translate(x,bottom)
-    g.rotate((side==='right'?1:-1)*(.035+amount*.07))
-    // Keep the near sleeve continuous below the eye line even at full extension.
+    const angle=(side==='right'?1:-1)*(.035+amount*.07)
+    const writingHand=side==='right'&&gesture==='sign'&&activePose==='write'
+    let gx=0,gy=0
+    if(writingHand){
+      const [u,v]=penGrips[handSet]
+      gx=(u-.5)*w;gy=(v-1)*h
+      const nx=gx-12,ny=gy+30,follow=smooth((reach-.32)/.68)
+      // Place the nib on the page across hand sizes and stage widths.
+      x+=(center+23+writing-(x+nx*Math.cos(angle)-ny*Math.sin(angle)))*follow
+      bottom+=(344-(bottom+nx*Math.sin(angle)+ny*Math.cos(angle)))*follow
+    }
+    if(switching&&!still&&reach>0&&reach<.64){
+      // Change the photograph as the fingers pass below the near edge. Drawing
+      // a single silhouette prevents an open hand showing through a closed fist.
+      const down=1-smooth(Math.abs(reach-.32)/.32)
+      bottom+=down*(400+h+w*.15-bottom)
+    }
+    g.save();g.translate(x,bottom);g.rotate(angle)
+    if(writingHand){
+      stroke(g,`M${gx+8} ${gy-21} L${gx-12} ${gy+30}`,'#342e29',3.5)
+      stroke(g,`M${gx-10} ${gy+25} L${gx-12} ${gy+30}`,'#bcaa87',2)
+    }
     g.drawImage(img,0,img.height-8,img.width,8,-w/2,-2,w,78)
-    const blend=pose==='rest'?1:smooth((reach-.25)/.28)
-    if(blend>0&&blend<1){
-      const resting=clothing(handSet+'-rest-'+side),active=clothing(handSet+'-'+pose+'-'+side)
-      if(resting)g.drawImage(resting,-w/2,-h,w,h)
-      g.globalAlpha=blend
-      if(active)g.drawImage(active,-w/2,-h,w,h)
-    }else g.drawImage(img,-w/2,-h,w,h)
+    // This tile contains a narrow piece of the adjacent hand at its far right.
+    const trim=handSet==='pov'&&side==='left'&&activePose==='offer'?9:0
+    g.drawImage(img,0,0,img.width-trim,img.height,-w/2,-h,w*(1-trim/img.width),h)
     g.restore()
   }
   wrist('left',leftX,leftBottom,leftReach)
@@ -256,9 +301,4 @@ export function paintOwnHands(g:G,width:number,item:ActingScene['object'],turn:T
     g.restore()
   }
   wrist('right',rightX,rightBottom,rightReach)
-  if(gesture==='sign'&&rightReach>.45){
-    const px=rightX-spriteWidth*.35,py=rightBottom-spriteWidth*.88
-    stroke(g,`M${px} ${py} l-12 38`,'#352f26',3.5)
-    stroke(g,`M${px-10} ${py+32} l-2 6`,'#b6a183',2)
-  }
 }

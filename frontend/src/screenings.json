@@ -325,7 +325,7 @@
         "id": "county-L01",
         "title": "登记簿上的红印",
         "setting": "澄川县 · 办公室",
-        "poster": "",
+        "poster": "/sets/county-L01.webp",
         "seconds": 7,
         "cue": "窗边，木印从登记簿的右上方移回来。"
       },
@@ -333,7 +333,7 @@
         "id": "county-L02",
         "title": "水尺旁的铅坠",
         "setting": "澄川县 · 河道现场",
-        "poster": "",
+        "poster": "/sets/county-L02.webp",
         "seconds": 7,
         "cue": "水尺立在便道外，手里的细绳慢慢放长。"
       },
@@ -341,7 +341,7 @@
         "id": "county-L03",
         "title": "预算表的右栏",
         "setting": "澄川县 · 预算会场",
-        "poster": "",
+        "poster": "/sets/county-L03.webp",
         "seconds": 7,
         "cue": "三本申请册摊开。红褐色那本擦过桌面。"
       },
@@ -349,7 +349,7 @@
         "id": "county-L04",
         "title": "转盘下的红纸",
         "setting": "澄川县 · 饭局",
-        "poster": "",
+        "poster": "/sets/county-L04.webp",
         "seconds": 7,
         "cue": "有人扶住玻璃转盘。小菜碟随它缓缓转来。"
       },
@@ -357,7 +357,7 @@
         "id": "county-L05",
         "title": "接待台上的铜铃",
         "setting": "澄川县 · 接待台",
-        "poster": "",
+        "poster": "/sets/county-L05.webp",
         "seconds": 7,
         "cue": "接待台上，食指按下铜铃，清响拖着尾音。"
       },
@@ -365,7 +365,7 @@
         "id": "county-L06",
         "title": "球停在洞口",
         "setting": "澄川县 · 球场",
-        "poster": "",
+        "poster": "/sets/county-L06.webp",
         "seconds": 7,
         "cue": "旗角随风飘。球杆轻轻磕在白球上。"
       },
@@ -373,7 +373,7 @@
         "id": "county-L07",
         "title": "日历上的红圈",
         "setting": "澄川县 · 家里",
-        "poster": "",
+        "poster": "/sets/county-L07.webp",
         "seconds": 7,
         "cue": "培训通知旁边摆着家庭日历，笔尖悬在一格日期上。"
       },
@@ -381,7 +381,7 @@
         "id": "county-L08",
         "title": "旧信上的日期",
         "setting": "澄川县 · 导师家",
-        "poster": "",
+        "poster": "/sets/county-L08.webp",
         "seconds": 7,
         "cue": "茶杯旁，旧信纸从泛黄的封套上抽出来。"
       },
@@ -389,15 +389,15 @@
         "id": "county-L09",
         "title": "餐桌上的合影",
         "setting": "澄川县 · 聚餐",
-        "poster": "",
+        "poster": "/sets/county-L09.webp",
         "seconds": 7,
         "cue": "第一只手把上回聚餐的老照片推过餐桌。"
       },
       {
         "id": "county-bus",
         "title": "夜班车的票孔",
-        "setting": "澄川县 · 十七线夜班车",
-        "poster": "/scenes/county-nightbus.webp",
+        "setting": "澄川县 · 七路夜班车",
+        "poster": "/sets/county-bus.webp",
         "seconds": 7,
         "cue": "雨水滑过车窗。一张夜班车票递到车门口。"
       },
@@ -405,7 +405,7 @@
         "id": "county-cinema",
         "title": "银幕白了一下",
         "setting": "澄川县 · 县城影院",
-        "poster": "/scenes/county-reel.webp",
+        "poster": "/sets/county-cinema.webp",
         "seconds": 7,
         "cue": "胶片绕在轮盘上，齿轮声一阵紧似一阵。"
       }

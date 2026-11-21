@@ -62,7 +62,7 @@ export const features: Feature[] = [
   {
     title: '半座水池', setting: '山西运城，渗灌工程调查',
     pitch: '从公路上看，六座水池都立着。绕到背坡，砌池子的泥瓦匠却求你先别发稿。还有七个人没拿到工钱。',
-    action: '跟高勤荣走到水池背后', image: '/chronicle/bank_ridge.webp',
+    action: '跟高勤荣走到水池背后', image: '/chronicle/still_ridge.webp',
     chapter: 'witness_gao', opening: 'bank_long', campaign: 'witness',
   },
 ]

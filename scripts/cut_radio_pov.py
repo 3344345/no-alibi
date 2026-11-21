@@ -115,9 +115,9 @@ def render(name, count, output):
             release = smooth((t - 2.45) / 1.32)
             finger = settle * (1 - release * 0.62)
             fields = [
-                (0.644, 0.603, 0.055, 0.073, 1.4 * finger, 5.7 * finger),
-                (0.735, 0.706, 0.111, 0.118, 1.8 * finger, 2.65 * finger),
-                (0.251, 0.524, 0.070, 0.105, -1.6 * settle, 1.5 * settle),
+                (0.724, 0.571, 0.044, 0.065, 0.7 * finger, 4.0 * finger),
+                (0.845, 0.711, 0.090, 0.112, 0.9 * finger, 2.1 * finger),
+                (0.198, 0.475, 0.062, 0.079, -1.0 * settle, 1.3 * settle),
             ]
             zoom = 0.021 + 0.015 * smooth(t / 4)
             anchor_x = 0.48 + 0.13 * settle

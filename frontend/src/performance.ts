@@ -68,13 +68,12 @@ const ordinary:Record<string,string>={
 }
 const tones=['#505b5a','#655c48','#3e5059','#674f45','#505547','#615458']
 function hash(s:string){let v=0;for(const ch of s)v=(v*31+ch.charCodeAt(0))>>>0;return v}
-function cast(name:string,defaultFace='man-mid',year=''):CastMember {
+function cast(name:string,sceneFace?:string,year='',fallback='man-mid'):CastMember {
   const portrait=(credits as Record<string,{file:string}>)[name] ?? (dramaticCast as Record<string,{file:string}>)[name]
-  const fallback=Object.keys(ordinary).find(k=>name===k)
-  const face=portrait?.file||(fallback&&ordinary[fallback])||defaultFace||'man-mid'
+  const face=portrait?.file??sceneFace??ordinary[name]??fallback
   const n=hash(name),prewar=parseInt(year)<1945
   const statesman=/^(邓小平|毛泽东|周恩来|孙中山|蒋介石|蒋经国|彭德怀|张治中|张学良)$/.test(name)
-  const feminine=/woman|girl|vautrin|aiyun|lin_zhao|zhongyun/.test(face)
+  const feminine=/woman|girl|granny|seamstress|fish-counter|shi_liang|vautrin|aiyun|lin_zhao|zhongyun/.test(face)
   const costume=statesman?'tunic':feminine?(/girl/.test(face)?'rust':prewar?'cotton':'indigo'):prewar?'gown':n%3===0?'tunic':'jacket'
   return {name,face,coat:tones[n%tones.length],costume,collar:statesman||prewar?'stand':n%3===0?'open':'work'}
 }
@@ -121,8 +120,8 @@ export function libraryFilm(chapter:string,scene:string){return scene.startsWith
 export function historyStage(ch:{id:string;year:string;place:string;role:string},s:{id:string;title:string;body:string;role?:string},displayPlace?:string):ActingScene{
   const set=sceneSetting(ch.id,s.id,s.title,ch)
   const body=s.body, direction=directedCast(ch.id,s.id,s.role||ch.role,body)
-  const player=cast(direction.player,direction.playerFace??'man-mid',ch.year)
-  const other=direction.other?cast(direction.other,direction.otherFace??'driver',ch.year):null
+  const player=cast(direction.player,direction.playerFace,ch.year)
+  const other=direction.other?cast(direction.other,direction.otherFace,ch.year,'driver'):null
   distinguish(player,other)
   return {id:ch.id+'/'+s.id,place:set.year+' · '+(displayPlace||set.place),title:s.title,picture:setPicture(ch.id,s.id,s.title,ch.year),film:libraryFilm(ch.id,s.id),
     player,other,
@@ -152,18 +151,19 @@ export function decisionStage(scene:ActingScene):ActingScene{
   return {...scene,place:year+' · 北京',player:cast(desk.player,'man-elder',year),other:null,
     picture:'/sets/office.webp',object:radio?'radio':'paper',transmission:channel}
 }
-const countyArt:Record<string,string>={L01:'/scenes/office.webp',L02:'/scenes/canal.webp',L03:'/sets/court.webp',L04:'/sets/inn.webp',L05:'/sets/office.webp',L06:'/sets/field.webp',L07:'/scenes/home.webp',L08:'/sets/house.webp',L09:'/sets/house.webp'}
+const countyArt:Record<string,string>={L01:'/scenes/office.webp',L02:'/scenes/canal.webp',L03:'/sets/county-room-L03.webp',L04:'/sets/county-room-L04.webp',L05:'/sets/county-room-L05.webp',L06:'/sets/county-room-L06.webp',L07:'/scenes/home.webp',L08:'/sets/county-room-L08.webp',L09:'/sets/house.webp'}
 export function countyStage(v:View,context='',actionLabel=''):ActingScene{
   const id=v.location.id??'L01',hasShow=context==='aftershow',bus=context==='night_bus'
   const story=hasShow?v.aftershow:bus?v.night_bus:null
+  const cinemaRoom=v.aftershow?.node==='card'?'/scenes/office.webp':v.aftershow?.sound==='booth'?'/sets/county-projection-booth.webp':'/viewer/auditorium.webp'
   const present=v.people.filter(p=>p.present&&typeof p.name==='string')
   const person=present.find(p=>actionLabel.includes(p.name??'—'))??present[0]
   const stage=story?directedCast(hasShow?'aftershow':'night_bus',story.title,v.name??'你',story.body):null
-  const player=cast(stage?.player??v.name??'你',stage?.playerFace??'man-mid')
-  const other=stage?(stage.other?cast(stage.other,stage.otherFace??'driver'):null):person?cast(person.name??'在场人','driver'):null
+  const player=cast(stage?.player??v.name??'你',stage?.playerFace)
+  const other=stage?(stage.other?cast(stage.other,stage.otherFace,'','driver'):null):person?cast(person.name??'在场人',undefined,'','driver'):null
   distinguish(player,other)
   return {id:'county/'+(story?context+'/'+story.title:id),place:v.location.name??'澄川',title:story?.title??v.location.name??'澄川',film:'county-'+(hasShow?'cinema':bus?'bus':id),
-    picture:hasShow?'/sets/theatre.webp':bus?'/sets/depot.webp':countyArt[id]??'/sets/office.webp',
+    picture:hasShow?cinemaRoom:bus?'/sets/depot.webp':countyArt[id]??'/sets/office.webp',
     player,other,
     opening:firstLine(story?.body??v.location.description??''),excerpt:excerpt(story?.body??v.location.description??''),object:hasShow?'film':bus?'radio':['L04','L07','L09'].includes(id)?'tea':'paper'}
 }

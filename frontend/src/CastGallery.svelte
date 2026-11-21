@@ -70,8 +70,8 @@
   .groups button[aria-pressed='true'] {color:#fff6df;background:#294236;border-color:#294236;}
   .catalog {display:grid;grid-template-columns:minmax(0,1.85fr) minmax(200px,1fr);gap:clamp(12px,2.7vw,35px);}
   article {min-width:0;}
-  figure {position:relative;margin:0;background:#564335 url('/viewer/album.webp') center / 100% 100% no-repeat;display:flex;align-items:center;justify-content:center;height:clamp(175px,38dvh,370px);overflow:hidden;}
-  figure img {display:block;width:auto;height:auto;max-width:58%;max-height:75%;object-fit:contain;box-sizing:content-box;border:3px solid #e5ddc7;box-shadow:1px 2px 4px #46361f75;transform:rotate(-.5deg);}
+  figure {position:relative;margin:0;background:#564335 url('/viewer/album.webp') center / contain no-repeat;display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:1672/941;overflow:hidden;}
+  figure img {position:absolute;inset:0;margin:auto;display:block;width:auto;height:auto;max-width:58%;max-height:75%;object-fit:contain;box-sizing:content-box;border:3px solid #e5ddc7;box-shadow:1px 2px 4px #46361f75;transform:rotate(-.5deg);}
   .credit {padding-top:12px;}
   .credit small {font-size:.8rem;color:#635e50;}
   h3 {margin:0;font:600 clamp(1.7rem,3.5vw,2.5rem)/1.3 var(--serif);}
@@ -87,5 +87,5 @@
   nav small {display:block;color:#706956;font-size:.66rem;}
   button:focus-visible {outline:2px solid #976d32;outline-offset:-2px;}
   @media(max-width:760px){.catalog{grid-template-columns:minmax(0,1.5fr) minmax(140px,.9fr)}nav{grid-template-columns:1fr}.groups{margin-left:0}}
-  @media(max-width:540px){.catalog{grid-template-columns:1fr}.tools{margin-bottom:12px}.groups{flex-basis:100%}.groups button{font-size:.85rem;padding:4px 8px;min-height:34px}figure{height:165px}nav{grid-template-columns:repeat(2,minmax(0,1fr));max-height:185px}.credit{padding-top:6px}.links{margin-top:6px;}.tools input{flex:1;}}
+  @media(max-width:540px){.catalog{grid-template-columns:1fr}.tools{margin-bottom:12px}.groups{flex-basis:100%}.groups button{font-size:.85rem;padding:4px 8px;min-height:34px}nav{grid-template-columns:repeat(2,minmax(0,1fr));max-height:185px}.credit{padding-top:6px}.links{margin-top:6px;}.tools input{flex:1;}}
 </style>

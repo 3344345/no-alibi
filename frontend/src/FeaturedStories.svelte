@@ -23,8 +23,9 @@
 
 <section class="feature" aria-label="长篇选集">
   <div class="frame">
-    {#key story.title}<img src={story.image} alt="" fetchpriority="high" />{/key}
-    <div class="vignette"></div>
+    <div class="feature-art">
+      {#key story.title}<img src={story.image} alt="" fetchpriority="high" />{/key}
+    </div>
     <div class="feature-copy" aria-live="polite">
       <span>{story.setting}</span>
       <h2>{story.title}</h2>
@@ -49,10 +50,11 @@
 
 <style>
   .feature { max-width:1400px; margin:0 auto clamp(1.2rem,3vw,2.8rem); }
-  .frame {position:relative;isolation:isolate;min-height:clamp(315px,45vh,560px);display:flex;align-items:flex-end;overflow:hidden;background:#171b19;}
-  .frame img,.vignette{position:absolute;inset:0;width:100%;height:100%;z-index:-2;object-fit:cover;object-position:center 45%;}
-  .vignette{z-index:-1;background:linear-gradient(90deg,#111714ef 0%,#141a16ad 32%,transparent 76%),linear-gradient(0deg,#10141084,transparent 70%);}
-  .feature-copy{max-width:35em;padding:clamp(1.2rem,3vw,3.5rem);color:#fff5e4;}
+  .frame {display:grid;grid-template-columns:minmax(0, 2fr) minmax(0, 3fr);min-height:clamp(315px,45vh,560px);overflow:hidden;background:#171d19;}
+  .feature-art{position:relative;grid-area:1 / 2;align-self:stretch;min-width:0;}
+  .feature-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 35%;}
+  .feature-art::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#171d19,transparent 10%);pointer-events:none;}
+  .feature-copy{grid-area:1 / 1;align-self:center;min-width:0;padding:clamp(1.2rem,2.6vw,2.8rem);color:#fff5e4;}
   .feature-copy span{color:#f1d5ac;font-size:.88rem;letter-spacing:.12em;}
   .feature-copy h2{margin:.22em 0 .14em;font:560 clamp(2.3rem,5vw,4.6rem)/1.12 var(--serif);letter-spacing:.035em;text-wrap:balance;}
   .feature-copy p{font:1rem/1.8 var(--serif);margin:.6rem 0 1.1rem;color:#f4eee3;}
@@ -69,5 +71,11 @@
   .rail-arrows{display:grid;gap:3px;align-self:stretch}.rail-arrows button{background:#252d28;color:#e6d7bb;border:1px solid #656657;padding:0 .7rem;min-height:29px}
   button:hover,button:focus-visible {filter:brightness(1.15);}
   button:focus-visible {outline:2px solid #d7b471;outline-offset:-4px;}
-  @media (max-width:600px){.frame{min-height:330px}.frame img{object-position:54% 35%}.vignette{background:linear-gradient(0deg,#0c110ff5,#101813ad 53%,#10181305 87%);}.feature-copy{padding:1rem}.feature-copy p{line-height:1.55;}}
+  @media (max-width:700px){
+    .frame{grid-template-columns:minmax(0,1fr);min-height:0;}
+    .feature-art{grid-area:1 / 1;aspect-ratio:16 / 9;}
+    .feature-art::after{background:linear-gradient(0deg,#171d19,transparent 10%);}
+    .feature-copy{grid-area:2 / 1;padding:1rem;}
+    .feature-copy p{line-height:1.55;}
+  }
 </style>

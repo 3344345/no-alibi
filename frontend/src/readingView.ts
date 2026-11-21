@@ -23,6 +23,7 @@ function objectAtScene(scene: ActingScene, shot?: Shot): ReadingProp | undefined
   const title=scene.title
   if (shot?.prop) return inspectProps[shot.prop.cue]
   if (/^face_/.test(id)) return /quay|platform/.test(id) ? 'ticket' : 'puppets'
+  if (id==='reel_yard') return 'ticket'
   if (/^reel_/.test(id)) return /keys|landing|shop|morning|brass/.test(id) ? 'keys' : 'reel'
   if (/^tram_/.test(id)) return /dining|bowl|cook/.test(id) ? 'cup' : 'ticket'
   if (/^air_|^birthday_|^rights_|^hands_|衣|布尺|裁衣|被面/.test(id+' '+title)) return 'cloth'
@@ -48,6 +49,9 @@ export function propImage(prop: ReadingProp): string {
 
 export function readingCamera(scene: ActingScene, shot?: Shot): ReadingCamera {
   const position=shot?.position ?? (scene.object==='radio'?'61% 50%':'50% 49%')
+  if (shot?.firstPerson && !scene.transmission) {
+    return {room:'/chronicle/'+shot.image+'.webp',person:scene.player.name,position,baked:true}
+  }
   return {room:scene.picture,person:scene.player.name,position,hands:viewpointHands(scene),
     prop:scene.transmission ? (scene.object==='radio'?'radio':'paper') : objectAtScene(scene,shot),focus:shot?.prop ? inspectProps[shot.prop.cue] : undefined}
 }

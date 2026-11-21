@@ -7,7 +7,7 @@ function canvas(w:number,h:number){const c=document.createElement('canvas');c.wi
 function vary(base:HTMLCanvasElement, points:FacePoints, kind:string){
   const c=canvas(base.width,base.height),g=c.getContext('2d')!
   g.drawImage(base,0,0)
-  const w=c.width,h=c.height, original=g.getImageData(0,0,w,h), out=new ImageData(new Uint8ClampedArray(original.data),w,h)
+  const w=c.width,h=c.height, original=g.getImageData(0,0,w,h), out=g.createImageData(w,h)
   const eyes=points.eyes.map(([x,y])=>[x*w,y*h]).sort((a,b)=>a[0]-b[0])
   const gap=Math.hypot(eyes[1][0]-eyes[0][0],eyes[1][1]-eyes[0][1])
   const d=gap<5?Math.max(15,Math.abs(points.nose[1]*h-eyes[0][1])*1.45):gap
@@ -18,6 +18,7 @@ function vary(base:HTMLCanvasElement, points:FacePoints, kind:string){
       const [dx,dy,shade]=shape(nx,ny,(1-r)**2)
       const sx=Math.max(0,Math.min(w-1.001,x+dx)),sy=Math.max(0,Math.min(h-1.001,y+dy))
       const ix=Math.floor(sx),iy=Math.floor(sy),a=sx-ix,b=sy-iy,p=(iy*w+ix)*4,target=(y*w+x)*4
+      out.data[target+3]=original.data[target+3]
       for(let ch=0;ch<3;ch++)out.data[target+ch]=shade*((1-b)*((1-a)*original.data[p+ch]+a*original.data[p+4+ch])+b*((1-a)*original.data[p+w*4+ch]+a*original.data[p+w*4+4+ch]))
     }
   }
@@ -34,14 +35,14 @@ function vary(base:HTMLCanvasElement, points:FacePoints, kind:string){
 }
 // Bring a monochrome source into the light of the set without smoothing the
 // photographed features. Colour portraits and the gallery originals stay intact.
-function warmMonochrome(source:HTMLCanvasElement){
+function warmMonochrome(source:HTMLCanvasElement, confirmed=false){
   const g=source.getContext('2d')!,pixels=g.getImageData(0,0,source.width,source.height),d=pixels.data
   let colour=0,samples=0
   for(let i=0;i<d.length;i+=44){
     if(d[i+3]<190)continue
     colour+=Math.max(d[i],d[i+1],d[i+2])-Math.min(d[i],d[i+1],d[i+2]);samples++
   }
-  if(!samples||colour/samples>10)return
+  if(!samples||(!confirmed&&colour/samples>10))return false
   for(let i=0;i<d.length;i+=4){
     if(!d[i+3])continue
     const light=d[i]*.299+d[i+1]*.587+d[i+2]*.114
@@ -49,6 +50,7 @@ function warmMonochrome(source:HTMLCanvasElement){
     d[i]=light*.95+warmth*13;d[i+1]=light*.90+warmth*3;d[i+2]=light*.86-warmth*5
   }
   g.putImageData(pixels,0,0)
+  return true
 }
 function viewFromSeat(source:HTMLCanvasElement,p:FacePoints,direction:number){
   const w=source.width,h=source.height,gap=Math.abs(p.eyes[1][0]-p.eyes[0][0])
@@ -74,30 +76,52 @@ function viewFromSeat(source:HTMLCanvasElement,p:FacePoints,direction:number){
   const move=([x,y]:number[])=>[x+turn*depth(x,y),y]
   return {base:result,p:{eyes:p.eyes.map(move),mouth:move(p.mouth),nose:move(p.nose)}}
 }
+// In Li Gongpu's photograph his long beard lies over a white shirt.
+// Retain the individual dark hairs when the portrait is placed over a coat.
+function separateBeard(source:HTMLCanvasElement){
+  const ctx=source.getContext('2d')!,{width,height}=source
+  const image=ctx.getImageData(0,0,width,height),d=image.data
+  for(let y=Math.floor(height*.67);y<height;y++){
+    const blend=Math.min(1,(y/height-.67)/.12)
+    for(let x=0;x<width;x++){
+      const i=(y*width+x)*4
+      const light=(d[i]*.3+d[i+1]*.59+d[i+2]*.11)/255
+      d[i+3]*=1-blend*Math.min(1,light*1.06)**1.7
+      for(let ch=0;ch<3;ch++)d[i+ch]*=1-blend*light*.6
+    }
+  }
+  ctx.putImageData(image,0,0)
+}
+async function photo(path:string){
+  const img=new Image()
+  img.src=path
+  try {await img.decode();return img} catch {return null}
+}
+async function prepareFace(id:string,direction:number):Promise<FaceImage|null>{
+  const [head,throat]=await Promise.all([photo('/faces/'+id+'.webp'),photo('/necks/'+id+'.webp')])
+  if(!head)return null
+  const w=Math.min(256,head.width),h=Math.round(head.height*w/head.width),source=canvas(w,h)
+  source.getContext('2d')!.drawImage(head,0,0,w,h)
+  if(id==='li_gongpu')separateBeard(source)
+  // The two monochrome prints carry a blue and an olive cast from their scans.
+  const warmed=warmMonochrome(source,id==='zhang_naiqi'||id==='zhang_zhizhong')
+  const {base,p}=viewFromSeat(source,landmarks[id]??{eyes:[[.35,.47],[.64,.47]],mouth:[.5,.73],nose:[.50,.60]},direction)
+  const neck=canvas(64,48),n=neck.getContext('2d')!
+  if(throat){
+    n.drawImage(throat,0,0,64,48)
+    if(warmed)warmMonochrome(neck,true)
+  }else{
+    const gap=Math.max(14,Math.abs(p.eyes[1][0]-p.eyes[0][0])*w)
+    const cheekX=(p.nose[0]*.46+p.eyes[0][0]*.54)*w
+    n.drawImage(base,Math.max(0,cheekX-gap*.09),Math.min(h-gap*.17,p.nose[1]*h),gap*.16,gap*.16,0,0,64,48)
+    const shadow=n.createLinearGradient(0,0,35,48)
+    shadow.addColorStop(0,'rgba(44,32,25,.57)');shadow.addColorStop(.52,'rgba(58,40,29,.23)');shadow.addColorStop(1,'rgba(38,30,23,.40)')
+    n.fillStyle=shadow;n.fillRect(0,0,64,48)
+  }
+  return {neck,base,glance:vary(base,p,'glance'),blink:vary(base,p,'blink'),voice:vary(base,p,'voice'),worry:vary(base,p,'worry'),smile:vary(base,p,'smile')}
+}
 export function faceImage(id:string,direction=1):Promise<FaceImage|null>{
   const key=id+'/'+direction
-  if(!images.has(key))images.set(key,new Promise(resolve=>{
-    const img=new Image()
-    img.onload=()=>{
-      try{
-        const w=Math.min(256,img.width),h=Math.round(img.height*w/img.width),source=canvas(w,h)
-        source.getContext('2d')!.drawImage(img,0,0,w,h)
-        warmMonochrome(source)
-        const {base,p}=viewFromSeat(source,landmarks[id]??{eyes:[[.35,.47],[.64,.47]],mouth:[.5,.73],nose:[.50,.60]},direction)
-        const neck=canvas(64,48),n=neck.getContext('2d')!
-        const gap=Math.max(14,Math.abs(p.eyes[1][0]-p.eyes[0][0])*w)
-        const cheekX=(p.nose[0]*.46+p.eyes[0][0]*.54)*w
-        n.drawImage(base,Math.max(0,cheekX-gap*.09),Math.min(h-gap*.17,p.nose[1]*h),gap*.16,gap*.16,0,0,64,48)
-        const shadow=n.createLinearGradient(0,0,35,48)
-        shadow.addColorStop(0,'rgba(44,32,25,.57)');shadow.addColorStop(.52,'rgba(58,40,29,.23)');shadow.addColorStop(1,'rgba(38,30,23,.40)')
-        n.fillStyle=shadow;n.fillRect(0,0,64,48)
-        const naturalNeck=new Image()
-        naturalNeck.onload=()=>{n.clearRect(0,0,64,48);n.drawImage(naturalNeck,0,0,64,48)}
-        naturalNeck.src='/necks/'+id+'.webp'
-        resolve({neck,base,glance:vary(base,p,'glance'),blink:vary(base,p,'blink'),voice:vary(base,p,'voice'),worry:vary(base,p,'worry'),smile:vary(base,p,'smile')})
-      }catch{resolve(null)}
-    }
-    img.onerror=()=>resolve(null); img.src='/faces/'+id+'.webp'
-  }))
+  if(!images.has(key))images.set(key,prepareFace(id,direction))
   return images.get(key)!
 }

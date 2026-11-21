@@ -54,8 +54,8 @@
       paintActor(g,scene.other,face,0,-1,time,turn,true,scene.object,reduced)
       g.restore()
     }
-    const outdoors=/\/(field|rail|yard|depot|canal|tongzhou-wharf)\.webp$/.test(scene.picture)
-    if(!outdoors){
+    const addTable=!/\/(field|rail|yard|depot|canal|tongzhou-wharf|county-room-L0[34568]|county-projection-booth|auditorium)\.webp$/.test(scene.picture)
+    if(addTable){
       g.save();g.scale(space/1000,1);paintTable(g);g.restore()
     }
     paintOwnHands(g,space,scene.object,turn,time,reduced,hands)

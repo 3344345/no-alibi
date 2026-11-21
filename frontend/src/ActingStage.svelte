@@ -82,7 +82,12 @@
     if(topDialog && !topDialog.contains(element))return
     if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)return
     if(!theatre||e.ctrlKey||e.altKey||e.metaKey||e.isComposing)return
-    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();backLayer();return}
+    if(e.key==='Escape'){
+      e.preventDefault()
+      e.stopPropagation()
+      if(!e.repeat)backLayer()
+      return
+    }
     if(e.key==='Tab'){
       const nodes=Array.from(element.querySelectorAll<HTMLElement>('button:not(:disabled),video[controls],[tabindex="0"]')).filter(n=>n.offsetParent!==null)
       if(nodes.length&&e.shiftKey&&document.activeElement===nodes[0]){nodes.at(-1)?.focus();e.preventDefault()}

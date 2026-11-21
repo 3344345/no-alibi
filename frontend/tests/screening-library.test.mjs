@@ -59,6 +59,16 @@ test('the story screening library and cast credits work offline at a narrow view
     assert.match(await gallery.getByRole('article').innerText(), /沿用 CC BY-SA/)
     await find.fill('高勤荣')
     assert.equal(await gallery.getByRole('article').getByRole('img').getAttribute('src'), '/cast/' + originals.高勤荣.file + '.webp')
+    const album = gallery.getByRole('figure', {name:'我手里的相册'})
+    for (const width of [410,760,1280]) {
+      await page.setViewportSize({width, height:805})
+      const rect = await album.boundingBox()
+      assert.ok(Math.abs(rect.height - rect.width * 941 / 1672) <= 1, 'album aspect ratio at ' + width)
+      const portrait = await album.getByRole('img').boundingBox()
+      assert.ok(portrait.y >= rect.y && portrait.y + portrait.height <= rect.y + rect.height,
+        'the entire portrait fits inside the album at ' + width)
+    }
+    await page.setViewportSize({width:410, height:805})
     assert.match(await gallery.getByRole('article').innerText(), /原创戏剧造型/)
     assert.equal(await gallery.getByRole('link').count(), 0)
     await find.fill('无此角色')

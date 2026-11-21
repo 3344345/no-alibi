@@ -83,7 +83,7 @@
       <div class="screen" class:editing={scene.node === 'spool'}>
         <div class="venue">
           {#if scene.node === 'spool'}
-            <ReadingView camera={{room:'/sets/theatre.webp',person:view.name || '你',
+            <ReadingView camera={{room:'/sets/county-projection-booth.webp',person:view.name || '你',baked:true,
               frame:{type:'screen',src:'/scenes/county-film-'+current.img+'.webp',alt:current.name+'的旧录像情境插画'}}}/>
           {:else}
             <ReadingView camera={room}/>

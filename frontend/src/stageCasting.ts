@@ -180,15 +180,15 @@ function assign(face:string,actors:string) {
 }
 // Roles without a photographic source use the fictional company's faces.
 // Props, collars, period clothing and scene lighting are handled by the stage.
-assign('man-young','周禾 阿纪 小许 小钱 工友 锁柱 练习生 读报的顾客 学生 林朝安 外地青年 来客 候车乘客 夜班工人 记录员 阿信 学徒 码头脚夫 接班记者')
+assign('man-young','周禾 阿纪 小许 小钱 工友 锁柱 练习生 读报的顾客 学生 林朝安 外地青年 来客 候车乘客 夜班工人 记录员 阿信 学徒 码头脚夫 接班记者 当年的孩子')
 assign('apprentice','桂喜 阿福 阿双 摄影师的儿子 老钳工的儿子 供货人 小六 阿伍 店伙')
 assign('teen-boy','少年工 姜天佑 阿砚 体育委员 孙家的哥哥 罗树的儿子')
-assign('boy','孩子 门口的孩子 伢儿 队尾孩子 小莺的弟弟 当年的孩子 厨房学徒')
-assign('girl-child','田嫂的女儿 小菊 莲生 阿年的女儿 杏儿 女儿')
-assign('girl','阿筠 小莺 蒋禾 罗杏 金素娥 素娥 裁缝的女儿')
+assign('boy','孩子 门口的孩子 伢儿 队尾孩子 小莺的弟弟 厨房学徒')
+assign('girl-child','田嫂的女儿 小菊 莲生 阿年的女儿 女儿')
+assign('girl','阿筠 杏儿 小莺 蒋禾 罗杏 金素娥 素娥 裁缝的女儿')
 assign('woman-young','唐素琴 冯巧 小圆 许萍 阿绣 同班女工 妹妹 赵婶')
 assign('seamstress','丁小满 万小满 邵梅 袁月芬 小唐 周芸 李闰 年轻母亲')
-assign('woman-mid','季阿锦 顾兰 唐棠 宣美芬 母亲 月娥 许秋眉 宋梅 顾嫂 史良 程瑞芳 阿萍 同事的妻子 女客')
+assign('woman-mid','季阿锦 顾兰 唐棠 宣美芬 母亲 月娥 许秋眉 宋梅 顾嫂 史良 阿萍 同事的妻子 女客 程瑞芳 赵一荻 丁子霖')
 assign('fish-counter','柴素兰 梁桂兰 乔秀英 桂兰 秀英 锦嫂 家属 嫂子 费二娘 金师傅 打磨工的姐姐 外地女工')
 assign('woman-elder','桂枝 聂桂枝 乔素琴 乔师傅 沈婆婆 兰婶 阿婆 退休女教师 天佑母亲 来认票的老太太')
 assign('granny','沈玉枝 姑妈 小许的母亲 蒋家母亲 夏嫂 阿年母亲')
@@ -199,17 +199,15 @@ assign('woman-mid','马素芹')
 assign('apprentice','小海')
 assign('man-elder','老杜')
 assign('boy','柳家的孩子')
-assign('man-mid','小柳 陆经理 钟至诚 沈仲林 高勤荣 王晶垚 邓世平 阿年 工头 冯显荣 老裘 何鹏 商人 接待员')
+assign('man-mid','小柳 陆经理 钟至诚 沈仲林 高勤荣 王晶垚 邓世平 阿年 工头 冯显荣 老裘 何鹏 商人 接待员 杨虎城 查全性 袁世凯')
 assign('driver','赵海成 向楠 高百顺 卡车司机 老司机 米三 木匠老葛 修理工 工人 泥瓦匠 牛倌 顶班司机 体育老师')
-assign('man-elder','父亲 赵伯 方伯 老看门人 顾师傅 老冯 严金昌 老工人 退休老师 老费 唐守义 老乘客')
+assign('man-elder','父亲 赵伯 方伯 老看门人 顾师傅 老冯 严金昌 老工人 退休老师 老费 唐守义 老乘客 戴老花镜的街坊')
 assign('puppet-master','万守仁 印铺掌柜 董掌柜 师傅 老同僚 修钟师傅 修琴师傅 茶铺老板 库管')
 
-const historicalNames = new Set(Object.entries(company).filter(([key])=>key.startsWith('witness_')).map(([,ch])=>ch.player))
-for (const n of ['毛泽东','周恩来','胡耀邦','赵紫阳','李鹏','蒋介石','袁世凯','卞仲耘','丁子霖','杨虎城','史良','查全性','程瑞芳']) historicalNames.add(n)
-
 function face(name:string,chapterId:string,scene:string):string|undefined {
-  // The portrait library owns the likeness of a named historical figure.
-  if (historicalNames.has(name)) return undefined
+  // cast() prefers credited portraits. These assignments describe the
+  // appropriate stage double when a partner has no portrait of their own.
+  if (name==='赵一荻' && chapterId==='witness_zhang_xueliang' && scene==='long_years') return 'woman-elder'
   if (name==='小圆' && chapterId!=='may_fourth') return 'woman-mid'
   if (name==='桂枝' && chapterId==='river_grain') return 'seamstress'
   if (name==='万小满' && chapterId==='gold_yuan') return 'fish-counter'
@@ -220,7 +218,7 @@ function face(name:string,chapterId:string,scene:string):string|undefined {
   if (name==='乔师傅') return chapterId==='witness_liu_qingshan'?'man-elder':'woman-elder'
   if (types[name]) return types[name]
   if (/祖母|阿婆|老太|婆婆/.test(name)) return 'granny'
-  if (/姐姐|姑|女工|妇女|母亲|娘|女客|女教/.test(name)) return 'woman-mid'
+  if (/姐姐|姑|嫂|婶|女工|妇女|母亲|娘|女客|女教/.test(name)) return 'woman-mid'
   if (/孩子|男孩|幼童/.test(name)) return 'boy'
   if (/女孩|小姑娘/.test(name)) return 'girl-child'
   if (/姑娘|女儿/.test(name)) return 'woman-young'

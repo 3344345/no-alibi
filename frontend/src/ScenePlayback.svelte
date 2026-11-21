@@ -60,7 +60,7 @@
   }
 </script>
 
-<section class="reel" aria-label="镜头阅读">
+<section class="reel" class:illustrated={camera.baked && shot?.firstPerson} aria-label="镜头阅读">
   <div class="image"><ReadingView {camera} close={looking}/></div>
   <div class="frame">
     <div class="slate"><span>{date}</span><i></i>{place}</div>
@@ -94,4 +94,10 @@
   .replay{background:#171d19de;color:#f1dfbc;border:1px solid #b6a384;padding:.3rem .65rem;margin-bottom:.6rem;font-size:.85rem}
   nav{display:flex;align-items:center;flex-wrap:wrap;gap:.7rem}.counter{font: .82rem/1 var(--mono);color:#e7dece}.back,.advance,.skip{min-height:38px;text-shadow:none}.back,.skip{color:#f4e8d3;background:transparent;border:0}.back{border:1px solid #9a9484;width:38px}.advance{color:#2b2b23;background:#e9d4aa;border:1px solid #e9d4aa;padding:.38rem .85rem;font-weight:600}.advance b{margin-left:.6em}.skip{font-size:.84rem;text-decoration:underline;text-underline-offset:4px}.reel button:focus-visible{outline:2px solid #fff2d7;outline-offset:3px}
   @media(max-width:600px){.frame{min-height:360px}.slate{max-width:60%;flex-wrap:wrap}.script{padding-top:6.3rem}.image:after{background:linear-gradient(0deg,#101411fa 6%,#101411c7 38%,transparent 80%)}nav{gap:.45rem}}
+  .illustrated .image{position:relative;inset:auto;z-index:0;aspect-ratio:16 / 9;}
+  .illustrated .image::after{display:none;}
+  .illustrated .frame{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.75rem;min-height:0;padding:clamp(.9rem,1.8vw,1.5rem);}
+  .illustrated .slate{align-self:center;flex-wrap:wrap;max-width:none;}
+  .illustrated .listen{position:static;grid-column:2;justify-self:end;}
+  .illustrated .script{grid-column:1 / -1;margin:0;padding:0;}
 </style>
