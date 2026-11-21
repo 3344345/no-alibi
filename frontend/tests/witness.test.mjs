@@ -146,7 +146,8 @@ test('Beijing leaves the office for a live studio and reaches the alternate 1992
         const storyArt=page.locator('.scene-art')
         assert.match(await storyArt.locator('.art-caption p').innerText(),/ · .+所见/)
         const stage=page.getByRole('region',{name:'人物现场'})
-        assert.equal(await stage.locator('.own-name').innerText(),'你 · 邓小平')
+        const channel={studio:'电视台内线',switchboard:'直播电话',city_frequency:'地方台播出记录'}[view.scene.id]
+        assert.match(await stage.locator('.own-name').innerText(),new RegExp('^你 · 邓小平.*'+channel+'$'))
         assert.equal(await stage.locator('.other-name').count(),0)
         assert.match(await stage.locator('.set').getAttribute('style'),/office\.webp/)
         const choices=page.getByRole('group',{name:'本幕行动'})
