@@ -437,7 +437,11 @@ test('a featured dressmaking story remembers the chosen pattern and resumes from
     assert.equal(resumed.id,game.id)
     assert.equal(resumed.revision,game.revision)
     await page.getByRole('heading',{name:game.scene.title}).waitFor()
-    assert.ok(await page.locator('.scene-art .reading-space').evaluate(i => i.complete && i.naturalWidth>100))
+    const width = await page.locator('.scene-art .reading-space').evaluate(async image => {
+      await image.decode()
+      return image.naturalWidth
+    })
+    assert.ok(width > 100)
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth<=innerWidth))
   } finally { await f.close() }
 })
