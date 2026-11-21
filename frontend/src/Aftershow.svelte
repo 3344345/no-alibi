@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onDestroy, tick } from 'svelte'
   import Dialog from './Dialog.svelte'
+  import ReadingView from './ReadingView.svelte'
+  import { countyCamera } from './readingView'
   import ActingStage from './ActingStage.svelte'
   import {countyStage,filmOpen} from './performance'
   export let reduced=false
@@ -18,8 +20,7 @@
   export let actionsPage: () => void
   export let toggleAudio: () => void
   let editArea:HTMLElement
-  const poster = '/scenes/county-aftershow.webp'
-  const booth = '/scenes/county-reel.webp'
+  $: room = countyCamera('cinema',view.name || '你')
   const frames = [
     {at:0, name:'售票窗', id:'show_wages', img:'pay', line:'冯香朝排队的人偏过头。“他们愿意……愿意先开门。没说工资就这样算了。”'},
     {at:4, name:'门廊下', id:'show_girl', img:'girl', line:'镜头后面的男人问妈妈几点收工。短辫小姑娘握着半个馒头：“爸，咱能等她一块儿回去吃饭么？”'},
@@ -67,7 +68,7 @@
 <svelte:document on:visibilitychange={visibility}/>
 <svelte:window on:blur={() => {stopFilm(); stopAudio()}}/>
 <button class="playbill" on:click={() => open = true}>
-  <img alt="" src={poster}/>
+  <div class="venue"><ReadingView camera={room}/></div>
   <span><small>澄川 · 回声影院</small><strong>散场以后</strong><span>{scene.stage === 'invitation' ? '门缝里塞进来一张三十年前的电影票。' : scene.title}</span></span>
   <b aria-hidden="true">↗</b>
 </button>
@@ -79,11 +80,14 @@
         choices={scene.node==='spool'||isWaiting||view.ending||view.actions.some(a=>a.kind==='hearing')?[]:actions.map((a,i)=>({id:String(i),label:a.label,disabled:a.enabled===false}))}
         decide={id=>{const a=actions[Number(id)];if(a)choose(a)}} seeControls={()=>heading?.scrollIntoView({block:'start'})}/>
       <div class="screen" class:editing={scene.node === 'spool'}>
-        {#if scene.node === 'spool'}
-          <img src={'/scenes/county-film-' + current.img + '.webp'} alt={current.name + '的旧录像情境插画'}/>
-        {:else}
-          <img src={['booth','offer','paid','family','kept'].includes(scene.node) ? booth : poster} alt="回声影院情境插画"/>
-        {/if}
+        <div class="venue">
+          {#if scene.node === 'spool'}
+            <ReadingView camera={{room:'/sets/theatre.webp',person:view.name || '你',
+              frame:{type:'screen',src:'/scenes/county-film-'+current.img+'.webp',alt:current.name+'的旧录像情境插画'}}}/>
+          {:else}
+            <ReadingView camera={room}/>
+          {/if}
+        </div>
         <div class="caption"><small>{scene.act}</small><h3 tabindex="-1" bind:this={heading}>{scene.title}</h3></div>
       </div>
       <div class="inset">
@@ -123,12 +127,12 @@
 
 <style>
   .playbill{position:relative;isolation:isolate;overflow:hidden;color:#f9ebcf;background:#1a2420;text-align:left;min-height:8.4rem;width:100%;border:1px solid #615d4e;display:flex;align-items:flex-end;justify-content:space-between;padding:1rem 1.2rem;cursor:pointer}
-  .playbill>img,.playbill::after,.screen>img,.screen::after{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;object-position:50% 47%}.playbill::after,.screen::after{content:'';background:linear-gradient(90deg,#101810ee,#121c1961 70%,#18181525);z-index:-1}
+  .venue,.playbill::after,.screen::after{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;object-position:50% 47%}.playbill::after,.screen::after{content:'';background:linear-gradient(90deg,#101810ee,#121c1961 70%,#18181525);z-index:-1}
   .playbill>span{display:grid;gap:.18rem}.playbill strong,.caption h3{font:600 1.8rem/1.24 var(--serif);color:#fff2d6}.playbill small,.caption small{color:#e2c59a;font-size:.8rem}.playbill b{font-size:1.4rem}.playbill:focus-visible,.cinema button:focus-visible,.cinema input:focus-visible{outline:3px solid #ba8644;outline-offset:2px}
   :global(dialog:has(.cinema)){width:57rem;max-width:calc(100% - 18px);max-height:92dvh;padding:0;background:#f4edde}
   :global(dialog:has(.cinema) .dialog-head){padding:.5rem 1rem;border-bottom:1px solid #514a3d;background:#202a24;color:#fcf5e2}
   :global(dialog:has(.cinema) .dialog-head h2){margin:0;color:inherit;font-size:1.05rem}:global(dialog:has(.cinema) .dialog-head button){color:inherit}
-  .screen{isolation:isolate;position:relative;background:#262b24;height:clamp(9rem,32vh,21rem);display:flex;align-items:end;overflow:hidden}.screen::after{background:linear-gradient(0deg,#17211beb,transparent 64%)}.screen.editing img{object-position:50% 44%}
+  .screen{isolation:isolate;position:relative;background:#262b24;height:clamp(9rem,32vh,21rem);display:flex;align-items:end;overflow:hidden}.screen::after{background:linear-gradient(0deg,#17211beb,transparent 64%)}
   .caption{padding:1rem clamp(1.1rem,4vw,2.7rem)}.caption h3{margin:.25em 0 0;font-size:clamp(1.4rem,3.7vw,2.3rem)}.inset{padding:.6rem clamp(.95rem,4vw,2.7rem) 1.6rem}.inset p{font:1.03rem/1.82 var(--serif);margin:.85em 0;white-space:normal}
   .inset p.reply{font-size:.9rem;color:#6b5d49;border-left:2px solid #a88d5e;padding-left:.8rem}.transport{display:flex;gap:.8rem}.transport button,.stops button{padding:.36rem .48rem;font:inherit;font-size:.82rem;border:1px solid #897d64;color:inherit;background:transparent;cursor:pointer}
   .actions{display:grid;gap:.45rem}.action,.send{width:100%;text-align:left;display:flex;justify-content:space-between;gap:.55rem;font:inherit;padding:.65rem .8rem;line-height:1.5;border:1px solid #aaa18b;background:#fffaf0;color:#342e24;cursor:pointer}.action:disabled,.send:disabled{opacity:.55}

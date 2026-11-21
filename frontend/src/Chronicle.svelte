@@ -3,7 +3,9 @@
   import { api, download, message } from './api'
   import { saveFile } from './game'
   import { enableSound, playScore, stopScore, setSoundscape, type Score } from './sound'
-  import { picture, pictureCaption } from './chronicleArt'
+  import { picture } from './chronicleArt'
+  import ReadingView from './ReadingView.svelte'
+  import { readingCamera } from './readingView'
   import { sceneMix, linesOfSpeech, outcomeCue, sceneSetting } from './chronicleScene'
   import ChapterPath from './ChapterPath.svelte'
   import type { Feature } from './features'
@@ -96,6 +98,8 @@
   $: setting = game?.scene ? sceneSetting(game.chapter.id, game.scene.id, game.scene.title, game.chapter) : null
   $: handoverSetting = handover ? sceneSetting(handover.chapter_id, handover.scene, handover.title, handover) : null
   $: stageScene = game?.scene ? historyStage(game.chapter,game.scene,setting?.place) : null
+  $: readerShot=game?.scene ? directedShot(game.scene.id) : undefined
+  $: readerCamera=stageScene ? readingCamera(stageScene,readerShot) : null
   $: displayedStage=stageScene ?? ($presenting?$playback.scene:undefined)
   let interactiveStage:ActingStage
   $: specialControls = !!game?.scene?.exhibits?.length || usingPuppets || usingTape || moonTable || switchboard || xianTable || usingExamMixer || surveyingRidge
@@ -448,15 +452,11 @@
   {#if !game}
     <div class="lobby">
       <div class="lobby-art">
-        <img
-          src={picture(
-            mode === 'witness' ? (starting?.id ?? 'witness_deng_xiaoping') : 'chronicle_cover',
-          )}
-          alt=""
-        />
+        <ReadingView camera={{room:'/viewer/album.webp',person:'你',baked:true,
+          frame:{src:picture(mode==='witness' ? (starting?.id ?? 'witness_deng_xiaoping') : 'chronicle_cover'),type:'cover',alt:'长篇封面插画'}}}/>
         {#if mode === 'witness' && starting}<div class="art-caption">
             <span>{starting.year}</span><strong>{starting.place} · {starting.title}</strong>
-            <p>年代情境插画</p>
+            <p>卷首插画</p>
           </div>{/if}
       </div>
       <section class="lobby-text">
@@ -592,27 +592,27 @@
       </p>
       <button class="gold" on:click={() => (topic = '行记')}>回看沿途的选择</button>
     </section>
-  {:else if game.scene}
+  {:else if game.scene && readerCamera}
     <div class="stage" class:reel-stage={reels}>
       {#if reels}
         <div tabindex="-1" class="reel-top" bind:this={reelTop}>
         {#key game.id + '/' + game.revision}
-          <ScenePlayback portrait={picture(game.chapter.id, game.scene.id)} shot={directedShot(game.scene.id)}
-            caption={pictureCaption(game.chapter.id, game.scene.id)} date={setting?.year ?? game.chapter.year}
-            place={setting?.place ?? game.chapter.place} role={game.chapter.role} body={game.scene.base_body ?? game.scene.body}
+          <ScenePlayback camera={readerCamera} shot={readerShot}
+            date={setting?.year ?? game.chapter.year}
+            place={setting?.place ?? game.chapter.place} role={readerCamera.person} body={game.scene.base_body ?? game.scene.body}
             previous={last?.chapter_id === game.chapter.id && !['borrow_a_face','seven_seconds'].includes(last.choice ?? '') ? last.result : ''} revision={game.revision} gameId={game.id} decide={reachDecision} {volume} {toggleAudio}/>
         {/key}
         </div>
       {:else}<aside class="scene-art">
-        <img src={picture(game.chapter.id, game.scene.id)} alt="" />
+        <ReadingView camera={readerCamera}/>
         <div class="art-caption">
           <span>{setting?.year}</span><strong>{setting?.place}</strong>
-          <p>{pictureCaption(game.chapter.id, game.scene.id)}</p>
+          <p>{readerCamera.person}所见</p>
         </div>
       </aside>{/if}
       <article class="story">
         <p class="date-line">
-          {mode === 'witness' ? '历史推演 · ' : ''}{currentWork}　／　{game.chapter.role}
+          {mode === 'witness' ? '历史推演 · ' : ''}{currentWork}　／　{game.chapter.role.includes(readerCamera.person) ? game.chapter.role : readerCamera.person}
         </p>
         <h1 tabindex="-1" bind:this={heading}>{game.scene.title}</h1>
         {#if !game.journal.length || game.journal.at(-1)?.chapter_id !== game.chapter.id}<p
@@ -847,17 +847,6 @@
     min-width: 0;
     isolation: isolate;
   }
-  .lobby-art img,
-  .scene-art img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .lobby-art img {
-    object-position: 42% 60%;
-  }
   .lobby-text {
     padding: clamp(26px, 5vw, 78px);
     align-self: center;
@@ -969,9 +958,6 @@
     max-height: 100vh;
     background: #282a25;
     min-height: 410px;
-  }
-  .scene-art img {
-    object-position: 50% 45%;
   }
   .scene-art::after {
     content: '';
@@ -1217,12 +1203,6 @@
     .scene-art {
       height: clamp(145px, 43vw, 290px);
       min-height: 0;
-    }
-    .lobby-art img {
-      object-position: 50% 66%;
-    }
-    .scene-art img {
-      object-position: 50% 40%;
     }
     .scene-art {
       position: relative;

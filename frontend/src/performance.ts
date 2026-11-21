@@ -121,7 +121,7 @@ export function historyStage(ch:{id:string;year:string;place:string;role:string}
     player,other,
     opening:firstLine(body),excerpt:excerpt(body),object:sceneObject(s.id,body)}
 }
-const countyArt:Record<string,string>={L01:'/scenes/office.webp',L02:'/scenes/canal.webp',L07:'/scenes/home.webp'}
+const countyArt:Record<string,string>={L01:'/scenes/office.webp',L02:'/scenes/canal.webp',L03:'/sets/court.webp',L04:'/sets/inn.webp',L05:'/sets/office.webp',L06:'/sets/field.webp',L07:'/scenes/home.webp',L08:'/sets/house.webp',L09:'/sets/house.webp'}
 export function countyStage(v:View,context='',actionLabel=''):ActingScene{
   const id=v.location.id??'L01',hasShow=context==='aftershow',bus=context==='night_bus'
   const story=hasShow?v.aftershow:bus?v.night_bus:null
@@ -131,10 +131,8 @@ export function countyStage(v:View,context='',actionLabel=''):ActingScene{
   const player=cast(stage?.player??v.name??'你',stage?.playerFace??'man-mid')
   const other=stage?(stage.other?cast(stage.other,stage.otherFace??'driver'):null):person?cast(person.name??'在场人','driver'):null
   distinguish(player,other)
-  const ordinal=Number(id.slice(1))-1
-  const crop=!story&&!countyArt[id]&&ordinal>=0&&ordinal<=8?((ordinal%3)*50)+'% '+(Math.floor(ordinal/3)*50)+'%':undefined
   return {id:'county/'+(story?context+'/'+story.title:id),place:v.location.name??'澄川',title:story?.title??v.location.name??'澄川',film:'county-'+(hasShow?'cinema':bus?'bus':id),
-    picture:hasShow?'/sets/theatre.webp':bus?'/sets/depot.webp':countyArt[id]??'/county-locations.jpg',crop,
+    picture:hasShow?'/sets/theatre.webp':bus?'/sets/depot.webp':countyArt[id]??'/sets/office.webp',
     player,other,
     opening:firstLine(story?.body??v.location.description??''),excerpt:excerpt(story?.body??v.location.description??''),object:hasShow?'film':bus?'radio':['L04','L07','L09'].includes(id)?'tea':'paper'}
 }

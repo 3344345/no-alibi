@@ -27,7 +27,7 @@ test('the county screening pays once, changes reels, and brings the audience bac
     await page.keyboard.press('End')
     await theatre.getByRole('img',{name:'六排四座的旧录像情境插画'}).waitFor()
     await page.waitForFunction(() => {
-      const img = document.querySelector('dialog .screen > img')
+      const img = document.querySelector('dialog .screen .physical-frame.screen img')
       return img?.currentSrc.endsWith('county-film-chair.webp') && img.complete && img.naturalWidth === 1024
     })
     await theatre.getByRole('button',{name:'门廊下',exact:true}).press('Enter')

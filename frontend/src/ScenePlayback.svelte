@@ -2,12 +2,13 @@
   import { onMount, tick } from 'svelte'
   import { sceneBeats, type Shot } from './sceneReel'
   import { enableSound, playScore, stopScore } from './sound'
-  export let portrait: string
+  import ReadingView from './ReadingView.svelte'
+  import type { ReadingCamera } from './readingView'
+  export let camera: ReadingCamera
   export let shot: Shot | undefined
   export let date: string
   export let place: string
   export let role: string
-  export let caption: string
   export let body: string
   export let previous: string
   export let revision: number
@@ -58,9 +59,7 @@
 </script>
 
 <section class="reel" aria-label="镜头阅读">
-  <div class="image" style={'--framing:' + (shot?.position ?? '53% 45%')}>
-    <img src={portrait} alt={caption} class:closer={looking}/>
-  </div>
+  <div class="image"><ReadingView {camera} close={looking}/></div>
   <div class="frame">
     <div class="slate"><span>{date}</span><i></i>{place}</div>
     {#if shot?.prop}<button on:keydown={key} class="listen" aria-pressed={looking} on:click={inspect}>
@@ -84,7 +83,7 @@
 
 <style>
   .reel{position:relative;isolation:isolate;color:#f5eee1;background:#141916;overflow:hidden;border:1px solid #514a3d}
-  .image,.image:after{position:absolute;inset:0;z-index:-2}.image img{width:100%;height:100%;object-fit:cover;object-position:var(--framing);transform-origin:var(--framing);transition:transform 1.5s ease}.image img.closer{transform:scale(1.1)}
+  .image,.image:after{position:absolute;inset:0;z-index:-2}
   .image:after{content:'';z-index:0;background:linear-gradient(0deg,#0a0e0fed 0%,#0a0e10b5 19%,transparent 62%),linear-gradient(90deg,#10141286,transparent 62%)}
   .frame{min-height:clamp(350px,53vh,620px);padding:clamp(17px,3.1vw,48px);display:flex;flex-direction:column;position:relative}
   .slate{display:flex;align-items:center;gap:.65em;font:600 clamp(.9rem,1.3vw,1.2rem)/1.4 var(--sans);text-shadow:0 1px 6px #121713}.slate span{font-family:var(--serif);font-variant-numeric:tabular-nums}.slate i{display:block;height:1px;width:1.4em;background:#dfbf83}
@@ -93,5 +92,4 @@
   .replay{background:#171d19de;color:#f1dfbc;border:1px solid #b6a384;padding:.3rem .65rem;margin-bottom:.6rem;font-size:.85rem}
   nav{display:flex;align-items:center;flex-wrap:wrap;gap:.7rem}.counter{font: .82rem/1 var(--mono);color:#e7dece}.back,.advance,.skip{min-height:38px;text-shadow:none}.back,.skip{color:#f4e8d3;background:transparent;border:0}.back{border:1px solid #9a9484;width:38px}.advance{color:#2b2b23;background:#e9d4aa;border:1px solid #e9d4aa;padding:.38rem .85rem;font-weight:600}.advance b{margin-left:.6em}.skip{font-size:.84rem;text-decoration:underline;text-underline-offset:4px}.reel button:focus-visible{outline:2px solid #fff2d7;outline-offset:3px}
   @media(max-width:600px){.frame{min-height:360px}.slate{max-width:60%;flex-wrap:wrap}.script{padding-top:6.3rem}.image:after{background:linear-gradient(0deg,#101411fa 6%,#101411c7 38%,transparent 80%)}nav{gap:.45rem}}
-  @media(prefers-reduced-motion:reduce){.image img{transition:none;transform:none!important}}:global(.reduce-motion) .image img{transition:none;transform:none!important}
 </style>

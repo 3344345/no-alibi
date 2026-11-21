@@ -15,12 +15,12 @@ async function screen(page, name) {
 async function checkScene(page, name, resource) {
   const scene = page.locator('figure.scene')
   await scene.locator('figcaption').getByText(name, { exact: true }).waitFor()
-  const image = scene.locator('img')
+  const image = scene.locator('.reading-space')
   const source = await image.evaluate(async (el) => {
     await el.decode()
     return el.naturalWidth > 0 && el.naturalHeight > 0 ? el.currentSrc : ''
   })
-  assert.equal(source, new URL('/scenes/' + resource, address).href)
+  assert.equal(source, new URL('/sets/' + resource, address).href)
 }
 async function navigate(page, label) {
   await page.getByRole('navigation').getByRole('button', { name: label, exact: true }).click()
@@ -389,7 +389,7 @@ test('compact layout, input and keyboard on every primary section', { timeout: 6
   const page = await context.newPage()
   try {
     await openCareer(page, false)
-    await checkScene(page, '办公室', 'office.webp')
+    await checkScene(page, '办公室', 'county-L01.webp')
     await screen(page, 'mobile-desk')
     await noOverflow(page)
     for (const label of ['行动', '日程', '档案', '人事与地点', '记事本', '设置']) {
@@ -446,7 +446,7 @@ test(
       const arrived = await doClick(page.getByRole('button', { name: '前往下一事项', exact: true }))
       assert.equal(arrived.location.id, 'L02')
       await navigate(page, '行动')
-      await checkScene(page, arrived.location.name, 'canal.webp')
+      await checkScene(page, arrived.location.name, 'county-L02.webp')
       await screen(page, 'canal-actions')
       await doClick(page.getByRole('button', { name: /沿西段核对现场/ }))
       await navigate(page, '日程')
@@ -466,7 +466,7 @@ test(
       const returned = await doClick(page.getByRole('button', { name: '前往下一事项', exact: true }))
       assert.equal(returned.location.id, 'L01')
       await navigate(page, '办公桌')
-      await checkScene(page, returned.location.name, 'office.webp')
+      await checkScene(page, returned.location.name, 'county-L01.webp')
       await navigate(page, '日程')
       await page.getByLabel('推进时长').selectOption({ label: '90 天' })
       let advanced = await doClick(page.getByRole('button', { name: '按时长推进' }))

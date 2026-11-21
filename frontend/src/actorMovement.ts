@@ -61,6 +61,13 @@ function arm(g:G,shoulder:P,end:P,coat:string,amount:number,pose:string,t:number
 }
 function prop(g:G,x:number,y:number,type:ActingScene['object'],angle=0){
   g.save();g.translate(x,y);g.rotate(angle)
+  const photo=clothing('prop-'+type)
+  if(photo){
+    const width={paper:83,tea:35,radio:58,film:56,lamp:28,cloth:58}[type]
+    const height=width*photo.height/photo.width
+    g.drawImage(photo,-width/2,-height*.71,width,height)
+    g.restore();return
+  }
   if(type==='radio'||type==='film'){
     fill(g,'M-28 -10 L23 -10 L29 -6 L29 13 L-27 13Z',gradient(g,['#63594b','#302e29'],0,-10,0,14),'#282522')
     for(const n of [-15,12]){circle(g,n,0,6,'#a89173');circle(g,n,0,3,'#383331')}
@@ -151,12 +158,12 @@ export function paintActor(g:G,actor:CastMember,face:FaceImage|null,x:number,fac
     blend(still?0:blinkAt(t,seed),face.blink);g.globalAlpha=1
   }
   g.restore()
-  let target:P=[114,112+breath], reach=exert
+  let target:P=[87,107+breath], reach=exert
   if(own||release>0){
-    const positions:Record<typeof gesture,P>={pass:[135,47],hold:[103,65],speak:[122,54],listen:[92,10],sign:[95,83],refuse:[76,25],inspect:[62,32],depart:[74,92],tune:[110,73]}
-    const p=positions[gesture];target=[114+(p[0]-114)*exert,112+(p[1]-112)*exert]
-  }else if(moving&&other){target=[114+3*pulse,112-9*pulse]}
-  if(other&&event.phase==='reply'&&gesture==='pass')target=[114+34*exert,112-54*exert]
+    const positions:Record<typeof gesture,P>={pass:[54,85],hold:[58,65],speak:[75,46],listen:[55,7],sign:[72,87],refuse:[62,26],inspect:[53,35],depart:[72,94],tune:[81,75]}
+    const p=positions[gesture];target=[87+(p[0]-87)*exert,107+(p[1]-107)*exert]
+  }else if(moving&&other){target=[87+3*pulse,107-9*pulse]}
+  if(other&&event.phase==='reply'&&gesture==='pass')target=[87-38*exert,107-28*exert]
   if(gesture==='sign'&&own&&!still)target[0]+=Math.sin(elapsed*20)*2.3*pulse
   arm(g,[68,12],target,coat,reach,gesture,t,false,/woman|girl|vautrin|aiyun|lin_zhao/.test(actor.face),actor.costume)
   if(own&&['pass','hold','inspect','tune'].includes(gesture)&&exert>.14)
@@ -164,9 +171,89 @@ export function paintActor(g:G,actor:CastMember,face:FaceImage|null,x:number,fac
   if(own&&gesture==='sign')stroke(g,`M${target[0]+24} ${target[1]-10} l-7 24`,'#d1b084',2.5)
   g.restore()
 }
-export function paintTable(g:G,type:ActingScene['object'],phase:Turn){
+export function paintTable(g:G){
   fill(g,'M0 361 Q500 345 1000 361 L1000 400 L0 400Z',gradient(g,['#665843','#504635','#342f29'],0,346,0,400))
   stroke(g,'M0 362 Q500 346 1000 362','#af967268',1.5)
   for(let i=0;i<9;i++){const x=i*127;stroke(g,`M${x-50} ${371+i%3*5} q40 -3 101 -1`,'#b29b7b25',1)}
-  if(!(phase.phase!=='idle'&&['pass','hold','inspect'].includes(phase.gesture)))prop(g,496,358,type,-.06)
+}
+
+const handPoses=['rest','offer','write','halt'] as const
+type HandPose=typeof handPoses[number]
+const prepared=new Map<string,Promise<void>>()
+export type HandSet='pov'|'pov-elder'|'pov-young'
+export function viewpointHands(scene:ActingScene):HandSet{
+  const {face,name}=scene.player
+  if(/elder|granny|puppet-master|shang_aiyun/.test(face)||name==='邓小平'&&/1989|1992/.test(scene.place))return 'pov-elder'
+  if(/woman|girl|boy|seamstress|fish-counter|lin_zhao|vautrin|zhongyun/.test(face))return 'pov-young'
+  return 'pov'
+}
+export function prepareWardrobe(handSet:HandSet,costume?:string){
+  const ids=handPoses.flatMap(pose=>['left','right'].map(side=>handSet+'-'+pose+'-'+side))
+  ids.push(...['paper','tea','radio','film','lamp','cloth'].map(kind=>'prop-'+kind))
+  if(costume)ids.push(costume,...['rest','offer','take','write','pinch','halt'].map(pose=>'arm-'+pose))
+  return Promise.all(ids.map(id=>{
+    if(!prepared.has(id)){
+      clothing(id)
+      const asset=wardrobe.get(id)!
+      prepared.set(id,asset.decode().then(()=>{},()=>{}))
+    }
+    return prepared.get(id)!
+  }))
+}
+
+export function paintOwnHands(g:G,width:number,item:ActingScene['object'],turn:Turn,time:number,still:boolean,handSet:HandSet){
+  const elapsed=Math.max(0,(performance.now()-turn.start)/1000)
+  const action=turn.phase==='action',reply=turn.phase==='reply'
+  const reach=action?(still?1:smooth(elapsed/.43)):reply&&!still?1-smooth(elapsed/.48):0
+  const gesture=turn.gesture
+  let pose:HandPose='rest'
+  if(gesture==='pass'||gesture==='hold'||gesture==='speak')pose='offer'
+  if(gesture==='sign'||gesture==='inspect'||gesture==='tune')pose='write'
+  if(gesture==='refuse')pose='halt'
+  const extend=gesture==='listen'?.19:gesture==='depart'?.52:1
+  const sway=still?0:Math.sin(time*.92)*1.3
+  const spriteWidth=Math.min(157,width*.29)
+  const restingSpread=Math.min(width*.29,194)
+  const center=width/2
+  const writing=gesture==='sign'&&action&&!still?Math.sin(elapsed*21)*2.2*reach:0
+  const lifting=gesture==='inspect'||gesture==='hold'||gesture==='pass'||gesture==='tune'
+  const rightReach=reach*extend
+  const leftReach=rightReach*(gesture==='refuse'?.18:gesture==='pass'?.84:.53)
+  const rightX=center+restingSpread-rightReach*restingSpread*.54+writing
+  const leftX=center-restingSpread+leftReach*restingSpread*.47
+  const leftBottom=451-leftReach*44+sway
+  const rightBottom=451-rightReach*(gesture==='refuse'?55:73)-sway
+  function wrist(side:'left'|'right',x:number,bottom:number,amount:number){
+    const activePose=reach>.40?pose:'rest'
+    const img=clothing(handSet+'-'+activePose+'-'+side)
+    if(!img)return
+    const w=spriteWidth*(1-amount*.08),h=w*img.height/img.width
+    g.save();g.translate(x,bottom)
+    g.rotate((side==='right'?1:-1)*(.035+amount*.07))
+    // Keep the near sleeve continuous below the eye line even at full extension.
+    g.drawImage(img,0,img.height-8,img.width,8,-w/2,-2,w,78)
+    const blend=pose==='rest'?1:smooth((reach-.25)/.28)
+    if(blend>0&&blend<1){
+      const resting=clothing(handSet+'-rest-'+side),active=clothing(handSet+'-'+pose+'-'+side)
+      if(resting)g.drawImage(resting,-w/2,-h,w,h)
+      g.globalAlpha=blend
+      if(active)g.drawImage(active,-w/2,-h,w,h)
+    }else g.drawImage(img,-w/2,-h,w,h)
+    g.restore()
+  }
+  wrist('left',leftX,leftBottom,leftReach)
+  const propX=center+(lifting?rightReach*(rightX-center)*.47:0)
+  const propY=354-(lifting?rightReach*(gesture==='inspect'?63:34):0)
+  const passed=reply&&gesture==='pass'
+  if(!passed){
+    g.save();g.translate(propX,propY);g.scale(1.28+reach*.18,1.28+reach*.18)
+    prop(g,0,0,item,-.06+(lifting?.12*rightReach:0))
+    g.restore()
+  }
+  wrist('right',rightX,rightBottom,rightReach)
+  if(gesture==='sign'&&rightReach>.45){
+    const px=rightX-spriteWidth*.35,py=rightBottom-spriteWidth*.88
+    stroke(g,`M${px} ${py} l-12 38`,'#352f26',3.5)
+    stroke(g,`M${px-10} ${py+32} l-2 6`,'#b6a183',2)
+  }
 }

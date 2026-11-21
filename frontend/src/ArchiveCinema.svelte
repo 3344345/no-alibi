@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AuditoriumView from './AuditoriumView.svelte'
   import { onDestroy, tick } from 'svelte'
 
   const films = [
@@ -96,7 +97,8 @@
     <div><small>{current.year} · {current.place}</small><h3>{current.title}</h3></div>
     <span>{current.format} · {current.runtime}</span>
   </header>
-  {#key current.id}
+  <AuditoriumView>
+{#key current.id}
     <video controls playsinline preload="metadata" muted bind:this={player}
       aria-label={current.title} poster={'/cinema/' + current.id + '.jpg'}
       src={'/cinema/' + current.id + '.mp4'}
@@ -105,6 +107,7 @@
       <track kind="captions" srclang="zh" label="中文镜头注释" src={'/cinema/' + current.id + '.vtt'} default />
     </video>
   {/key}
+      </AuditoriumView>
   {#if failure}<p class="error" role="status">{failure} <button on:click={retry}>重新载入</button></p>{/if}
   <p class="note">{current.note}</p>
   <div class="stops" role="group" aria-label="跳到镜头并播放">

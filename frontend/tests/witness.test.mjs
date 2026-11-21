@@ -79,9 +79,13 @@ async function resume(page, record) {
   await page.getByRole('heading', { name: record.finished ? '全卷行记' : record.scene.title, exact: true }).waitFor()
 }
 
-async function sceneArt(page, filename) {
-  const img = page.locator('.scene-art img')
-  assert.equal(await img.getAttribute('src'), '/chronicle/' + filename + '.webp')
+async function sceneArt(page, person, prop) {
+  const scene = page.locator('.scene-art .eyes')
+  assert.equal(await scene.getAttribute('data-viewer'), person)
+  if (prop) assert.equal(await scene.getAttribute('data-prop'), prop)
+  const img = scene.locator('.reading-space')
+  assert.match(await img.getAttribute('src'), /^\/sets\/[^/]+\.webp$/)
+  assert.equal(await scene.locator('.own').count(), 2)
   assert.ok(await img.evaluate(async (node) => {
     await node.decode()
     return node.naturalWidth >= 400 && node.naturalHeight >= 250
@@ -100,7 +104,7 @@ test('Shanghai tram passengers remember the chosen kitchen on reload and vote si
       await page.getByLabel('选择亲历者与起始事件').selectOption('witness_shanghai_prices')
       await page.getByLabel('为这段长篇命名').fill(choice)
       let view = await interact(page, 'POST', api, () => button(page, '开始长篇').click())
-      await sceneArt(page, 'shanghai_tram')
+      await sceneArt(page, '蒋经国')
       for (const id of ['tram_bowl', 'keep_twelve', choice]) view = await choose(page, view, id)
       assert.equal(view.scene.id, 'tram_run')
       const echo = choice === 'reserve_seat' ? '老袁把饭盒送回来了' : '巷口传来滋啦一声'
@@ -112,7 +116,7 @@ test('Shanghai tram passengers remember the chosen kitchen on reload and vote si
       assert.equal(await callbacks.filter({hasText: other}).count(), 0)
       for (const id of ['meet_barge', 'turn_over']) view = await choose(page, view, id)
       assert.equal(view.scene.id, 'tram_map')
-      await sceneArt(page, 'shanghai_tram')
+      await sceneArt(page, '蒋经国','ticket')
       await page.locator('.art-caption').getByText('半年后', {exact:true}).waitFor()
       view = await choose(page, view, ending)
       const result = view.journal.at(-1)
@@ -132,10 +136,10 @@ test('Beijing leaves the office for a live studio and reaches the alternate 1992
     await openLobby(page, fixture)
     await page.getByLabel('选择亲历者与起始事件').selectOption(chapterId)
     let view = await interact(page, 'POST', api, () => button(page, '开始长篇').click())
-    await sceneArt(page, chapterId)
+    await sceneArt(page, '邓小平')
     for (const id of ['go_live', 'phones', 'second_night', 'local_air']) {
       view = await choose(page, view, id)
-      await sceneArt(page, 'beijing_live')
+      await sceneArt(page, ['studio','cutting_room'].includes(view.scene.id) ? '梁桂兰' : view.scene.id==='switchboard' ? '梁桂兰' : '邓小平','radio')
     }
     await page.locator('.art-caption').getByText('架空的1992年', {exact:true}).waitFor()
     const next = await choose(page, view, 'listeners_veto')
@@ -405,7 +409,7 @@ test('a featured dressmaking story remembers the chosen pattern and resumes from
     assert.equal(resumed.id,game.id)
     assert.equal(resumed.revision,game.revision)
     await page.getByRole('heading',{name:game.scene.title}).waitFor()
-    assert.ok(await page.locator('.scene-art img').evaluate(i => i.complete && i.naturalWidth>100))
+    assert.ok(await page.locator('.scene-art .reading-space').evaluate(i => i.complete && i.naturalWidth>100))
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth<=innerWidth))
   } finally { await f.close() }
 })

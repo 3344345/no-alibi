@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onDestroy } from 'svelte'
   import { setSoundscape } from './sound'
+  import ReadingView from './ReadingView.svelte'
+  import { countyCamera, type ReadingCamera } from './readingView'
   import NightBusDispatch from './NightBusDispatch.svelte'
   import { stamp } from './game'
   import type { Action, NightBusScene, View } from './types'
@@ -16,7 +18,9 @@
 
   $: choices = view.actions.filter(a => a.kind === 'night_bus')
   $: hearing = view.actions.some(a => a.kind === 'hearing')
-  $: image = '/scenes/county-' + scene.art + '.webp'
+  let camera: ReadingCamera
+  $: camera = scene.art==='nightbus' ? countyCamera('bus',view.name || '你')
+    : {room:'/sets/depot.webp',person:view.name || '你',prop:scene.dispatch?.length?'paper':'ticket'}
   $: setSoundscape(scene.stage === 'playing' && !view.ending && !quiet
     ? { room: scene.art === 'nightbus' ? 'platform' : 'room', music: scene.art === 'nightbus' ? 'vigil' : 'question' }
     : undefined)
@@ -26,7 +30,7 @@
 
 <section class="night-bus" aria-label="夜班车不进站">
   <header class:small={waiting || scene.stage === 'invitation'}>
-    <img alt="" src={image} decoding="async" />
+    <div class="station-view"><ReadingView {camera}/></div>
     <div class="caption">
       <span>{scene.stage === 'invitation' ? '澄川县 · 七路夜班' : scene.act}</span>
       <h2>{scene.title}</h2>
@@ -65,8 +69,8 @@
   .night-bus { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
   header { position: relative; min-height: clamp(9rem, 15vw, 12rem); isolation: isolate; display: flex; align-items: flex-end; background: #26332f; }
   header.small { min-height: 7.8rem; }
-  header img, header::after { position: absolute; inset: 0; width: 100%; height: 100%; }
-  header img { z-index: -2; object-fit: cover; object-position: 50% 49%; }
+  .station-view, header::after { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .station-view { z-index:-2; }
   header::after { content: ''; z-index: -1; background: linear-gradient(90deg, rgb(10 21 18 / 86%), rgb(10 21 18 / 8%)), linear-gradient(0deg, rgb(10 21 18 / 43%), transparent); }
   .caption { color: #fff7df; padding: 1.1rem 1.3rem; max-width: 90%; }
   .caption span, small, .appointment { font-size: .82rem; }

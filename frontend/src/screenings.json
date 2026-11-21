@@ -6,17 +6,17 @@
         "id": "seven-seconds",
         "title": "倒带七秒",
         "setting": "架空的北京 · 1992",
-        "poster": "/chronicle/still_radio.webp",
+        "poster": "/viewer/radio-seat.webp",
         "seconds": 21,
-        "cue": "夜班电台。唐棠摘下一边耳机，请你听一卷旧带。"
+        "cue": "我坐在夜班电台的客席。唐棠抬起一边耳机，等我听听手边的旧带。"
       },
       {
         "id": "shadow-play",
         "title": "借我一张脸",
         "setting": "北京喜棚 · 1919",
-        "poster": "/chronicle/still_shadow.webp",
+        "poster": "/motion/shadow-play.webp",
         "seconds": 8,
-        "cue": "喜棚后，桂喜先把两根竹杆递进灯影。"
+        "cue": "桂喜把竹签交到我手里。薄皮子贴上幕布，油灯映出一道透红的边。"
       }
     ]
   },
@@ -27,89 +27,89 @@
         "id": "may_fourth",
         "title": "铅字落在谁手里",
         "setting": "1919 · 北京",
-        "poster": "/chronicle/may_fourth.webp",
+        "poster": "/motion/may_fourth.webp",
         "seconds": 8,
-        "cue": "周禾把一枚反字从字盘里拣出来。"
+        "cue": "我拣起那枚反着的“東”字，拇指上蹭了一道墨。"
       },
       {
         "id": "shanghai_workers",
         "title": "雨中的邮袋",
         "setting": "1927 · 上海·闸北",
-        "poster": "/chronicle/shanghai_workers.webp",
+        "poster": "/motion/shanghai_workers.webp",
         "seconds": 8,
-        "cue": "小钱推过来半袋信。"
+        "cue": "小钱把邮袋推到我面前。我抽出压在最上头的信。"
       },
       {
         "id": "mukden_september",
         "title": "没钉齐的衣扣",
         "setting": "1931 · 沈阳",
-        "poster": "/chronicle/mukden_september.webp",
+        "poster": "/motion/mukden_september.webp",
         "seconds": 8,
-        "cue": "隔墙忽然响了。唐素琴的黄铜顶针掉在地上。"
+        "cue": "隔墙一声闷响，我指头上的黄铜顶针飞了出去。"
       },
       {
         "id": "nantao_refuge",
         "title": "长凳挪出一条路",
         "setting": "1937 · 上海·南市",
-        "poster": "/chronicle/nantao_refuge.webp",
+        "poster": "/motion/nantao_refuge.webp",
         "seconds": 8,
-        "cue": "门边的人等着坐。灶边的人等着搁碗。"
+        "cue": "身后的人还端着热粥。我把两条凳子错开一点。"
       },
       {
         "id": "gold_yuan",
         "title": "长一寸，短一寸",
         "setting": "1948 · 上海",
-        "poster": "/chronicle/gold_yuan.webp",
+        "poster": "/motion/gold_yuan.webp",
         "seconds": 8,
-        "cue": "两只手同时按住细蓝布。"
+        "cue": "顾嫂按着布的那头，我拿木尺比住这头。"
       },
       {
         "id": "river_grain",
         "title": "等锅开的人",
         "setting": "1950–1952 · 河北·天津专区",
-        "poster": "/chronicle/river_grain.webp",
+        "poster": "/motion/river_grain.webp",
         "seconds": 8,
-        "cue": "柴素兰掀锅盖，门口有个孩子踮着脚。"
+        "cue": "我去掀锅盖，蒸汽贴着手背直往袖口里钻。"
       },
       {
         "id": "school_album",
         "title": "橱柜里的相纸",
         "setting": "1966 · 北京",
-        "poster": "/chronicle/school_album.webp",
+        "poster": "/motion/school_album.webp",
         "seconds": 8,
-        "cue": "两张相纸只够洗两张照片。"
+        "cue": "小莺把洗好的相片递来。我替她按住翘起来的册页。"
       },
       {
         "id": "household_field",
         "title": "牛铃排到哪一家",
         "setting": "1978–1980 · 安徽·凤阳一带",
-        "poster": "/chronicle/household_field.webp",
+        "poster": "/motion/household_field.webp",
         "seconds": 8,
-        "cue": "几粒豆种落在桌上。一家有种，一家有力气。"
+        "cue": "豆子从赵婶掌心滑下来。我赶紧把滚远的一颗拦住。"
       },
       {
         "id": "june_workshop",
         "title": "夜班收音机",
         "setting": "1989 · 北京",
-        "poster": "/chronicle/june_workshop.webp",
+        "poster": "/motion/june_workshop.webp",
         "seconds": 8,
-        "cue": "一只手拧着旋钮，指针划过刻度。"
+        "cue": "我把旋钮往回拧半格，沙沙声里像是夹了一句话。"
       },
       {
         "id": "factory_minutes",
         "title": "两份笔录",
         "setting": "1992–1993 · 天津郊区",
-        "poster": "/chronicle/factory_minutes.webp",
+        "poster": "/motion/factory_minutes.webp",
         "seconds": 8,
-        "cue": "宋梅还在养伤。汇总上已经写了“已复工”。"
+        "cue": "我认得宋梅的名字。伤还没养好，后面已经写着“已复工”。"
       },
       {
         "id": "school_ground",
         "title": "跑道上的白线",
         "setting": "2003–2019 · 湖南·湘西",
-        "poster": "/chronicle/school_ground.webp",
+        "poster": "/motion/school_ground.webp",
         "seconds": 8,
-        "cue": "雨落在操场。划线的小轮向前滚。"
+        "cue": "我握着划线车把往前推，雨水一直顺着手腕往下走。"
       }
     ]
   },
@@ -120,201 +120,201 @@
         "id": "witness_tan_sitong",
         "title": "留在北京的人",
         "setting": "1898年 · 谭嗣同",
-        "poster": "/chronicle/witness_tan_sitong.webp",
+        "poster": "/sets/inn.webp",
         "seconds": 7,
-        "cue": "会馆窗下，旧封皮压着半页手稿。"
+        "cue": "我把长沙来的旧封皮压在掌边，窗外的脚步停了。"
       },
       {
         "id": "witness_zhan_tianyou",
         "title": "通车以后谁来当班",
         "setting": "1909年 · 詹天佑",
-        "poster": "/chronicle/witness_zhan_tianyou.webp",
+        "poster": "/sets/rail.webp",
         "seconds": 7,
-        "cue": "青龙桥外，铁轨朝两个方向分开。"
+        "cue": "我站在南口的扳道器旁，脚前两股铁轨分开了。"
       },
       {
         "id": "witness_sun_yatsen",
         "title": "把总统印交给谁",
         "setting": "1911–1912年 · 孙中山",
-        "poster": "/chronicle/witness_sun_yatsen.webp",
+        "poster": "/sets/court.webp",
         "seconds": 7,
-        "cue": "桌上还空着一格，铜印悬在纸面上。"
+        "cue": "我低下头，铜印底下留着纸上一格空白。"
       },
       {
         "id": "witness_chen_duxiu",
         "title": "一卷传单",
         "setting": "1919年6月至秋 · 陈独秀",
-        "poster": "/chronicle/witness_chen_duxiu.webp",
+        "poster": "/sets/inn.webp",
         "seconds": 7,
-        "cue": "游艺场的灯还亮着，一卷传单摆上桌。"
+        "cue": "我面前摆着从身上取下来的传单。那封信就在旁边。"
       },
       {
         "id": "witness_gu_zhenghong",
         "title": "夜班停了",
         "setting": "1925年5月 · 顾正红",
-        "poster": "/chronicle/witness_gu_zhenghong.webp",
+        "poster": "/sets/yard.webp",
         "seconds": 7,
-        "cue": "夜班的人到了，纱锭还在转。"
+        "cue": "我在厂门边听了一会儿，眼前的纱锭还在转。"
       },
       {
         "id": "witness_shen_junru",
         "title": "七张椅子",
         "setting": "1936年11月至1937年7月 · 沈钧儒",
-        "poster": "/chronicle/witness_shen_junru.webp",
+        "poster": "/sets/court.webp",
         "seconds": 7,
-        "cue": "探视的一排座位，有一处空隙。"
+        "cue": "我从探视座位望过去，这排椅子留着一个空。"
       },
       {
         "id": "witness_zhang_xueliang",
         "title": "谁定归期",
         "setting": "1936年12月起 · 张学良",
-        "poster": "/chronicle/still_xian.webp",
+        "poster": "/sets/inn.webp",
         "seconds": 7,
-        "cue": "西安的门边，提箱上扣着一根皮带。"
+        "cue": "我走到门边，提箱压在皮带下，铜扣正朝着我。"
       },
       {
         "id": "witness_minnie_vautrin",
         "title": "教室里的铺位",
         "setting": "1937–1938年 · 魏特琳",
-        "poster": "/chronicle/witness_minnie_vautrin.webp",
+        "poster": "/sets/yard.webp",
         "seconds": 7,
-        "cue": "教室地板上的席子，隔着一道窄缝。"
+        "cue": "我蹲在教室铺位旁，面前两张席子还隔着缝。"
       },
       {
         "id": "witness_chongqing_talks",
         "title": "桂园客厅里的座位",
         "setting": "1945年 · 张治中",
-        "poster": "/chronicle/witness_chongqing_talks.webp",
+        "poster": "/sets/inn.webp",
         "seconds": 7,
-        "cue": "桂园桌旁，三把椅子朝着三个方向。"
+        "cue": "我站在桂园桌旁。这把空椅离茶盏还差半尺。"
       },
       {
         "id": "witness_shanghai_prices",
         "title": "牌价下的空米缸",
         "setting": "1948年 · 蒋经国",
-        "poster": "/chronicle/witness_shanghai_prices.webp",
+        "poster": "/sets/house.webp",
         "seconds": 7,
-        "cue": "米店门边，价牌还在轻轻晃。"
+        "cue": "我从米店队尾往前望。吊牌在眼前晃了两下。"
       },
       {
         "id": "witness_liu_qingshan",
         "title": "河工的一顿饭",
         "setting": "1951年（回溯1950年）至1952年 · 刘青山",
-        "poster": "/chronicle/river_grain.webp",
+        "poster": "/sets/house.webp",
         "seconds": 7,
-        "cue": "伙房的碗沿还冒着热气。"
+        "cue": "我低头去看留给我的碗。碗边还冒着热气。"
       },
       {
         "id": "witness_lushan_peng",
         "title": "山下的口粮",
         "setting": "1959年7月至9月 · 彭德怀",
-        "poster": "/chronicle/witness_lushan_peng.webp",
+        "poster": "/sets/inn.webp",
         "seconds": 7,
-        "cue": "木升歪向桌边，里面看起来还盛着粮。"
+        "cue": "送来的木升搁在眼前。我伸手接着，等里面的东西倒下来。"
       },
       {
         "id": "witness_lin_zhao",
         "title": "谁能读见这一页",
         "setting": "1960年至1981年 · 林昭",
-        "poster": "/chronicle/witness_lin_zhao.webp",
+        "poster": "/sets/house.webp",
         "seconds": 7,
-        "cue": "窗边的信封张着口，两页稿子叠在一起。"
+        "cue": "我把两页稿子放到窗边，只有一只信封够厚。"
       },
       {
         "id": "witness_bian",
         "title": "让她走出校门",
         "setting": "1966 · 王晶垚",
-        "poster": "/chronicle/witness_bian.webp",
+        "poster": "/sets/house.webp",
         "seconds": 7,
-        "cue": "一副折好的眼镜，搁在手帕的折角。"
+        "cue": "我把手帕接过来。折角里躺着一副合拢的眼镜。"
       },
       {
         "id": "witness_entrance_exam",
         "title": "赶不赶得上这个冬天",
         "setting": "1977 · 邓小平",
-        "poster": "/chronicle/witness_entrance_exam.webp",
+        "poster": "/sets/office.webp",
         "seconds": 7,
-        "cue": "修理台上，收音机的刻度只亮了一半。"
+        "cue": "我俯过身，桌上的收音机只亮了半边刻度。"
       },
       {
         "id": "witness_hu_fuming",
         "title": "铅印之前",
         "setting": "1978年（回溯1977年拟稿） · 胡福明",
-        "poster": "/chronicle/witness_hu_fuming.webp",
+        "poster": "/sets/press.webp",
         "seconds": 7,
-        "cue": "排字架上还差一枚铅字。"
+        "cue": "我低头看排字架。眼前一行铅字当中，还缺了一个位置。"
       },
       {
         "id": "witness_xiaogang",
         "title": "我家这块田",
         "setting": "1978年冬至1979年秋 · 严宏昌",
-        "poster": "/chronicle/household_field.webp",
+        "poster": "/sets/house.webp",
         "seconds": 7,
-        "cue": "灯下摊开的纸，留着几处墨迹。"
+        "cue": "我把纸铺平。灯下已有几处手印，旁边还留着位置。"
       },
       {
         "id": "witness_yuan_geng",
         "title": "四分钱给谁",
         "setting": "1979年至1980年 · 袁庚",
-        "poster": "/chronicle/witness_yuan_geng.webp",
+        "poster": "/sets/depot.webp",
         "seconds": 7,
-        "cue": "最后一车进了地秤，秤杆翘起来。"
+        "cue": "我站到地秤跟前。最后一车过来时，秤杆向上翘。"
       },
       {
         "id": "witness_deng_xiaoping",
         "title": "北京的春与夏",
         "setting": "1989 · 邓小平",
-        "poster": "/chronicle/witness_deng_xiaoping.webp",
+        "poster": "/sets/office.webp",
         "seconds": 7,
-        "cue": "便笺边放着长途电话的计时器。"
+        "cue": "我把长途便笺放在计时器旁，听筒里还有人说话。"
       },
       {
         "id": "witness_southern_tour",
         "title": "头版还留几行",
         "setting": "1992年1月至3月 · 陈锡添",
-        "poster": "/chronicle/witness_southern_tour.webp",
+        "poster": "/sets/office.webp",
         "seconds": 7,
-        "cue": "国贸大厦的楼层窗停在十二。"
+        "cue": "我抬眼看国贸的楼层窗。刚才停在十二，现在又动了。"
       },
       {
         "id": "witness_shang_aiyun",
         "title": "门口那双鞋",
         "setting": "1996年至2014年 · 尚爱云",
-        "poster": "/chronicle/witness_shang_aiyun.webp",
+        "poster": "/sets/house.webp",
         "seconds": 7,
-        "cue": "门槛里摆着一双鞋。"
+        "cue": "我坐在门槛里。晚饭没动，那双鞋还在我眼前。"
       },
       {
         "id": "witness_gao",
         "title": "试一次水",
         "setting": "1998–2006 · 高勤荣",
-        "poster": "/chronicle/still_ridge.webp",
+        "poster": "/sets/field.webp",
         "seconds": 7,
-        "cue": "田埂上，管口对着一小块干土。"
+        "cue": "我蹲在田埂上，把手伸向干土，等管口的水。"
       },
       {
         "id": "witness_deng",
         "title": "跑道交给谁",
         "setting": "2003–2019 · 邓世平",
-        "poster": "/chronicle/witness_deng.webp",
+        "poster": "/sets/yard.webp",
         "seconds": 7,
-        "cue": "操场边，丈量的卷尺才铺开。"
+        "cue": "我沿着围绳蹲下，把卷尺的头送向跑道白线。"
       },
       {
         "id": "witness_xu_zhiyong",
         "title": "三个人的落款",
         "setting": "2003年3月至8月 · 许志永",
-        "poster": "/chronicle/witness_xu_zhiyong.webp",
+        "poster": "/sets/office.webp",
         "seconds": 7,
-        "cue": "摊开的纸旁，有三支笔。"
+        "cue": "我在纸边数了数。已经有两支笔，还有一个空位。"
       },
       {
         "id": "witness_jiang_yanyong",
         "title": "电话里的人还在等",
         "setting": "2003年4月 · 蒋彦永",
-        "poster": "/chronicle/witness_jiang_yanyong.webp",
+        "poster": "/sets/clinic.webp",
         "seconds": 7,
-        "cue": "旧科室的电话，拨号盘刚被转过。"
+        "cue": "我低头看旧科室的电话，等刚拨过的号码回位。"
       }
     ]
   },

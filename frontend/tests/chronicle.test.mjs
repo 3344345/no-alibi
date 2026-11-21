@@ -305,7 +305,7 @@ test(
       for (let i = 0; !view.finished && i < 130; i++) {
         if (!visited.has(view.chapter.id)) {
           visited.add(view.chapter.id)
-          const image = page.locator('.scene-art img')
+          const image = page.locator('.scene-art .reading-space')
           const valid = await image.evaluate(async (el) => {
             await el.decode()
             return el.naturalWidth > 0 && el.naturalHeight > 0

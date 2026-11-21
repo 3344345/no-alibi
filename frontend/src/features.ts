@@ -26,7 +26,7 @@ export const features: Feature[] = [
   {
     title: '倒带七秒', setting: '架空的北京，1992',
     pitch: '一间厂子要买七秒钟的满堂喝彩。有了这笔钱，天亮前就能把旧钢琴搬走。可有个孩子提着一把折椅来找你：那几声，真是人拍出来的吗？',
-    action: '戴上耳机，听那七秒', image: '/chronicle/still_piano.webp',
+    action: '戴上耳机，听那七秒', image: '/viewer/radio-seat.webp',
     chapter: 'witness_deng_xiaoping', opening: 'seven_seconds', campaign: 'witness',
   },
   {

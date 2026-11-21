@@ -1,8 +1,8 @@
 """Render the family opening films as practical paper theatre, with original Foley.
 
 Requires Pillow, NumPy, and ffmpeg with libx264. Run this script from any directory.
-The establishing plates are the original chapter illustrations shipped with the game.
-A close-up follows the actions of hands, documents and household objects at the table.
+Each uninterrupted shot stays at its protagonist's eyes. The camera looks down
+onto the work in hand. The wedding screen is always seen from the puppeteer's side.
 """
 import argparse
 from concurrent.futures import ProcessPoolExecutor
@@ -18,7 +18,6 @@ import numpy as np
 from PIL import Image, ImageChops, ImageColor, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
-ART = ROOT / 'frontend/public/chronicle'
 DEST = ROOT / 'frontend/public/motion'
 W, H = 960, 540
 SIZE = (W, H)
@@ -29,18 +28,18 @@ TAU = 2 * math.pi
 
 # Close-up captions give silent players the same material clues as the soundtrack.
 SHOTS = {
-    'may_fourth': ('半版铅字', '周禾把一枚反字从字盘里拣出来。', '它落进缺的那一格。剩下半版，还给谁？', '#5c4835', (310, 610, 950)),
-    'shanghai_workers': ('桥边修伞人', '小钱推过来半袋信。', '这一封只写着“桥边修伞人”。', '#574b3c', (210, 525, 970)),
-    'mukden_september': ('滚走的顶针', '隔墙忽然响了。唐素琴的黄铜顶针掉在地上。', '它在床沿下打了最后一个转。', '#523d35', (585, 1060, 1495)),
-    'nantao_refuge': ('长凳往哪边挪', '门边的人等着坐。灶边的人等着搁碗。', '长凳挪过来，碗底轻轻一磕。', '#4e4737', (160, 430, 690)),
-    'gold_yuan': ('一尺蓝布', '两只手同时按住细蓝布。', '木尺比好了，剪刀却停在那儿。', '#544530', (260, 845, 1400)),
-    'river_grain': ('头一锅', '柴素兰掀锅盖，门口有个孩子踮着脚。', '一只空碗递到灶边。', '#433c30', (174, 462, 592)),
-    'school_album': ('夹进相册', '两张相纸只够洗两张照片。', '小莺亲手把相片收进册子。', '#514437', (264, 367, 645)),
-    'household_field': ('一头牛，三户人', '几粒豆种落在桌上。一家有种，一家有力气。', '堂屋里传来牛铃声。', '#53412b', (422, 710, 1068)),
-    'june_workshop': ('夜班收音机', '一只手拧着旋钮，指针划过刻度。', '电流声里，邻桌把凳子挪近了一点。', '#434641', (247, 624, 1110)),
-    'factory_minutes': ('空着的签字格', '宋梅还在养伤。汇总上已经写了“已复工”。', '笔尖悬在签字格上，洇下一滴墨。', '#535042', (184, 540, 1105)),
-    'school_ground': ('白线到这里停', '雨落在操场。划线的小轮向前滚。', '白线在泥地里断了。', '#504438', (127, 340, 540)),
-    'shadow-play': ('借我一张脸', '喜棚后，桂喜先把两根竹杆递进灯影。', '两位影人转过脸，台下的新娘也看见了。', '#996b3d', (175, 703, 1280)),
+    'may_fourth': ('半版铅字', '我拣起那枚反着的“東”字，拇指上蹭了一道墨。', '我松了手。铅字碰着格子，空出来的半版还等着。', '#5c4835', (310, 610, 950)),
+    'shanghai_workers': ('桥边修伞人', '小钱把邮袋推到我面前。我抽出压在最上头的信。', '信皮上只有五个字：桥边修伞人。连个门牌都没有。', '#574b3c', (210, 525, 970)),
+    'mukden_september': ('滚走的顶针', '隔墙一声闷响，我指头上的黄铜顶针飞了出去。', '我趴低去够。它在床沿下打了最后一个转。', '#523d35', (585, 1060, 1495)),
+    'nantao_refuge': ('长凳往哪边挪', '身后的人还端着热粥。我把两条凳子错开一点。', '我把碗放下，碗底碰着木头。这里能先坐下一个人。', '#4e4737', (160, 430, 690)),
+    'gold_yuan': ('一尺蓝布', '顾嫂按着布的那头，我拿木尺比住这头。', '剪刀咬住了蓝布。我手没敢使劲，再剪就接不回去了。', '#544530', (260, 845, 1400)),
+    'river_grain': ('头一锅', '我去掀锅盖，蒸汽贴着手背直往袖口里钻。', '灶边多了一只空碗。我腾出另一只手托住它。', '#433c30', (174, 462, 592)),
+    'school_album': ('夹进相册', '小莺把洗好的相片递来。我替她按住翘起来的册页。', '她把照片往纸角里推了推。我等她收手才合上册子。', '#514437', (264, 367, 645)),
+    'household_field': ('一头牛，三户人', '豆子从赵婶掌心滑下来。我赶紧把滚远的一颗拦住。', '堂屋外牛铃响了。豆子能分三份，牛可只有一头。', '#53412b', (422, 710, 1068)),
+    'june_workshop': ('夜班收音机', '我把旋钮往回拧半格，沙沙声里像是夹了一句话。', '我松开旋钮。背后凳脚挪了一下，小唐也在听。', '#434641', (247, 624, 1110)),
+    'factory_minutes': ('空着的签字格', '我认得宋梅的名字。伤还没养好，后面已经写着“已复工”。', '我捏着笔没签。笔尖却先掉了一滴墨。', '#535042', (184, 540, 1105)),
+    'school_ground': ('白线到这里停', '我握着划线车把往前推，雨水一直顺着手腕往下走。', '小轮在那摊泥里空转。等我停手，身前的白线也断了。', '#504438', (127, 340, 540)),
+    'shadow-play': ('借我一张脸', '桂喜把竹签交到我手里。薄皮子贴上幕布，油灯映出一道透红的边。', '我左右手各挑一下，两张脸转过来。幕外有人把板凳坐响了。', '#996b3d', (175, 703, 1280)),
 }
 
 
@@ -71,7 +70,7 @@ def font(size):
     ]
     for candidate in candidates:
         if Path(candidate).exists():
-            return ImageFont.truetype(candidate, size)
+            return ImageFont.truetype(candidate, size, index=6 if Path(candidate).name=='Songti.ttc' else 0)
     raise RuntimeError('Install a Chinese Songti or Noto Serif CJK font to render these films.')
 
 
@@ -86,23 +85,75 @@ def type_glyph(letter):
     return ImageOps.mirror(stamp)
 
 
-def hand(draw, x, y, scale=1., side=1, glove=False, from_top=False):
-    """A cuff and articulated hand entering from the bottom corner, index extended."""
-    def coords(points):
-        return [(x + side*dx*scale, y + (-1 if from_top else 1)*dy*scale) for dx,dy in points]
-    skin = '#a98563' if not glove else '#39382e'
-    shade = '#745842' if not glove else '#242821'
-    draw.polygon(coords([(0,212),(-63,148),(-80,97),(-77,48),(-64,23),(-60,7),(-51,-3),
-                         (-45,0),(-46,26),(-40,39),(-21,19),(25,-14),(36,-16),(44,-11),(40,-3),
-                         (3,27),(35,14),(49,15),(51,21),(20,43),(44,37),(55,42),(51,49),
-                         (26,65),(43,63),(47,70),(16,95),(20,125),(69,175)]), skin, outline=shade)
-    for path in [[(-61,35),(-64,50),(-60,66)], [(-38,54),(-20,42),(3,27)],
-                 [(22,-7),(27,-3),(34,-9)], [(14,57),(26,48)], [(4,78),(13,72)]]:
-        ink(draw, coords(path), shade, max(1,round(scale*2)))
-    draw.polygon(coords([(-51,115),(23,92),(121,190),(369,555),(420,920),(164,920),(-48,302),(-82,149)]),'#333c39',outline='#232b28')
-    ink(draw, coords([(-59,126),(-24,124),(23,105)]),'#77746a',max(1,round(4*scale)))
-    for path in [[(-38,158),(-12,154),(6,139)],[(23,120),(37,134),(46,141)], [(-22,193),(19,189),(57,169)],[(10,217),(51,207),(85,193)],[(47,259),(71,247),(95,244)]]:
-        ink(draw,coords(path),'#49504a',max(1,round(2*scale)))
+# The wardrobe photographs contain the complete hand and half a sleeve. Extend
+# the rear of the sleeve with its own woven cloth so a raised hand always
+# connects to the near edge of the viewer's field of vision.
+GRIP = {'pinch': (449,126), 'write': (405,96), 'rest': (446,106),
+        'offer': (430,142), 'take': (438,147), 'halt': (399,40)}
+
+
+@lru_cache(maxsize=8)
+def long_sleeve(gesture):
+    path=ROOT/'frontend/public/wardrobe'/('arm-'+gesture+'.webp')
+    source=Image.open(path).convert('RGBA')
+    # Some photos have a tiny bit of a neighbouring row at the top. Retain
+    # only the contiguous opaque rows of the actual forearm in each column.
+    pixels=np.array(source)
+    for x in range(source.width):
+        opaque=np.flatnonzero(pixels[:,x,3]>70)
+        if len(opaque)==0:
+            pixels[:,x,3]=0
+            continue
+        runs=np.split(opaque,np.flatnonzero(np.diff(opaque)>7)+1)
+        if x < 260:
+            run=max(runs,key=len)
+            pixels[:max(0,run[0]-3),x,3]=0
+            pixels[min(source.height,run[-1]+4):,x,3]=0
+    first=12
+    source=Image.fromarray(pixels).crop((first,0,source.width,source.height))
+    pad=525
+    y,x=np.mgrid[:285,:pad]
+    # The near silhouette has a continuous, wider elbow. Resample the woven
+    # cloth inside that silhouette, separately from the sleeve's edge.
+    column=first+np.abs((pad-1-x+49)%98-49)
+    top=np.argmax(pixels[...,3]>100,axis=0)
+    bottom=pixels.shape[0]-1-np.argmax(pixels[::-1,:,3]>100,axis=0)
+    u=(pad-x)/pad
+    lower=bottom[first]+22+u*14
+    upper=top[first]+22-u*25
+    v=np.clip((y-upper)/(lower-upper),0,1)
+    row=(top[column]+v*(bottom[column]-top[column])).astype(int)
+    material=pixels[row,column].copy()
+    local_mean=Image.fromarray(material[:,:,:3]).filter(ImageFilter.GaussianBlur(19))
+    # The nearest part is slightly outside the focal plane.
+    fade=np.minimum(1,(pad-1-x)/76)*.53
+    material[:,:,:3]=np.uint8(material[:,:,:3]*(1-fade[:,:,None])+np.asarray(local_mean)*fade[:,:,None])
+    material[:,:,3]=np.uint8(255*np.minimum(np.clip(y-upper,0,1),np.clip(lower-y,0,1)))
+    out=Image.new('RGBA',(pad+source.width,285))
+    out.paste(Image.fromarray(material),(0,0))
+    out.paste(source,(pad,22))
+    gx,gy=GRIP[gesture]
+    return out,(pad+gx-first,gy+22)
+
+
+@lru_cache(maxsize=36)
+def reaching_arm(gesture,side,scale,angle):
+    arm,anchor=long_sleeve(gesture)
+    rotation=math.radians(angle)
+    rx,ry=anchor[0]-arm.width/2,anchor[1]-arm.height/2
+    rotated=arm.rotate(angle,resample=Image.Resampling.BICUBIC,expand=True)
+    cx=rotated.width/2+math.cos(rotation)*rx+math.sin(rotation)*ry
+    cy=rotated.height/2-math.sin(rotation)*rx+math.cos(rotation)*ry
+    if side=='right':
+        rotated=ImageOps.mirror(rotated)
+        cx=rotated.width-cx
+    resized=rotated.resize((round(rotated.width*scale),round(rotated.height*scale)),RESAMPLE)
+    return resized,(round(cx*scale),round(cy*scale))
+
+
+def hand(im, x, y, gesture='pinch', side='right', scale=.61, angle=55):
+    arm,anchor=reaching_arm(gesture,side,scale,angle)
+    im.paste(arm,(round(x-anchor[0]),round(y-anchor[1])),arm)
 
 
 def envelope(d,x,y,s=1.):
@@ -173,7 +224,7 @@ def scene(id, d, im, p):
         # An individual block carries reversed type until it reaches paper.
         mirror=type_glyph('東')
         im.paste(mirror,(int(x+8),int(y+2)),mirror)
-        hand(d,x-35-130*ease((p-.72)/.26),y+29+150*ease((p-.72)/.26),.85)
+        hand(im,x+11-130*ease((p-.72)/.26),y+35+155*ease((p-.72)/.26),'pinch','left',.50,57)
     elif id=='shanghai_workers':
         for i in range(5):
             envelope(d,450+i*11,289-i*11,.97)
@@ -181,7 +232,7 @@ def scene(id, d, im, p):
         envelope(d,x,y,1.07)
         d.rectangle((x-83,y-21,x+109,y+26),'#c5aa83')
         label(d,(x-80,y-13),'橋邊修傘人  收',21)
-        hand(d,x+130+80*(1-reach),y+61,.85,-1)
+        hand(im,x+108+56*(1-reach),y+53,'pinch','right',.58,49)
     elif id=='mukden_september':
         for j in range(2):
             d.polygon([(72,407+j*18),(790,371+j*18),(801,387+j*18),(63,423+j*18)],'#302b25')
@@ -196,7 +247,7 @@ def scene(id, d, im, p):
         for j in range(6):
             for k in range(5):
                 px,py=turn(-17+8*k+(j%2)*2,-28+j*10);oval(d,px,py,2.8,2.4,'#59462e')
-        hand(d,193+157*reach,493-121*reach,.67)
+        hand(im,194+201*reach,508-163*reach,'take','left',.51,49)
     elif id=='nantao_refuge':
         def bench(x,y):
             for dx in (-162,154):
@@ -204,9 +255,10 @@ def scene(id, d, im, p):
             d.polygon([(x-187,y),(x+172,y-22),(x+201,y-7),(x-167,y+18)],'#a47c47',outline='#4d3828')
             ink(d,[(x-164,y+13),(x+199,y-10)],'#705236',6)
         bench(292,214);x=450+154*slide;bench(x,309)
+        hand(im,x-102-16*contact,307+30*contact,'rest','left',.46,58)
         bowlx=704-100*contact;bowly=193+88*contact
         vessel(d,bowlx,bowly,.65)
-        hand(d,bowlx+47+145*ease((p-.62)/.3),bowly+30,.75,-1)
+        hand(im,bowlx+28+145*ease((p-.62)/.3),bowly+29+85*ease((p-.62)/.3),'take','right',.50,58)
     elif id=='gold_yuan':
         d.polygon([(121,90),(809,116),(774,395),(110,376)],'#42535b',outline='#282e2f')
         for j in range(54):
@@ -223,7 +275,8 @@ def scene(id, d, im, p):
             d.polygon([(x,y-6),end,(x-37,y+8)],'#a4aaa0',outline='#414a48')
             oval(d,x+47*dx,y+47*dy,24,13,None,'#402e28',6)
         oval(d,x,y,5,5,'#c0aa74')
-        hand(d,x+81,y+34,.82,-1)
+        hand(im,245+29*slide,321-7*slide,'rest','left',.51,49)
+        hand(im,x+43,y+9,'write','right',.55,55)
     elif id=='river_grain':
         oval(d,413,326,194,77,'#242822')
         d.polygon([(219,308),(608,304),(576,404),(535,428),(292,426),(247,397)],'#34372d')
@@ -239,8 +292,10 @@ def scene(id, d, im, p):
             a=k*.87
             points=[(335+k*29+math.sin(a+t*2+j*.38)*9,298-j*6) for j in range(int(17*slide))]
             if len(points)>1: ink(d,points,'#b2ac91',2)
-        hand(d,450,lidy-12,.7,-1,from_top=True)
-        vessel(d,722-43*slide,371,.73)
+        hand(im,421,lidy-20,'pinch','left',.49,56)
+        bx=733-67*contact
+        vessel(d,bx,371,.73)
+        hand(im,bx+25+34*(1-contact),387+34*(1-contact),'take','right',.44,54)
     elif id=='school_album':
         d.rounded_rectangle((195,117,751,419),8,'#3b423b',outline='#847c60',width=6)
         d.rectangle((216,137,469,399),'#b39e7a')
@@ -254,7 +309,14 @@ def scene(id, d, im, p):
         if cover>2:
             d.polygon([(468,132),(468+cover,145),(468+cover,398),(468,402)],'#586052',outline='#3f483d')
             ink(d,[(476,143),(476,385)],'#8e8d71',2)
-        hand(d,696+93*(1-reach),y+153,.7,-1)
+        # 小莺 controls her picture at the far edge. Her hand retreats to
+        # her own side; 顾兰 keeps one hand on the near corner of the album.
+        fx=x+147; fy=y+20-214*ease((p-.52)/.21)
+        if fy>-20:
+            arm,anchor=reaching_arm('pinch','left',.38,32)
+            guest=ImageOps.flip(arm)
+            im.paste(guest,(round(fx-anchor[0]),round(fy-(arm.height-anchor[1]))),guest)
+        hand(im,655-154*ease((p-.55)/.38),390-14*reach,'rest','right',.53,56)
     elif id=='household_field':
         d.polygon([(158,104),(653,126),(639,381),(141,355)],'#b79a70',outline='#776549')
         for q in range(4):
@@ -268,7 +330,7 @@ def scene(id, d, im, p):
         ink(d,[(720,19),(x,149)],'#765d40',4)
         d.polygon([(x-12,138),(x+14,138),(x+29,204),(x-34,205)],'#a3834d',outline='#473e2b')
         oval(d,x-2,204,31,6,'#564629');oval(d,x+4,206,5,7,'#ae8b4a')
-        hand(d,377-82*slide,181+155*ease((p-.56)/.38),.72)
+        hand(im,271+122*reach,376-96*reach,'rest','left',.52,52)
     elif id=='june_workshop':
         d.rounded_rectangle((151,121,773,403),21,'#433c30',outline='#857252',width=8)
         d.rounded_rectangle((175,147,749,248),6,'#242f2b',outline='#ab9565',width=4)
@@ -284,7 +346,7 @@ def scene(id, d, im, p):
         oval(d,646,320,52,52,'#282a23','#8b8166',6)
         a=-2.6+3.5*slide
         ink(d,[(646+30*math.cos(a),320+30*math.sin(a)),(646+44*math.cos(a),320+44*math.sin(a))],'#d9c492',4)
-        hand(d,682+92*ease((p-.71)/.26),347+82*ease((p-.71)/.26),.72,-1)
+        hand(im,659+60*ease((p-.71)/.26),328+75*ease((p-.71)/.26),'pinch','right',.55,64)
     elif id=='factory_minutes':
         for x,y in [(222,107),(203,118)]:
             d.polygon([(x,y),(714,y-15),(723,408),(x+14,418)],'#c1b696',outline='#968c72')
@@ -299,23 +361,35 @@ def scene(id, d, im, p):
         d.polygon([(x-2,y),(x+3,y-19),(x+91,y-120),(x+102,y-111),(x+13,y-12)],'#302f28')
         d.polygon([(x-2,y),(x+4,y-21),(x+14,y-13)],'#afaa90')
         oval(d,x-2,y+9,1+3*contact,1+2*contact,'#3b3a31')
-        hand(d,x+87,y-94,.67,-1)
+        hand(im,x+48,y-48,'write','right',.51,57)
     elif id=='school_ground':
         for j in range(96):
             x=(j*347)%950;y=(j*109)%460+38
             ink(d,[(x,y),(x+4,y+2)],'#756950',2)
-        x=225+411*slide
-        for j in range(385):
-            if j> x-224: break
-            y=326+7*math.sin(j*.013)
-            oval(d,224+j,y,2,3+math.sin(j*.64),'#b7b099')
-        ink(d,[(x+1,277),(x+107,123),(x+158,121)],'#3c4137',8)
-        oval(d,x,287,42,43,'#53574a','#343c33',6)
-        for j in range(6):
-            a=TAU*j/6+slide*9
-            ink(d,[(x,287),(x+34*math.cos(a),287+34*math.sin(a))],'#8d8f79',4)
-        d.polygon([(x-45,182),(x+52,181),(x+28,263),(x-23,260)],'#9a9981',outline='#565a4a')
-        hand(d,x+164,119,.58,-1,from_top=True)
+        # Walk behind the machine. The near handle stays in our hands; the
+        # terrain and fresh line travel underneath it toward our own feet.
+        wheel_x=471+14*math.sin(slide*5.7)
+        wheel_y=282-18*slide
+        for j in range(int(225*slide)):
+            f=j/225
+            if .46<f<.78 and slide>.84: continue
+            cx=wheel_x-25*f+9*math.sin(f*7+slide*1.5)
+            cy=wheel_y+40+j
+            oval(d,cx,cy,2.6+f*3.9,2+f,'#c1bca7')
+        oval(d,487,331+73*slide,57+18*slide,8+7*slide,'#554c3d')
+        ink(d,[(wheel_x-16,wheel_y-6),(wheel_x-75,375),(wheel_x-114,418)],'#3c4137',8)
+        ink(d,[(wheel_x+15,wheel_y-6),(wheel_x+71,374),(wheel_x+109,418)],'#3c4137',8)
+        ink(d,[(wheel_x-113,417),(wheel_x+107,417)],'#545545',13)
+        oval(d,wheel_x,wheel_y,18,43,'#53574a','#343c33',6)
+        for j in range(7):
+            a=TAU*j/7+slide*13
+            ink(d,[(wheel_x,wheel_y),(wheel_x+12*math.cos(a),wheel_y+33*math.sin(a))],'#8d8f79',3)
+        d.polygon([(wheel_x-56,wheel_y-94),(wheel_x+52,wheel_y-92),(wheel_x+22,wheel_y-14),(wheel_x-21,wheel_y-13)],
+                  '#93947d',outline='#565a4a')
+        d.polygon([(wheel_x-56,wheel_y-94),(wheel_x-40,wheel_y-108),(wheel_x+58,wheel_y-106),(wheel_x+52,wheel_y-92)],
+                  '#abad96',outline='#565a4a')
+        hand(im,wheel_x-82,416,'pinch','left',.44,58)
+        hand(im,wheel_x+80,416,'pinch','right',.44,58)
         for k in range(42):
             xx=(k*337+18*t)%960; yy=(k*161+t*266)%530
             ink(d,[(xx,yy),(xx-3,yy+10)],'#928d77',1)
@@ -324,11 +398,14 @@ def scene(id, d, im, p):
             ink(d,[(x,30),(x+(3 if x<100 else -4),465)],'#5b3924',10)
         puppet(d,363+30*slide,226,1,0,t)
         puppet(d,598-18*slide,236,-1,2.8,t)
-        for j in range(6):
-            x=110+j*144
-            yy=502+14*math.sin(.6*t+2*j)
-            oval(d,x,yy,34,46,'#443528')
-            oval(d,x,yy+62,70,52,'#443528')
+        # The light is behind the player. Peer through the skin and cloth;
+        # the audience is on the other side; no heads can appear in front.
+        left=363+30*slide
+        right=598-18*slide
+        ink(d,[(left-31,393),(left-43,505)],'#976e43',5)
+        ink(d,[(right+32,397),(right+43,513)],'#976e43',5)
+        hand(im,left-33,424+math.sin(2*t)*6,'pinch','left',.50,58)
+        hand(im,right+33,432+math.sin(2*t+2.8)*6,'pinch','right',.50,58)
 
 
 def vessel(d,x,y,s):
@@ -340,9 +417,16 @@ def vessel(d,x,y,s):
 
 @lru_cache(maxsize=1)
 def album_photo():
-    plate=Image.open(ART/'school_album.webp')
-    still=ImageOps.fit(plate,(183,137))
-    return ImageOps.colorize(ImageOps.grayscale(still),'#47483e','#c9c5af')
+    photo=Image.new('RGB',(366,274),'#575951')
+    d=ImageDraw.Draw(photo)
+    d.polygon([(8,35),(303,3),(360,55),(36,88)],'#73756a')
+    d.polygon([(26,70),(351,42),(344,108),(29,138)],'#88897c')
+    d.polygon([(43,103),(315,77),(337,175),(50,223)],'#393c36')
+    d.polygon([(47,152),(302,111),(329,169),(66,207)],'#a3a396')
+    ink(d,[(102,170),(206,143),(247,153)],'#56594f',3)
+    d.polygon([(47,194),(337,143),(342,213),(49,261)],'#8e9082')
+    d.arc((162,193,218,228),0,170,fill='#42473e',width=6)
+    return photo.resize((183,137),RESAMPLE)
 
 
 def stock(id):
@@ -429,7 +513,7 @@ def photographic_light(id):
     return Image.fromarray(shade),Image.fromarray(np.uint8(np.clip(ink_grain+128,0,255)),'L').convert('RGB')
 
 
-def finish(im,base,light,grain,id,p):
+def finish(im,base,light,grain,id,p,sec):
     diff=ImageChops.difference(base,im)
     bands=diff.split()
     mask=ImageChops.lighter(ImageChops.lighter(bands[0],bands[1]),bands[2]).point(lambda n: min(255,n*255))
@@ -440,31 +524,57 @@ def finish(im,base,light,grain,id,p):
     plate=Image.blend(plate,ImageChops.add(plate,relief,1,-128),.35)
     graded=ImageEnhance.Contrast(ImageChops.multiply(plate,light)).enhance(1.12)
     result=ImageChops.add(graded,grain,1,-128)
-    amount=(.049 if id=='shadow-play' else .084)+.018*ease(p)
-    left=int(W*amount); top=int(H*amount)
-    return result.crop((left,top,W-left,H-top)).resize(SIZE,Image.Resampling.BICUBIC)
+    settle=ease(sec/2.45)
+    amount=.021+(.055 if id=='shadow-play' else .075)*settle
+    width=round(W*(1-2*amount));height=round(H*(1-2*amount))
+    # The slight pivot follows the viewer's grip, never orbiting a body.
+    fx,fy=GAZE[id]
+    left=round((W-width)*(fx+.045*math.sin(p*2.6)))
+    top=round((H-height)*(.2+(fy-.2)*settle))
+    return result.crop((left,top,left+width,top+height)).resize(SIZE,Image.Resampling.BICUBIC)
+
+
+GAZE={
+    'may_fourth':(.36,.72),'shanghai_workers':(.45,.63),'mukden_september':(.67,.76),
+    'nantao_refuge':(.60,.59),'gold_yuan':(.60,.67),'river_grain':(.47,.48),
+    'school_album':(.61,.69),'household_field':(.49,.68),'june_workshop':(.66,.51),
+    'factory_minutes':(.60,.70),'school_ground':(.62,.77),'shadow-play':(.50,.42),
+}
+ROOM={
+    'may_fourth':'press','shanghai_workers':'inn','mukden_september':'house',
+    'nantao_refuge':'inn','gold_yuan':'house','river_grain':'house',
+    'school_album':'house','household_field':'house','june_workshop':'press',
+    'factory_minutes':'office','school_ground':'yard',
+}
 
 
 def render(id):
-    plate=Image.open(ART/(('still_shadow' if id=='shadow-play' else id)+'.webp')).convert('RGB')
-    plate=ImageEnhance.Color(ImageOps.fit(plate,(1000,565),method=RESAMPLE)).enhance(.87)
     table=stock(id)
-    if id in ('school_ground','river_grain','nantao_refuge','mukden_september'):
-        room=ImageOps.fit(plate,SIZE).filter(ImageFilter.GaussianBlur(12))
-        room=ImageEnhance.Color(room).enhance(.45)
-        room=ImageEnhance.Brightness(room).enhance(.7)
-        yy=np.arange(H)[:,None]
-        opacity=np.clip((255-yy)*.78,0,165) * np.ones((1,W))
-        table=Image.composite(room,table,Image.fromarray(np.uint8(opacity)))
+    if id!='shadow-play':
+        room=Image.open(ROOT/'frontend/public/sets'/(ROOM[id]+'.webp')).convert('RGB')
+        room=ImageOps.fit(room,SIZE,centering=(.5,.77)).filter(ImageFilter.GaussianBlur(2.7))
+        room=ImageEnhance.Color(room).enhance(.74)
+        room=ImageEnhance.Brightness(room).enhance(.78)
+        yy,xx=np.indices((H,W))
+        horizon=(119+.029*(xx-W/2)) if id not in ('school_ground','mukden_september') else (88+.014*(xx-W/2))
+        blend=np.clip((horizon+5-yy)/11,0,1)
+        table=Image.composite(room,table,Image.fromarray(np.uint8(blend*255)))
+    else:
+        # Fabric seam and the two tied loops are visible on the working side.
+        backstage=ImageDraw.Draw(table)
+        for x in (76,878):
+            ink(backstage,[(x,3),(x+1,163),(x-2,320),(x,539)],'#816441',3)
+            for y in (74,364):
+                backstage.ellipse((x-7,y-4,x+8,y+4),outline='#9e8053',width=2)
     light,grain=photographic_light(id)
     table_d=ImageDraw.Draw(table)
     if id not in ('shadow-play','school_ground','river_grain'):
-        for y in (102,407):
+        for y in (172,432):
             ink(table_d,[(0,y+4),(272,y+1),(548,y+2),(959,y-8)],'#41392f',2)
             ink(table_d,[(0,y+6),(272,y+3),(548,y+4),(959,y-6)],'#675849',1)
         rnd=np.random.default_rng(7214)
         for j in range(317):
-            x,y=rnd.integers([0,0],[W,H]);size=int(rnd.integers(2,24))
+            x,y=rnd.integers([0,147],[W,H]);size=int(rnd.integers(2,24))
             ink(table_d,[(x,y),(x+size,y+int(rnd.integers(-1,2)))],'#605444' if j%3 else '#493d31',1)
     with tempfile.TemporaryDirectory(prefix='jzs-family-film-') as temp:
         tmp=Path(temp)
@@ -475,22 +585,19 @@ def render(id):
             '-movflags','+faststart','-metadata','title='+SHOTS[id][0],str(tmp/'film.mp4')],stdin=subprocess.PIPE)
         try:
             for f in range(FRAMES):
-                sec=f/FPS; cross=ease((sec-1.57)/.53)
-                if cross<1:
-                    x=17*ease(sec/2.1);y=6*ease(sec/2.1)
-                    frame=plate.crop((x,y,x+960,y+540))
-                if cross>0:
-                    close=table.copy()
-                    progress=max(0,min(1,(sec-1.75)/5.48))
-                    scene(id,ImageDraw.Draw(close),close,progress)
-                    close=finish(close,table,light,grain,id,progress)
-                    if cross==1: frame=close
-                    else: frame=Image.blend(frame,close,cross)
+                sec=f/FPS
+                progress=min(1,max(0,(sec-1.75)/5.48))
+                frame=table.copy()
+                scene(id,ImageDraw.Draw(frame),frame,progress)
+                frame=finish(frame,table,light,grain,id,progress,sec)
+                if f==91:
+                    frame.resize((720,405),RESAMPLE).save(tmp/'poster.webp','WEBP',quality=86,method=6)
                 encoder.stdin.write(frame.tobytes())
         finally:
             encoder.stdin.close()
         if encoder.wait()!=0: raise RuntimeError('Encoding failed for '+id)
         shutil.move(str(tmp/'film.mp4'),str(DEST/(id+'.mp4')))
+        shutil.move(str(tmp/'poster.webp'),str(DEST/(id+'.webp')))
     _,a,b,_,_=SHOTS[id]
     (DEST/(id+'.vtt')).write_text(f'WEBVTT\n\n00:00:00.150 --> 00:00:03.100\n{a}\n\n00:00:03.250 --> 00:00:07.350\n{b}\n',encoding='utf-8')
     return id

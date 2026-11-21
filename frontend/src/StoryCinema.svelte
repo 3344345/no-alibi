@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AuditoriumView from './AuditoriumView.svelte'
   import { onDestroy } from 'svelte'
   import catalog from './screenings.json'
 
@@ -43,7 +44,8 @@
   </nav>
   <div class="layout">
     <div class="screen">
-      {#key current.id}
+      <AuditoriumView>
+{#key current.id}
         <video controls playsinline preload="metadata" bind:this={player} {muted}
           src={'/motion/' + current.id + '.mp4'} poster={current.poster || undefined} aria-label={current.title}
           on:volumechange={muteChanged} on:loadedmetadata={setCaptions} on:error={() => (failed = true)}>
@@ -51,6 +53,7 @@
             src={'/motion/' + current.id + '.vtt'} default on:load={setCaptions} />
         </video>
       {/key}
+      </AuditoriumView>
       {#if failed}
         <p role="status">这段本地影片暂时无法播放。<button type="button" on:click={retry}>重新载入</button></p>
       {/if}

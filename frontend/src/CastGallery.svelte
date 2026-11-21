@@ -26,7 +26,7 @@
   {#if selected}
     <div class="catalog">
       <article aria-label={selected.name + '的肖像资料'}>
-        <figure><img src={'/cast/' + selected.credit.file + '.webp'} alt={selected.name + ' · ' + selected.group} /></figure>
+        <figure aria-label="我手里的相册"><img src={'/cast/' + selected.credit.file + '.webp'} alt={selected.name + ' · ' + selected.group} /></figure>
         <div class="credit">
           <small>{selected.group}</small><h3>{selected.name}</h3>
           {#if selected.group === '历史照片'}
@@ -70,8 +70,8 @@
   .groups button[aria-pressed='true'] {color:#fff6df;background:#294236;border-color:#294236;}
   .catalog {display:grid;grid-template-columns:minmax(0,1.85fr) minmax(200px,1fr);gap:clamp(12px,2.7vw,35px);}
   article {min-width:0;}
-  figure {margin:0;background:#202723;display:grid;place-content:center;height:clamp(170px,32dvh,315px);overflow:hidden;}
-  figure img {display:block;width:100%;height:100%;min-height:0;object-fit:contain;}
+  figure {position:relative;margin:0;background:#564335 url('/viewer/album.webp') center / 100% 100% no-repeat;display:flex;align-items:center;justify-content:center;height:clamp(175px,38dvh,370px);overflow:hidden;}
+  figure img {display:block;width:auto;height:auto;max-width:58%;max-height:75%;object-fit:contain;box-sizing:content-box;border:3px solid #e5ddc7;box-shadow:1px 2px 4px #46361f75;transform:rotate(-.5deg);}
   .credit {padding-top:12px;}
   .credit small {font-size:.8rem;color:#635e50;}
   h3 {margin:0;font:600 clamp(1.7rem,3.5vw,2.5rem)/1.3 var(--serif);}

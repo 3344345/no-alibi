@@ -17,215 +17,265 @@ from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
-ART = ROOT / "frontend/public/chronicle"
+PUBLIC = ROOT / "frontend/public"
 OUT = ROOT / "frontend/public/motion"
 W, H, FPS, SECONDS = 960, 540, 24, 7
-# Each sequence goes from its chapter's painted setting to the object which
-# becomes the first playable dilemma. Cues below are descriptions, never quotes.
-# slug, alternate painting, illumination, first beat, second beat, foley
+# Each camera stays with the playable observer. Coordinates guide a hand
+# attached to that observer from the cuff outside the frame to the prop.
+# Slug, set, surface, first/second caption, foley, arm pose, fingertip path.
 SHOTS = [
     (
         "tan_sitong",
-        None,
+        "inn",
         "paper",
-        "会馆窗下，旧封皮压着半页手稿。",
-        "折痕摊开。纸角盖住了信封上收信人的位置。",
+        "我把长沙来的旧封皮压在掌边，窗外的脚步停了。",
+        "手指把折痕抚开，纸角慢慢盖住收信处。",
         "fold",
+        "pinch",
+        (466, 347, 554, 329),
     ),
     (
         "zhan_tianyou",
-        None,
+        "rail",
         "iron",
-        "青龙桥外，铁轨朝两个方向分开。",
-        "扳杆越过中点。指示牌转向另一股道。",
+        "我站在南口的扳道器旁，脚前两股铁轨分开了。",
+        "手下扳杆越过中点，另一股道的指示牌转了过来。",
         "switch",
+        "pinch",
+        (374, 264, 540, 229),
     ),
     (
         "sun_yatsen",
-        None,
+        "court",
         "paper",
-        "桌上还空着一格，铜印悬在纸面上。",
-        "印落下去。抬起来时，纸上留下方方正正的一圈红。",
+        "我低下头，铜印底下留着纸上一格空白。",
+        "印在我手里一沉一抬。纸面留下了一圈红。",
         "seal",
+        "pinch",
+        (570, 219, 570, 204),
     ),
     (
         "chen_duxiu",
-        None,
+        "inn",
         "paper",
-        "游艺场的灯还亮着，一卷传单摆上桌。",
-        "纸卷往前走了半圈。一支铅笔挡在信封前。",
+        "我面前摆着从身上取下来的传单。那封信就在旁边。",
+        "纸卷滚出半圈。桌上的铅笔挡在信前，我的手停了。",
         "roll",
+        "rest",
+        (357, 360, 483, 351),
     ),
     (
         "gu_zhenghong",
-        None,
+        "yard",
         "iron",
-        "夜班的人到了，纱锭还在转。",
-        "皮带松了。最后一根棉线落下来。",
+        "我在厂门边听了一会儿，眼前的纱锭还在转。",
+        "皮带声慢下来。一根松开的棉线落在我伸出的手边。",
         "spool",
+        "offer",
+        (397, 413, 416, 396),
     ),
     (
         "shen_junru",
-        None,
+        "court",
         "wood",
-        "探视的一排座位，有一处空隙。",
-        "帽子从膝头放上空椅。椅脚在地上响了一声。",
+        "我从探视座位望过去，这排椅子留着一个空。",
+        "帽子落在我眼前的空椅上。木腿在地上响了一下。",
         "chair",
+        "rest",
+        (627, 257, 607, 301),
     ),
     (
         "zhang_xueliang",
-        "still_xian",
+        "inn",
         "wood",
-        "西安的门边，提箱上扣着一根皮带。",
-        "铜扣松开，箱盖起了一线。箱子仍在门边。",
+        "我走到门边，提箱压在皮带下，铜扣正朝着我。",
+        "拇指扳松铜扣。箱盖抬起一线，我还没提起它。",
         "latch",
+        "pinch",
+        (497, 297, 471, 312),
     ),
     (
         "minnie_vautrin",
-        None,
+        "yard",
         "cloth",
-        "教室地板上的席子，隔着一道窄缝。",
-        "一床铺盖向旁边摊开。两床之间刚好挤下一个枕头。",
+        "我蹲在教室铺位旁，面前两张席子还隔着缝。",
+        "我顺着席边把铺盖摊过去，中间容下了一个枕头。",
         "cloth",
+        "take",
+        (443, 384, 536, 382),
     ),
     (
         "chongqing_talks",
-        None,
+        "inn",
         "wood",
-        "桂园桌旁，三把椅子朝着三个方向。",
-        "空椅往里挪了半尺。三只茶盏终于能围成一圈。",
+        "我站在桂园桌旁。这把空椅离茶盏还差半尺。",
+        "手推住椅背往里挪，三只茶盏终于围到了一处。",
         "cup",
+        "rest",
+        (573, 357, 530, 355),
     ),
     (
         "shanghai_prices",
-        None,
+        "house",
         "wood",
-        "米店门边，价牌还在轻轻晃。",
-        "小牌绕轴翻面，背面剩着两个粉笔字。",
+        "我从米店队尾往前望。吊牌在眼前晃了两下。",
+        "牌子从我眼前翻过来。背面两个粉笔字，卖光。",
         "board",
+        "rest",
+        (658, 380, 654, 367),
     ),
     (
         "liu_qingshan",
-        "river_grain",
+        "house",
         "wood",
-        "伙房的碗沿还冒着热气。",
-        "碗往边上挪。一叠藏着的钱露出了一角。",
+        "我低头去看留给我的碗。碗边还冒着热气。",
+        "我把碗轻轻挪开。原来底下压着一叠钱。",
         "bowl",
+        "rest",
+        (527, 353, 447, 357),
     ),
     (
         "lushan_peng",
-        None,
+        "inn",
         "wood",
-        "木升歪向桌边，里面看起来还盛着粮。",
-        "谷粒落进掌宽的小圈里。末了，掉出几片空壳。",
+        "送来的木升搁在眼前。我伸手接着，等里面的东西倒下来。",
+        "落下的谷粒很轻。到最后，我手边还混进几片空壳。",
         "grain",
+        "offer",
+        (552, 438, 557, 429),
     ),
     (
         "lin_zhao",
-        None,
+        "house",
         "paper",
-        "窗边的信封张着口，两页稿子叠在一起。",
-        "一页慢慢滑进去，另一页仍留在桌上。",
+        "我把两页稿子放到窗边，只有一只信封够厚。",
+        "一页从我手下滑进信封。我把另一页留在桌上。",
         "slip",
+        "pinch",
+        (582, 268, 585, 345),
     ),
     (
         "bian",
-        None,
+        "house",
         "cloth",
-        "一副折好的眼镜，搁在手帕的折角。",
-        "一侧镜腿弹开，镜片上晃过窗框的一线白光。",
+        "我把手帕接过来。折角里躺着一副合拢的眼镜。",
+        "我扶住镜框，一侧镜腿弹开，窗光从镜片上滑过。",
         "glasses",
+        "pinch",
+        (626, 353, 617, 290),
     ),
     (
         "entrance_exam",
-        None,
+        "office",
         "iron",
-        "修理台上，收音机的刻度只亮了一半。",
-        "指针跨过两格。沙沙声里冒出一小段干净的音。",
+        "我俯过身，桌上的收音机只亮了半边刻度。",
+        "我的指尖轻旋到下一格，沙沙声里露出短短一段清音。",
         "radio",
+        "pinch",
+        (692, 375, 686, 375),
     ),
     (
         "hu_fuming",
-        None,
+        "press",
         "iron",
-        "排字架上还差一枚铅字。",
-        "小铅块落进空位，挤紧的一行字碰在一起。",
+        "我低头看排字架。眼前一行铅字当中，还缺了一个位置。",
+        "铅块在我手边落进空位。字面朝上，看见的字都是反的。",
         "type",
+        "pinch",
+        (551, 216, 551, 282),
     ),
     (
         "xiaogang",
-        "household_field",
+        "house",
         "paper",
-        "灯下摊开的纸，留着几处墨迹。",
-        "又一枚红手印压进纸纤维。灯焰在指纹旁晃了晃。",
+        "我把纸铺平。灯下已有几处手印，旁边还留着位置。",
+        "一枚新手印压进纸里。我的手离开时，还能看见指纹。",
         "print",
+        "rest",
+        (690, 330, 624, 359),
     ),
     (
         "yuan_geng",
-        None,
+        "depot",
         "iron",
-        "最后一车进了地秤，秤杆翘起来。",
-        "秤砣挪过两道刻线。杆头终于平了。",
+        "我站到地秤跟前。最后一车过来时，秤杆向上翘。",
+        "秤砣从我眼前移过两格。杆头终于找平了。",
         "scale",
+        "pinch",
+        (568, 305, 626, 302),
     ),
     (
         "deng_xiaoping",
-        None,
+        "office",
         "iron",
-        "便笺边放着长途电话的计时器。",
-        "秒针又走过一格。听筒那头的人还在等。",
+        "我把长途便笺放在计时器旁，听筒里还有人说话。",
+        "秒针在我眼前挪过一格。那头的人还没有挂断。",
         "timer",
+        "rest",
+        (380, 420, 405, 411),
     ),
     (
         "southern_tour",
-        None,
+        "office",
         "iron",
-        "国贸大厦的楼层窗停在十二。",
-        "数字向上翻。电梯门将要开时，报社的稿纸还留着空行。",
+        "我抬眼看国贸的楼层窗。刚才停在十二，现在又动了。",
+        "数字从我眼前向上翻。门快开了，稿纸上还有几行空白。",
         "lift",
+        "rest",
+        (534, 412, 533, 395),
     ),
     (
         "shang_aiyun",
-        None,
+        "house",
         "cloth",
-        "门槛里摆着一双鞋。",
-        "门外有脚步，影子经过。门槛里那双鞋没有动。",
+        "我坐在门槛里。晚饭没动，那双鞋还在我眼前。",
+        "门外走过一个人。影子掠过鞋尖，我等的那双脚没有回来。",
         "shoes",
+        "rest",
+        (349, 440, 371, 440),
     ),
     (
         "gao",
-        "still_ridge",
+        "field",
         "earth",
-        "田埂上，管口对着一小块干土。",
-        "一滴水掉下来。湿痕很快收在土缝里。",
+        "我蹲在田埂上，把手伸向干土，等管口的水。",
+        "一滴水落在手边。眨了下眼，湿痕就收进土缝里。",
         "drop",
+        "offer",
+        (617, 438, 577, 427),
     ),
     (
         "deng",
-        None,
+        "yard",
         "earth",
-        "操场边，丈量的卷尺才铺开。",
-        "卷尺伸到白线，围绳还横在跑道上。",
+        "我沿着围绳蹲下，把卷尺的头送向跑道白线。",
+        "尺带从我手边一直展到线边。围绳还在，孩子们在外面等。",
         "measure",
+        "pinch",
+        (373, 366, 630, 371),
     ),
     (
         "xu_zhiyong",
-        None,
+        "office",
         "paper",
-        "摊开的纸旁，有三支笔。",
-        "第三支笔靠到纸边，与前两支排在一起。",
+        "我在纸边数了数。已经有两支笔，还有一个空位。",
+        "我把第三支笔放到这页纸旁。三支笔终于排在一起。",
         "pens",
+        "write",
+        (667, 360, 550, 373),
     ),
     (
         "jiang_yanyong",
-        None,
+        "clinic",
         "iron",
-        "旧科室的电话，拨号盘刚被转过。",
-        "拨号盘一格一格退回，第一声回铃才响起。",
+        "我低头看旧科室的电话，等刚拨过的号码回位。",
+        "指尖一放，拨号盘一格格退回。第一声回铃传到我耳边。",
         "dial",
+        "pinch",
+        (588, 369, 551, 380),
     ),
 ]
 INK = (44, 43, 33)
@@ -969,15 +1019,68 @@ def make_foley(kind, seed, path):
         w.writeframes(samples.tobytes())
 
 
+def observer_arm(gesture, fingertip):
+    """Rotate the whole photographed arm from offscreen cuff to contact point."""
+    arm = Image.open(PUBLIC / "wardrobe" / ("arm-" + gesture + ".webp")).convert("RGBA")
+    right = fingertip[0] >= W / 2
+    # The pinching fingers, open palms and upright pencil grip terminate at
+    # different heights in the shared wardrobe plate.
+    tips = {
+        "pinch": (0.945, 0.68),
+        "write": (0.911, 0.66),
+        "offer": (0.967, 0.55),
+        "rest": (0.965, 0.50),
+        "take": (0.938, 0.59),
+    }
+    tx, ty = tips[gesture]
+    w, h = arm.size
+    sx, sy = tx * w, ty * h
+    # Following a physical elbow-to-finger vector avoids a floating cutout
+    # when the hand shifts toward a document or a tool.
+    cuff_x, cuff_y = 0, 0.5 * h
+    target_x, target_y = fingertip[:2]
+    margin = abs(fingertip[2] - target_x) + 65
+    target_cuff_x = W + margin if right else -margin
+    target_cuff_y = H + 59
+    if right:
+        arm = ImageOps.mirror(arm)
+        cuff_x = w
+        sx = w - sx
+    src = complex(sx - cuff_x, sy - cuff_y)
+    dst = complex(target_x - target_cuff_x, target_y - target_cuff_y)
+    rotation = dst / src
+    origin = complex(target_cuff_x, target_cuff_y) - rotation * complex(cuff_x, cuff_y)
+    pts = [
+        rotation * complex(x, y) + origin for x, y in ((0, 0), (w, 0), (w, h), (0, h))
+    ]
+    left = math.floor(min(z.real for z in pts))
+    top = math.floor(min(z.imag for z in pts))
+    size = (
+        math.ceil(max(z.real for z in pts)) - left,
+        math.ceil(max(z.imag for z in pts)) - top,
+    )
+    inv = 1 / rotation
+    offset = (complex(left, top) - origin) * inv
+    affine = (inv.real, -inv.imag, offset.real, inv.imag, inv.real, offset.imag)
+    arm = arm.transform(size, Image.Transform.AFFINE, affine, Image.Resampling.BICUBIC)
+    return arm, (left, top)
+
+
 def build(spec):
-    slug, art, material, first, last, kind = spec
+    slug, room, material, first, last, kind, gesture, fingertip = spec
     seed = zlib.crc32(slug.encode())
     rng = np.random.default_rng(seed)
     name = "witness_" + slug
     OUT.mkdir(exist_ok=True, parents=True)
-    original = ImageOps.fit(
-        Image.open(ART / ((art or name) + ".webp")).convert("RGB"), (W, H)
+    gaze_travel = 197
+    # A single physical viewpoint from eye level to the tabletop. Keep the room
+    # and the prop on one unbroken vertical panorama as the player looks down.
+    panorama = ImageOps.fit(
+        Image.open(PUBLIC / "sets" / (room + ".webp")).convert("RGB"),
+        (W, H + gaze_travel),
+        centering=(0.32 + (seed % 31) / 100, 0.52),
     )
+    arm, arm_origin = observer_arm(gesture, fingertip)
     yy, xx = np.mgrid[:H, :W]
     grain = rng.normal(0, 1.8, (H, W))
     salts = {
@@ -1001,7 +1104,7 @@ def build(spec):
     table = np.uint8(
         (illum[:, :, None] * np.array(salts[material]) + grain[:, :, None]).clip(0, 255)
     )
-    rear = original.filter(ImageFilter.GaussianBlur(6))
+    rear = panorama.crop((0, gaze_travel, W, H + gaze_travel))
     m = np.uint8(np.clip((yy - (195 + 0.044 * (xx - 480))) / 33, 0, 1) * 255)
     plate = Image.composite(Image.fromarray(table), rear, Image.fromarray(m))
     # A single grain plate gives all inserted foreground surfaces the same stock.
@@ -1056,42 +1159,30 @@ def build(spec):
         )
         for i in range(FPS * SECONDS):
             t = i / FPS
-            transition = smooth((t - 1.65) / 0.48)
-            if transition < 1:
-                q = 0.038 * smooth(t / 2.15)
-                opening = original.resize(
-                    (W, H),
-                    Image.Resampling.BICUBIC,
-                    box=(
-                        W * q * 0.47,
-                        H * q * 0.43,
-                        W * (1 - q * 0.53),
-                        H * (1 - q * 0.57),
-                    ),
+            look = smooth((t - 0.35) / 2.18)
+            move = smooth((t - 2.1) / 3.67)
+            framed = plate.copy()
+            action(ImageDraw.Draw(framed), kind, move, max(0, t - 1.9))
+            contact = smooth((t - 1.17) / 1.46)
+            reach = (1 - contact) * 35 + smooth((t - 5.92) / 1.1) * 13
+            x0, y0, x1, y1 = fingertip
+            side = 1 if x0 >= W / 2 else -1
+            xpos = arm_origin[0] + (x1 - x0) * move + side * reach
+            ypos = arm_origin[1] + (y1 - y0) * move + reach * 0.77
+            # The player meets the seal at its handle, follows its weight
+            # all the way down, then lifts it, showing the red mark underneath.
+            if kind == "seal":
+                ypos += (
+                    92 * smooth(move / 0.46)
+                    - 115 * smooth((move - 0.53) / 0.38)
+                    + 15 * move
                 )
-            if transition > 0:
-                framed = plate.copy()
-                d = ImageDraw.Draw(framed)
-                action(d, kind, smooth((t - 2.1) / 3.67), max(0, t - 1.9))
-                framed = Image.blend(framed, tex, 0.075)
-                q = 0.025 * smooth((t - 2.2) / 4.8)
-                framed = framed.resize(
-                    (W, H),
-                    Image.Resampling.BILINEAR,
-                    box=(
-                        W * q * 0.49,
-                        H * q * 0.60,
-                        W * (1 - q * 0.51),
-                        H * (1 - q * 0.40),
-                    ),
-                )
-            image = (
-                framed
-                if transition == 1
-                else opening
-                if transition == 0
-                else Image.blend(opening, framed, transition)
-            )
+            framed.paste(arm, (round(xpos), round(ypos)), arm)
+            framed = Image.blend(framed, tex, 0.045)
+            view = panorama.copy()
+            view.paste(framed, (0, gaze_travel))
+            y = round(gaze_travel * look)
+            image = view.crop((0, y, W, y + H))
             proc.stdin.write(image.tobytes())
         proc.stdin.close()
         if proc.wait():

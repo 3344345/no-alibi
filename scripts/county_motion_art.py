@@ -77,7 +77,7 @@ class Pen:
         self.d.text(self.xy((x,y)),value,font=font(size),fill=color,anchor="lt")
 
 
-BACKGROUND = {"L01":"office", "L02":"canal", "L07":"home", "bus":"county-nightbus", "cinema":"county-reel"}
+BACKGROUND = {"L01":"office", "L02":"canal", "L07":"home", "L09":"home", "bus":"county-nightbus", "cinema":"county-reel"}
 TABLE = {"L01":(86,64,42), "L03":(72,68,53), "L04":(84,56,43), "L05":(61,65,64),
          "L07":(109,77,48), "L08":(78,59,39), "L09":(95,58,49)}
 HORIZON = {"L01":276,"L03":253,"L04":303,"L05":311,"L07":286,"L08":309,"L09":276}
@@ -91,6 +91,14 @@ def plate(scene):
         raw=Image.open(PUBLIC/"county-locations.jpg").convert("RGB")
         i=int(scene[1:])-1; x=i%3; y=i//3
         raw=raw.crop((round(raw.width*x/3),round(raw.height*y/3),round(raw.width*(x+1)/3),round(raw.height*(y+1)/3)))
+    if scene=="L09":
+        # Sit on the open side of the family table. The earlier gathering is
+        # visible inside the print, never as a head placed in front of our eyes.
+        raw=raw.crop((round(raw.width*.42),0,raw.width,round(raw.height*.89)))
+    if scene=="L06":
+        # The wide establishing plate includes a golfer seen from behind. The
+        # playable viewpoint looks down the lane from the grip instead.
+        raw=raw.crop((round(raw.width*.31),round(raw.height*.20),round(raw.width*.61),round(raw.height*.72)))
     frame=ImageOps.fit(raw,SIZE,centering=(.49,.44)).filter(ImageFilter.GaussianBlur(1.3*SCALE))
     if scene in TABLE:
         frame=Image.blend(frame,Image.new("RGB",SIZE,(41,36,31)),.12)
@@ -124,23 +132,88 @@ def patina():
     return Image.fromarray(np.clip(201+48*lighting+noise,0,255).astype("uint8"))
 
 
-def hand(im,x,y,angle=0,s=1,coat=(62,69,68),skin=(163,120,85)):
-    # Fingertips at (0,0), cuff extending right along the wrist.
-    p=Pen(im,x,y,angle,s)
-    palm=[(-6,3),(0,-5),(22,-12),(44,-23),(81,-31),(139,-34),(159,-15),(140,11),(93,25),(44,32),(24,27),(27,21),(52,10),(18,18),(5,14),(8,8)]
-    p.poly(palm,skin); p.line(palm[:7],shade(skin,1.26),2)
-    for pts in [[(14,8),(57,-9),(81,-12)],[(30,18),(66,6),(93,2)],[(55,24),(91,11),(108,7)],[(91,-19),(105,-14),(117,-15)]]:
-        p.line(pts,shade(skin,.72),1.3)
-    p.poly([(-4,4),(0,0),(9,-1),(6,3)],shade(skin,1.24))
-    p.poly([(123,-38),(150,-47),(178,10),(143,22)],(180,167,138))
-    p.poly([(139,-44),(370,-106),(1450,-278),(1460,-25),(387,2),(164,27)],coat)
-    p.poly([(164,22),(381,-6),(1385,-51),(1460,-25),(387,2),(164,27)],shade(coat,.76))
-    p.line([(151,-34),(329,-83),(553,-126)],shade(coat,1.12),2)
-    p.line([(142,-43),(164,14)],shade(coat,1.25),1)
-    p.line([(183,-42),(202,-35),(238,-35)],shade(coat,1.12),1)
-    p.line([(141,-44),(223,-68),(345,-100)],shade(coat,1.39),3)
-    p.line([(161,23),(202,8),(237,10)],shade(coat,.72),3)
-    p.line([(159,-42),(188,-30),(190,-16),(215,-12)],shade(coat,1.24),2)
+# Contact point, cuff direction, source-to-stage ratio. Each pose is calibrated
+# to the left/right fingers in the supplied player-facing wardrobe atlas.
+CONTACT = {
+    ('offer','right'): ((8,198),(194,345),.53), ('offer','left'): ((248,251),(86,420),.52),
+    ('write','right'): ((57,237),(206,385),.54), ('write','left'): ((194,204),(85,416),.55),
+    ('rest','right'): ((54,244),(183,427),.53), ('rest','left'): ((208,295),(90,430),.61),
+    ('halt','right'): ((95,66),(172,360),.49), ('halt','left'): ((241,309),(97,435),.54),
+}
+
+
+@lru_cache(maxsize=20)
+def wrist(pose, side):
+    """Place a master sprite in a fingertip-aligned coordinate system.
+
+    The atlas cuts the forearm off at its source edge. Continue an actual cloth
+    cross section behind the cuff so it reaches the edge of the camera frame
+    for every hand trajectory. No substitute illustration is used for the skin.
+    """
+    source=Image.open(PUBLIC/'wardrobe'/f'pov-{pose}-{side}.webp').convert('RGBA')
+    (ax,ay),(wx,wy),ratio=CONTACT[pose,side]
+    theta=math.atan2(wy-ay,wx-ax); co,si=math.cos(theta),math.sin(theta)
+    ss=1.4; px=round(49*ss);py=round(104*ss)
+    sx,sy=round(262*ss),round(218*ss)
+    # The canonical x axis points from the contact point back through the wrist.
+    transform=(co/(ratio*ss),-si/(ratio*ss),ax+(-px*co+py*si)/(ratio*ss),
+               si/(ratio*ss),co/(ratio*ss),ay+(-px*si-py*co)/(ratio*ss))
+    cropped=source.transform((sx,sy),Image.Transform.AFFINE,transform,Image.Resampling.BICUBIC)
+    photo=np.array(cropped)
+    r,g,b=[photo[:,:,i].astype(float) for i in range(3)]
+    textile=(photo[:,:,3]>233)&(r < b*1.13)&(r<158)
+    start,end=round(px+93*ss),min(sx-2, round(px+198*ss))
+    counts=textile[:,start:end].sum(axis=0)
+    # End through the broadest continuous fabric, after the cuff seam.
+    cut=int(start+np.argmax(counts))
+    covered=np.flatnonzero(textile[:,cut])
+    if len(covered)<15:
+        raise RuntimeError(f'cannot extend sleeve: {pose} {side}')
+    low,high=int(covered[0]),int(covered[-1])
+    out=np.zeros((sy,round(1060*ss),4),dtype='uint8')
+    out[:,:cut]=photo[:,:cut]
+    # Continue the fabric using the sleeve's measured colour, directional
+    # weave and just two oblique folds. Repeating a single cuff seam would
+    # produce a conspicuous row of identical ridges on the forearm.
+    cloth_rgb=np.median(photo[:,:,:3][textile],axis=0)
+    rng=np.random.default_rng(400+ord(pose[0])+ord(side[0]))
+    coarse=Image.fromarray(rng.integers(45,205,(27,124),dtype='uint8')).resize((out.shape[1],sy),Image.Resampling.BICUBIC)
+    weave=(np.asarray(coarse,dtype=float)-128)*.074+rng.normal(0,3.7,out.shape[:2])
+    for u in range(cut,out.shape[1]):
+        length=(u-cut)/ss
+        spread=1+min(.72,length*.00155)
+        drift=11*ss*(1-math.exp(-length/260))
+        center=(low+high)*.5+drift
+        top=max(0,math.floor(center-(high-low)*.5*spread))
+        bottom=min(sy-1,math.ceil(center+(high-low)*.5*spread))
+        yy=np.arange(top,bottom+1)
+        rows=np.rint(np.clip((yy-center)/spread+(high+low)*.5,low,high)).astype(int)
+        cross=2*(rows-low)/(high-low)-1
+        light=.91+.16*np.cos((cross+.26)*1.55)-.09*cross
+        fold=(1-.095*np.exp(-((length-26-cross*13)/4)**2)
+                -.12*np.exp(-((length-111+cross*25)/8)**2)
+                +.07*np.exp(-((length-102+cross*25)/11)**2))
+        offset=(weave[yy,u]+1.65*np.sin(yy*1.9+u*.7))[:,None]
+        cloth=cloth_rgb*(light*fold)[:,None]+offset
+        mix=smooth(length/25)
+        color=(1-mix)*photo[rows,cut,:3]+mix*cloth
+        out[yy,u,:3]=np.clip(color,0,255).astype('uint8')
+        out[yy,u,3]=np.minimum(1,np.minimum(yy-top+.15,bottom-yy+.15))*255
+    # Discard isolated opaque border noise from the original image crop.
+    cleaned=Image.fromarray(out,'RGBA')
+    a=cleaned.getchannel('A')
+    cleaned.putalpha(a.filter(ImageFilter.MedianFilter(3)))
+    return cleaned, px,py,ss
+
+
+def hand(im,x,y,angle=0,s=1,pose='rest'):
+    side='left' if math.cos(math.radians(angle))<0 else 'right'
+    sprite,px,py,ss=wrist(pose,side)
+    theta=math.radians(angle);co,si=math.cos(theta),math.sin(theta)
+    f=ss/(SCALE*s); ox=x*SCALE;oy=y*SCALE
+    mat=(co*f,si*f,px-f*(ox*co+oy*si),-si*f,co*f,py+f*(ox*si-oy*co))
+    layer=sprite.transform(im.size,Image.Transform.AFFINE,mat,Image.Resampling.BILINEAR)
+    im.paste(layer,(0,0),layer)
 
 
 def cup(p,x,y,k=1):
@@ -174,7 +247,7 @@ def office(im,t):
     st=Pen(im,xx,yy)
     st.oval(0,9,34,8,(122,50,35));st.rect(-34,-7,68,16,(119,54,38));st.oval(0,-7,34,8,(174,92,55))
     st.poly([(-18,-8),(-10,-24),(-12,-52),(12,-52),(10,-24),(18,-8)],(98,51,33));st.oval(0,-55,22,13,(128,71,42))
-    hand(im,xx-5,yy-50,-17,.93);cup(p,125,342,.84)
+    hand(im,xx-5,yy-50,35,.93,pose="offer");cup(p,125,342,.84)
 
 
 def construction(im,t):
@@ -198,7 +271,7 @@ def construction(im,t):
         if 0<elapsed<2.2:p.oval(510,y+8,9+elapsed*37,2+elapsed*6,(138,146,125));p.oval(510,y+8,7+elapsed*37,1+elapsed*6,(85,92,80))
     p.line([(496,191),(506,246),(510,y-15)],(193,183,142),2)
     p.oval(510,y,9,19,(157,77,48));p.oval(510,y-10,7,7,(216,195,153));p.line([(509,y+17),(509,y+23)],(67,62,51),2)
-    hand(im,485,189,-20,.72,(67,78,71));p.line([(949,87),(759,132)],(112,102,80),1)
+    hand(im,485,189,40,.82,pose="offer");p.line([(949,87),(759,132)],(112,102,80),1)
 
 
 def coordination(im,t):
@@ -214,7 +287,7 @@ def coordination(im,t):
     move=cue(t,1.1,1.8);settle=math.sin(math.pi*cue(t,2.74,.5))*3
     xx=270+175*move; yy=351-24*move-settle
     book(xx,yy,143,120,(108,71,58),"南渠工程")
-    if t>3.3:
+    if t>=3.48:
         length=cue(t,3.7,.58)
         nib_x,nib_y=714+23*length,371-14*length
         if length:
@@ -223,8 +296,10 @@ def coordination(im,t):
         nib_x+=away; nib_y-=away*.24
         p.line([(nib_x,nib_y),(nib_x+35,nib_y-65)],(61,65,56),5)
         p.line([(nib_x+30,nib_y-57),(nib_x+36,nib_y-67)],(175,160,121),3)
-        hand(im,nib_x+10,nib_y-23,-18,.62,(75,77,66))
-    hand(im,xx+140+220*cue(t,3.23,1.15),yy+44,-9,.77,(67,78,76))
+        hand(im,nib_x+10,nib_y-23,32,.73,pose="write")
+    if t<3.48:
+        reset=cue(t,2.85,.62)
+        hand(im,xx+140+190*reset,yy+44+178*reset,35,.82)
     cup(p,880,300,.68)
 
 
@@ -242,7 +317,7 @@ def dinner(im,t):
             px=x+math.sin(j*2.13)*24;py=y-11+math.cos(j*1.64)*5
             p.oval(px,py,9+j%3,5,(134+j%3*10,95+j%2*13,56))
     px=642+35*cue(t,1.3,1.5)+350*cue(t,3.65,1.1)
-    hand(im,px,461,-7,.83,(76,68,65))
+    hand(im,px,461,33,.83)
     p.line([(62,501),(183,445)],(87,68,46),5);p.line([(76,505),(196,448)],(161,123,77),4)
 
 
@@ -253,11 +328,14 @@ def reception(im,t):
     p.oval(545,399,68,22,(109,92,60));p.oval(545,385,57,40,(151,126,82));p.oval(530,368,25,10,(182,158,104));p.oval(518,367,10,4,(203,181,130))
     a=cue(t,1.57,.27)-cue(t,2.07,.34);bump=math.sin((t-1.84)*52)*math.exp(-max(0,t-1.84)*11) if t>1.84 else 0
     p.rect(540+bump,331+9*a,8,18,(141,130,101));p.oval(544+bump,333+9*a,17,6,BRASS)
-    retreat=285*(1-cue(t,.45,1.1)+cue(t,2.22,.94))
-    hand(im,544+retreat,327+9*a,-30,.83,(63,69,67))
+    retreat=465*(1-cue(t,.45,1.1)+cue(t,2.22,.94))
+    hand(im,544+retreat,327+9*a,37,.83,pose="offer")
     shift=131*cue(t,2.95,.95)
     q=Pen(im,98+shift,438,1);q.poly([(0,0),(89,-8),(109,11),(79,32),(4,31),(-11,20)],(94,101,85))
     q.oval(5,13,6,5,(151,146,113));q.oval(5,13,3,2,(60,63,53));q.text(22,7,"会 客",13,(211,196,153))
+    if t>3.80:
+        left=cue(t,3.8,.73)
+        hand(im,230-(1-left)*195,455+80*(1-left),143,.68)
 
 
 def golf(im,t):
@@ -271,13 +349,20 @@ def golf(im,t):
     lift=math.sin(t*2.0);flap=[(x-1,118),(x+22,122),(x+45,116+lift*4),(x+70,118+lift*6),(x+56,136+lift*3),(x+26,141),(x-1,142)]
     p.poly(flap,(150,72,46));p.line(flap[:4],(188,106,68),1.3)
     q=cue(t,1.61,2.63);roll=1-(1-q)**1.15
-    bx=224+(678-224)*roll;by=479-70*roll-24*math.sin(math.pi*roll)
+    bx=298+(678-298)*roll;by=442-33*roll-19*math.sin(math.pi*roll)
     p.oval(bx+3,by+2,10-3*roll,3,(75,83,55));p.oval(bx,by-3,8-2*roll,8-2*roll,(216,211,180))
     p.oval(bx-2,by-5,1.5,1.2,(238,229,195))
     swing=cue(t,.54,.69)-2.3*cue(t,1.29,.40)+1.8*cue(t,1.83,.9)
-    dx=50*swing-270*cue(t,2.55,1.2);head=Pen(im,199-dx,466,-5+swing*8)
-    head.line([(-76,-131),(-18,-8)],(106,104,87),5);head.line([(-74,-130),(-17,-8)],(192,185,152),1)
+    dx=50*swing-82*cue(t,2.55,1.2)
+    club_x=268-dx; club_y=431+4*swing
+    head=Pen(im,club_x,club_y,-5+swing*7)
+    # We see the knuckles and shaft from above, then follow our ball.
+    head.line([(-176,92),(-18,-5)],(94,98,83),6)
+    head.line([(-174,90),(-18,-6)],(197,192,158),2)
+    head.line([(-176,92),(-96,46)],(46,53,46),11)
     head.poly([(-29,-7),(11,-13),(27,-9),(26,-2),(-13,3),(-29,0)],(71,73,61))
+    grip=head.xy((-101,47))
+    hand(im,grip[0]/SCALE,grip[1]/SCALE,137+swing*4,.79)
 
 
 def home(im,t):
@@ -293,7 +378,7 @@ def home(im,t):
     if mark>0:p.line(path,(150,68,51),2)
     xx,yy=path[-1];d=200*(1-cue(t,.75,1.36)+cue(t,3.87,1.13));xx+=d;yy-=d*.17
     p.line([(xx,yy),(xx+35,yy-82)],(60,66,59),5);p.line([(xx+29,yy-68),(xx+36,yy-80)],(179,162,116),3)
-    hand(im,xx+9,yy-24,-14,.68,(110,107,82),skin=(174,130,93));cup(p,802,374,.95)
+    hand(im,xx+9,yy-24,43,.73,pose="write");cup(p,802,374,.95)
     for k in range(3):
         pts=[(800+k*7+5*math.sin(i*.8+t+k),322-i*4) for i in range(8)]
         p.line(pts,(155,146,115),1)
@@ -310,7 +395,7 @@ def old_house(im,t):
     p.text(xx+22,yy+68,"你回来的时候，到家里来坐坐。",11,(104,88,66))
     p.line([(xx+3,yy+89),(xx+238,yy+82)],(179,157,122),1)
     p.text(xx+121,yy+97,"九月初六",13,(91,78,58))
-    slide=cue(t,3.6,1.42);hand(im,xx+240-slide*64,yy+54+slide*29,-7,.77,(91,87,70),(156,120,84))
+    slide=cue(t,3.6,1.42);hand(im,xx+240-slide*64,yy+54+slide*29,38,.77)
     for j in range(4):
         p.line([(281,461+j),(308,483+j),(396,473+j)],(149,129,94))
 
@@ -336,8 +421,8 @@ def gathering(im,t):
     im.paste(print_image,(center[0]-print_image.width//2,center[1]-print_image.height//2),print_image)
     q.line([(-2,-36),(79,-37),(128,-34)],(210,200,163),1)
     q.text(44,76,"上回聚餐",10,(104,91,67))
-    hand(im,xx-7-220*cue(t,4.1,1.1),yy+27,168,.73,(87,80,65))
-    approach=205*(1-cue(t,2.45,1.32));hand(im,xx+215+approach,yy+19,-5,.76,(66,77,82),(170,126,92))
+    hand(im,xx-7-220*cue(t,4.1,1.1),yy+27,141,.75,pose="offer")
+    approach=205*(1-cue(t,2.45,1.32));hand(im,xx+215+approach,yy+19,-5,.76,pose="offer")
 
 
 def bus(im,t):
@@ -354,12 +439,15 @@ def bus(im,t):
     q.text(17,15,"县 城 客 运",16,(124,66,47));q.text(20,46,"夜班",13,INK);q.text(82,43,"19 : 40",20,INK)
     q.line([(12,37),(209,37)],(151,112,77))
     for j in range(14):q.rect(153+j*3.2,60,1+j%2,18,(92,79,56))
+    # Our ticket stays between our thumb and forefinger; the conductor reaches
+    # from the opposite side of this same window with a punch.
+    hand(im,xx+8,yy+71,139,.82)
     tilt=cue(t,2.77,.27)-cue(t,3.31,.40)
     # Cast-iron conductor's punch closes on the top-right corner of the ticket.
     x=xx+176; y=yy-4
     jaw=Pen(im,x,y,-6);jaw.poly([(0,0),(22,-14),(105,-23),(113,-13),(29,-3),(14,9)],(124,127,106))
     jaw.poly([(3,-24+14*tilt),(21,-30+14*tilt),(106,-44+20*tilt),(113,-33+16*tilt),(25,-20+11*tilt),(12,-13+12*tilt)],(150,151,126))
-    jaw.oval(25,-12,4,4,(207,194,149));hand(im,x+80,y-22,-10,.74,(77,81,71))
+    jaw.oval(25,-12,4,4,(207,194,149));hand(im,x+80,y-22,-10,.74,pose="write")
     if t>=3.04:q.oval(181,7,4,5,(75,75,60))
     for i in range(18):
         x=(15+i*61-t*3)%960;y=(i*37+t*(6+i%3))%258
@@ -390,6 +478,12 @@ def cinema(im,t):
     for off in range(16):
         yy=(t*39+off*10)%110;p.oval(601+yy*.20,163+yy,1.1,1.5,(194,175,132))
     p.oval(692,419,18,18,(92,91,73));p.oval(692,419,10,10,(48,50,43))
+    # Our palm is at the near edge of the projector. The change on the distant
+    # screen follows the notch we tip; the spectator stays in the booth.
+    notch=cue(t,3.4,.40)-cue(t,4.12,.35)
+    p.line([(692,419),(684+17*notch,387)],(157,146,109),5)
+    p.oval(684+17*notch,386,8,8,(109,111,91))
+    hand(im,684+17*notch+104*(1-cue(t,1.63,1.52)),387+40*(1-cue(t,1.63,1.52)),39,.84,pose="offer")
     if 3.77<t<3.85:p.rect(61,111,340,191,(196,184,146))
 
 
@@ -397,8 +491,8 @@ ART = {"L01":office,"L02":construction,"L03":coordination,"L04":dinner,"L05":rec
        "L06":golf,"L07":home,"L08":old_house,"L09":gathering,"bus":bus,"cinema":cinema}
 
 
-# Cut on a gesture to the relevant detail, holding long enough to read the mark
-# or the change in position. End points are in the source stage coordinates.
+# Endpoint of a first-person lean: the near hand stays on the same side of the
+# room. At the cinema the silver screen can fill our view inside the booth.
 # (cut time, settle time, x, y, width)
 CLOSEUPS = {
     "L01": (2.59, 4.4, 227, 213, 610), "L02": (2.93, 5.3, 310, 207, 515),
@@ -421,12 +515,16 @@ def render(scene, frame, fps):
     im=Image.composite(im,under,fg)
     at=frame/fps
     cut,settle,x,y,width=CLOSEUPS[scene]
-    if cut<=at and (scene!="L05" or at<settle):
-        # Three-pixel camera settle; the underlying action runs continuously.
-        adjust=3*(1-cue(at,cut,settle-cut))
+    lean=cue(at,cut-.37,.85)
+    if scene=="L05": lean*=1-cue(at,settle,.91)
+    if lean>0:
         height=width*H/W
-        x=min(W-width,x+adjust); y=min(H-height,y)
-        box=tuple(round(a*SCALE) for a in (x,y,x+width,y+height))
+        x=min(W-width,x);y=min(H-height,y)
+        # Continuous movement from where the player stands. The interval before
+        # the hand reaches the prop gives the eye time to settle on its movement.
+        bx=x*lean;by=y*lean
+        bw=W+(width-W)*lean;bh=H+(height-H)*lean
+        box=tuple(round(a*SCALE) for a in (bx,by,bx+bw,by+bh))
         im=im.crop(box).resize(SIZE,Image.Resampling.BICUBIC)
     im=ImageChops.multiply(im,Image.merge("RGB",(patina(),)*3))
     return im.resize((W,H),Image.Resampling.LANCZOS)

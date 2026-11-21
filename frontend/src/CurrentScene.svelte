@@ -3,18 +3,10 @@
 
   export let place: Row
 
-  const panoramas: Record<string, string> = {
-    L01: '/scenes/office.webp',
-    L02: '/scenes/canal.webp',
-    L07: '/scenes/home.webp',
-  }
-  let failedImage = ''
-  $: id = place.id ?? ''
-  $: photo = panoramas[id]
-  $: cell = /^L0[1-9]$/.test(id) ? Number(id.slice(1)) - 1 : -1
-  // The nine locations share a 1536 × 1024 sheet. Slice a single 3:2 tile
-  // before fitting it to this strip so neighbouring locations never bleed in.
-  $: crop = `${(cell % 3) * 512} ${(Math.floor(cell / 3) * 1024) / 3} 512 ${1024 / 3}`
+  import ReadingView from './ReadingView.svelte'
+  import { countyCamera } from './readingView'
+
+  $: id=place.id ?? ''
 </script>
 
 {#if place.name}
@@ -23,18 +15,8 @@
       <strong>{place.name}</strong>
       {#if place.description}<p>{place.description}</p>{/if}
     </figcaption>
-    {#if cell >= 0}
-      <div class="image" aria-hidden="true">
-        {#if photo && failedImage !== photo}
-          {#key photo}
-            <img src={photo} alt="" decoding="async" on:error={() => (failedImage = photo)} />
-          {/key}
-        {:else}
-          <svg viewBox={crop} preserveAspectRatio="xMidYMid slice" focusable="false">
-            <image href="/county-locations.jpg" width="1536" height="1024" />
-          </svg>
-        {/if}
-      </div>
+    {#if /^L0[1-9]$/.test(id)}
+      <div class="image"><ReadingView camera={countyCamera(id)}/></div>
     {/if}
   </figure>
 {/if}
@@ -76,14 +58,6 @@
     min-width: 0;
     position: relative;
     background: var(--soft);
-  }
-
-  img, svg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
   }
 
   @media (max-width: 600px) {

@@ -91,7 +91,7 @@
   onMount(()=>{document.addEventListener('keydown',key,true);return()=>document.removeEventListener('keydown',key,true)})
   onDestroy(()=>{endSample();if(theatre)inTheatre.set(false);closeFilm()})
 </script>
-<section class="perform" class:theatre class:postcard={postcard&&!theatre} bind:this={element} aria-label="人物现场" role={theatre?'dialog':'region'} aria-modal={theatre?true:undefined} data-phase={turn.phase} data-gesture={turn.gesture} data-scene={active.id}>
+<section class="perform" class:theatre class:postcard={postcard&&!theatre} bind:this={element} aria-label="人物现场" role={theatre?'dialog':'region'} aria-modal={theatre?true:undefined} data-viewpoint="first-person" data-phase={turn.phase} data-gesture={turn.gesture} data-scene={active.id}>
   <header><span>{active.place}</span><strong>{active.title}</strong>
     {#if theatre}<button bind:this={exitButton} on:click={leave}>退出现场</button>{:else}<button bind:this={launch} on:click={immerse}>进入现场 <b aria-hidden="true">↗</b></button>{/if}
   </header>
@@ -100,7 +100,7 @@
     <div class="shade"></div>
     <LiveCast scene={active} {turn} {reduced} paused={movie}/>
     {#if !movie}
-      <div class="names" aria-label="在场人物"><span>{active.player.name}</span>{#if active.other}<span>{active.other.name}</span>{/if}</div>
+      <div class="names" aria-label="在场人物"><span class="own-name">你 · {active.player.name}</span>{#if active.other}<span class="other-name">{active.other.name}</span>{/if}</div>
       {#if turn.phase==='action'}
         <div class="bubble from-player" role="status" data-speaker="player"><small>{active.player.name}</small><span>{turn.label}</span></div>
       {:else if turn.phase==='reply'}
@@ -178,4 +178,10 @@
   .pages{display:flex;gap:.6rem;align-items:center}.pages button{min-width:44px}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#111}.media-notice{position:absolute;bottom:30%;left:50%;transform:translateX(-50%);background:#17211d;padding:.65rem}.film{height:clamp(230px,54vh,650px)}
   @media(max-width:620px){.frame{height:235px}.theatre .frame{max-height:51vh;flex:1 1 34vh}.theatre .decisions{max-height:42vh}.bubble{max-width:64%;font-size:.86rem}.names{inset-inline:4%}.from-player{left:3%}.from-other{right:3%}.postcard{bottom:.25rem;right:2%;width:96%}}
+
+  .names{inset:0;display:block}.own-name,.other-name{position:absolute;border-radius:2px;background:#1a201bd9;padding:.12rem .45rem;font:500 .8rem/1.45 var(--sans)}
+  .own-name{bottom:3%;left:2.4%}.other-name{left:54%;top:70%;transform:translateX(-50%)}
+  .bubble.from-player{top:auto;bottom:12%;left:4%;right:auto;max-width:min(57%,29em)}
+  .bubble.from-other{top:13%;left:61%;right:auto;max-width:35%}.from-other:after{left:-9px;right:auto;bottom:auto;top:52%;border:0;border-top:8px solid transparent;border-bottom:4px solid transparent;border-right:12px solid #f2ecdbf5;transform:none}
+  @media(max-width:620px){.bubble.from-other{top:4%;left:auto;right:2%;max-width:47%}.bubble.from-player{max-width:74%}.other-name{top:69%}}
 </style>

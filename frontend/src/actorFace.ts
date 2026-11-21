@@ -32,11 +32,29 @@ function vary(base:HTMLCanvasElement, points:FacePoints, kind:string){
   if(kind==='smile'||kind==='worry')change(mx,my,d*.53,d*.32,(nx,ny,a)=>[0,d*a*Math.abs(nx)*(kind==='smile'?.24:-.19),1])
   g.putImageData(out,0,0);return c
 }
+// Bring a monochrome source into the light of the set without smoothing the
+// photographed features. Colour portraits and the gallery originals stay intact.
+function warmMonochrome(source:HTMLCanvasElement){
+  const g=source.getContext('2d')!,pixels=g.getImageData(0,0,source.width,source.height),d=pixels.data
+  let colour=0,samples=0
+  for(let i=0;i<d.length;i+=44){
+    if(d[i+3]<190)continue
+    colour+=Math.max(d[i],d[i+1],d[i+2])-Math.min(d[i],d[i+1],d[i+2]);samples++
+  }
+  if(!samples||colour/samples>10)return
+  for(let i=0;i<d.length;i+=4){
+    if(!d[i+3])continue
+    const light=d[i]*.299+d[i+1]*.587+d[i+2]*.114
+    const warmth=Math.max(0,Math.sin(Math.PI*light/255))
+    d[i]=light*.95+warmth*13;d[i+1]=light*.90+warmth*3;d[i+2]=light*.86-warmth*5
+  }
+  g.putImageData(pixels,0,0)
+}
 function viewFromSeat(source:HTMLCanvasElement,p:FacePoints,direction:number){
   const w=source.width,h=source.height,gap=Math.abs(p.eyes[1][0]-p.eyes[0][0])
   // Shift the nearer facial planes more than the ears as the actor looks across
   // the table. A photographed profile keeps its one visible eye and silhouette.
-  if(gap<.13)return {base:source,p}
+  if(direction===0||gap<.13)return {base:source,p}
   const mid=(p.eyes[0][0]+p.eyes[1][0])/2, turn=direction*.068
   function depth(x:number,y:number){
     const dx=(x-mid)/.49,dy=(y-p.nose[1])/.63
@@ -64,6 +82,7 @@ export function faceImage(id:string,direction=1):Promise<FaceImage|null>{
       try{
         const w=Math.min(256,img.width),h=Math.round(img.height*w/img.width),source=canvas(w,h)
         source.getContext('2d')!.drawImage(img,0,0,w,h)
+        warmMonochrome(source)
         const {base,p}=viewFromSeat(source,landmarks[id]??{eyes:[[.35,.47],[.64,.47]],mouth:[.5,.73],nose:[.50,.60]},direction)
         const neck=canvas(64,48),n=neck.getContext('2d')!
         const gap=Math.max(14,Math.abs(p.eyes[1][0]-p.eyes[0][0])*w)
